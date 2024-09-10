@@ -38,9 +38,11 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.helpers.control.PIDFController;
 import org.firstinspires.ftc.teamcode.messages.DriveCommandMessage;
 import org.firstinspires.ftc.teamcode.messages.MecanumCommandMessage;
 import org.firstinspires.ftc.teamcode.messages.MecanumLocalizerInputsMessage;
@@ -58,22 +60,22 @@ public class MecanumDrive {
         // TODO: fill in these values based on
         //   see https://ftc-docs.firstinspires.org/en/latest/programming_resources/imu/imu.html?highlight=imu#physical-hub-mounting
         public RevHubOrientationOnRobot.LogoFacingDirection logoFacingDirection =
-                RevHubOrientationOnRobot.LogoFacingDirection.UP;
+                RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
         public RevHubOrientationOnRobot.UsbFacingDirection usbFacingDirection =
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD;
 
         // drive model parameters
         public double inPerTick = 1; // SparkFun OTOS Note: you can probably leave this at 1
-        public double lateralInPerTick = inPerTick;
-        public double trackWidthTicks = 0;
+        public double lateralInPerTick = 0.872882;
+        public double trackWidthTicks = 12.66;
 
         // feedforward parameters (in tick units)
-        public double kS = 0;
-        public double kV = 0;
-        public double kA = 0;
+        public double kS = 0.563756515907424;
+        public double kV = 0.19141851548064043;
+        public double kA = 0.001;
 
         // path profile parameters (in inches)
-        public double maxWheelVel = 50;
+        public double maxWheelVel = 30;
         public double minProfileAccel = -30;
         public double maxProfileAccel = 50;
 
@@ -82,13 +84,15 @@ public class MecanumDrive {
         public double maxAngAccel = Math.PI;
 
         // path controller gains
-        public double axialGain = 0.0;
-        public double lateralGain = 0.0;
-        public double headingGain = 0.0; // shared with turn
+        public double axialGain = 8.0;
+        public double lateralGain = 8.0;
+        public double headingGain = 8.0; // shared with turn
 
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
         public double headingVelGain = 0.0; // shared with turn
+
+        public double writeCachingThreshold = 0.005;
     }
 
     public static Params PARAMS = new Params();
@@ -121,6 +125,13 @@ public class MecanumDrive {
     private final DownsampledWriter targetPoseWriter = new DownsampledWriter("TARGET_POSE", 50_000_000);
     private final DownsampledWriter driveCommandWriter = new DownsampledWriter("DRIVE_COMMAND", 50_000_000);
     private final DownsampledWriter mecanumCommandWriter = new DownsampledWriter("MECANUM_COMMAND", 50_000_000);
+    private double prevLeftBackPower = 0;
+    private double prevRightBackPower = 0;
+    private double prevLeftFrontPower = 0;
+    private double prevRightFrontPower = 0;
+
+    public double lastVoltage;
+    private ElapsedTime timeSinceVoltUpdate = new ElapsedTime();
 
     public class DriveLocalizer implements Localizer {
         public final Encoder leftFront, leftBack, rightBack, rightFront;
@@ -135,7 +146,6 @@ public class MecanumDrive {
             leftBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.leftBack));
             rightBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightBack));
             rightFront = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightFront));
-
             imu = lazyImu.get();
 
             // TODO: reverse encoders if needed
@@ -228,7 +238,8 @@ public class MecanumDrive {
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // TODO: reverse motor directions if needed
-        //   leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // TODO: make sure your config has an IMU with this name (can be BNO or BHI)
         //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
@@ -236,6 +247,8 @@ public class MecanumDrive {
                 PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
 
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
+        lastVoltage = voltageSensor.getVoltage();
+        timeSinceVoltUpdate.reset();
 
         localizer = new DriveLocalizer();
 
@@ -250,11 +263,33 @@ public class MecanumDrive {
         for (DualNum<Time> power : wheelVels.all()) {
             maxPowerMag = Math.max(maxPowerMag, power.value());
         }
+        double leftFrontPower = wheelVels.leftFront.get(0) / maxPowerMag;
+        double leftBackPower = wheelVels.leftBack.get(0) / maxPowerMag;
+        double rightBackPower = wheelVels.rightBack.get(0) / maxPowerMag;
+        double rightFrontPower = wheelVels.rightFront.get(0) / maxPowerMag;
 
-        leftFront.setPower(wheelVels.leftFront.get(0) / maxPowerMag);
-        leftBack.setPower(wheelVels.leftBack.get(0) / maxPowerMag);
-        rightBack.setPower(wheelVels.rightBack.get(0) / maxPowerMag);
-        rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
+        // if the difference between new and old powers is more then writeCachingTreshold
+        // then set the new power
+        ElapsedTime powerSettingTime = new ElapsedTime();
+        if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+            leftFront.setPower(leftFrontPower);
+            prevLeftFrontPower = leftFrontPower;
+        }
+        if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+            leftBack.setPower(leftBackPower);
+            prevLeftBackPower = leftBackPower;
+        }
+        if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+            rightBack.setPower(rightBackPower);
+            prevRightBackPower = rightBackPower;
+        }
+        if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+            rightFront.setPower(rightFrontPower);
+            prevRightFrontPower = rightFrontPower;
+        }
+        System.out.println("Power Setting Time: " + powerSettingTime.milliseconds());
+
+
     }
 
     public final class FollowTrajectoryAction implements Action {
@@ -310,7 +345,7 @@ public class MecanumDrive {
             driveCommandWriter.write(new DriveCommandMessage(command));
 
             MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(command);
-            double voltage = voltageSensor.getVoltage();
+            double voltage = readVoltage();
 
             final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS,
                     PARAMS.kV / PARAMS.inPerTick, PARAMS.kA / PARAMS.inPerTick);
@@ -322,10 +357,24 @@ public class MecanumDrive {
                     voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
             ));
 
-            leftFront.setPower(leftFrontPower);
-            leftBack.setPower(leftBackPower);
-            rightBack.setPower(rightBackPower);
-            rightFront.setPower(rightFrontPower);
+            // if the difference between new and old powers is more then 0.1
+            // then set the new power
+            if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+                leftFront.setPower(leftFrontPower);
+                prevLeftFrontPower = leftFrontPower;
+            }
+            if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+                leftBack.setPower(leftBackPower);
+                prevLeftBackPower = leftBackPower;
+            }
+            if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+                rightBack.setPower(rightBackPower);
+                prevRightBackPower = rightBackPower;
+            }
+            if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+                rightFront.setPower(rightFrontPower);
+                prevRightFrontPower = rightFrontPower;
+            }
 
             p.put("x", pose.position.x);
             p.put("y", pose.position.y);
@@ -359,6 +408,122 @@ public class MecanumDrive {
             c.setStrokeWidth(1);
             c.strokePolyline(xPoints, yPoints);
         }
+    }
+    public final class PIDToPointAction implements Action {
+        public final Pose2d target;
+        public final Pose2d startPose;
+        private final PIDFController xContr = new PIDFController(new PIDFController.PIDCoefficients(PARAMS.axialGain,0,PARAMS.axialVelGain));
+        private final PIDFController yContr = new PIDFController(new PIDFController.PIDCoefficients(PARAMS.axialGain,0,PARAMS.axialVelGain));
+        private final PIDFController headingContr = new PIDFController(new PIDFController.PIDCoefficients(PARAMS.headingGain,0,PARAMS.headingVelGain));
+
+        public PIDToPointAction(Pose2d target) {
+            this.target = target;
+            this.startPose = pose;
+            xContr.targetPosition = target.position.x;
+            yContr.targetPosition = target.position.y;
+            headingContr.targetPosition = target.heading.toDouble();
+            headingContr.setOutputBounds(-Math.PI,Math.PI);
+        }
+        public PIDToPointAction(Pose2d target, Pose2d startPose){
+            this.target = target;
+            this.startPose = startPose;
+            xContr.targetPosition = target.position.x;
+            yContr.targetPosition = target.position.y;
+            headingContr.targetPosition = target.heading.toDouble();
+            headingContr.setOutputBounds(-Math.PI,Math.PI);
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket p) {
+            targetPoseWriter.write(new PoseMessage(target));
+
+            PoseVelocity2d robotVelRobot = updatePoseEstimate();
+
+            if (pose.position.minus(target.position).sqrNorm() < 1 && robotVelRobot.linearVel.sqrNorm() < 5) {
+                leftBack.setPower(0);
+                leftFront.setPower(0);
+                rightBack.setPower(0);
+                rightFront.setPower(0);
+                return false;
+            }
+
+            Vector2d inputVec = new Vector2d(
+                    xContr.update(pose.position.x),
+                    yContr.update(pose.position.y)
+            );
+            inputVec = pose.heading.inverse().times(inputVec);
+            PoseVelocity2d input = new PoseVelocity2d(
+                    inputVec,
+                    headingContr.update(pose.heading.log())
+
+            );
+            MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(PoseVelocity2dDual.constant(input, 2));
+            double voltage = readVoltage();
+
+            final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS,
+                    PARAMS.kV / PARAMS.inPerTick, PARAMS.kA / PARAMS.inPerTick);
+            double leftFrontPower = feedforward.compute(wheelVels.leftFront) / voltage;
+            double leftBackPower = feedforward.compute(wheelVels.leftBack) / voltage;
+            double rightBackPower = feedforward.compute(wheelVels.rightBack) / voltage;
+            double rightFrontPower = feedforward.compute(wheelVels.rightFront) / voltage;
+            mecanumCommandWriter.write(new MecanumCommandMessage(
+                    voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
+            ));
+
+            // if the difference between new and old powers is more then 0.1
+            // then set the new power
+            if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+                leftFront.setPower(leftFrontPower);
+                prevLeftFrontPower = leftFrontPower;
+            }
+            if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+                leftBack.setPower(leftBackPower);
+                prevLeftBackPower = leftBackPower;
+            }
+            if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+                rightBack.setPower(rightBackPower);
+                prevRightBackPower = rightBackPower;
+            }
+            if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+                rightFront.setPower(rightFrontPower);
+                prevRightFrontPower = rightFrontPower;
+            }
+
+            p.put("x", pose.position.x);
+            p.put("y", pose.position.y);
+            p.put("heading (deg)", Math.toDegrees(pose.heading.toDouble()));
+
+            Pose2d error = target.minusExp(pose);
+            p.put("xError", error.position.x);
+            p.put("yError", error.position.y);
+            p.put("headingError (deg)", Math.toDegrees(error.heading.toDouble()));
+
+            // only draw when active; only one drive action should be active at a time
+            Canvas c = p.fieldOverlay();
+            drawPoseHistory(c);
+
+            c.setStroke("#4CAF50");
+            Drawing.drawRobot(c, target);
+
+            c.setStroke("#3F51B5");
+            Drawing.drawRobot(c, pose);
+
+            c.setStroke("#4CAF50FF");
+            c.setStrokeWidth(1);
+            c.strokeLine(startPose.position.x,startPose.position.y,target.position.x,target.position.y);
+
+            return true;
+        }
+
+        @Override
+        public void preview(Canvas c) {
+            c.setStroke("#4CAF507A");
+            c.setStrokeWidth(1);
+            c.strokeLine(startPose.position.x,startPose.position.y,target.position.x,target.position.y);
+        }
+    }
+    public PIDToPointAction pidToPointAction(Pose2d target) {
+        return new PIDToPointAction(target);
     }
 
     public final class TurnAction implements Action {
@@ -402,7 +567,7 @@ public class MecanumDrive {
             driveCommandWriter.write(new DriveCommandMessage(command));
 
             MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(command);
-            double voltage = voltageSensor.getVoltage();
+            double voltage = readVoltage();
             final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS,
                     PARAMS.kV / PARAMS.inPerTick, PARAMS.kA / PARAMS.inPerTick);
             double leftFrontPower = feedforward.compute(wheelVels.leftFront) / voltage;
@@ -412,11 +577,24 @@ public class MecanumDrive {
             mecanumCommandWriter.write(new MecanumCommandMessage(
                     voltage, leftFrontPower, leftBackPower, rightBackPower, rightFrontPower
             ));
-
-            leftFront.setPower(feedforward.compute(wheelVels.leftFront) / voltage);
-            leftBack.setPower(feedforward.compute(wheelVels.leftBack) / voltage);
-            rightBack.setPower(feedforward.compute(wheelVels.rightBack) / voltage);
-            rightFront.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
+            // if the difference between new and old powers is more then writeCachingThreshold
+            // then set the new power
+            if (Math.abs(leftFrontPower - prevLeftFrontPower) > PARAMS.writeCachingThreshold) {
+                leftFront.setPower(leftFrontPower);
+                prevLeftFrontPower = leftFrontPower;
+            }
+            if (Math.abs(leftBackPower - prevLeftBackPower) > PARAMS.writeCachingThreshold) {
+                leftBack.setPower(leftBackPower);
+                prevLeftBackPower = leftBackPower;
+            }
+            if (Math.abs(rightBackPower - prevRightBackPower) > PARAMS.writeCachingThreshold) {
+                rightBack.setPower(rightBackPower);
+                prevRightBackPower = rightBackPower;
+            }
+            if (Math.abs(rightFrontPower - prevRightFrontPower) > PARAMS.writeCachingThreshold) {
+                rightFront.setPower(rightFrontPower);
+                prevRightFrontPower = rightFrontPower;
+            }
 
             Canvas c = p.fieldOverlay();
             drawPoseHistory(c);
@@ -485,5 +663,13 @@ public class MecanumDrive {
                 defaultTurnConstraints,
                 defaultVelConstraint, defaultAccelConstraint
         );
+    }
+
+    public double readVoltage() {
+        if (timeSinceVoltUpdate.milliseconds() > 500) {
+            lastVoltage = voltageSensor.getVoltage();
+            timeSinceVoltUpdate.reset();
+        }
+        return lastVoltage;
     }
 }

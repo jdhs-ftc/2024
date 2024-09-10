@@ -14,12 +14,25 @@
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
+apply plugin: 'org.team11260.fast-load-plugin'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
     packagingOptions {
         jniLibs.useLegacyPackaging true
+    }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url = "https://www.matthewo.tech/maven"
+        }
+    }
+    dependencies {
+        classpath 'org.team11260:fast-load-plugin:0.1.2'
     }
 }
 
@@ -30,10 +43,14 @@ repositories {
     maven {
         url = 'https://jitpack.io'
     }
+    maven {
+        url = 'https://www.matthewo.tech/maven'
+    }
 }
 
 dependencies {
     implementation project(':FtcRobotController')
+    implementation 'org.team11260:fast-load:0.1.2'
 
     implementation "com.acmerobotics.roadrunner:core:1.0.0"
     implementation "com.acmerobotics.roadrunner:actions:1.0.0"

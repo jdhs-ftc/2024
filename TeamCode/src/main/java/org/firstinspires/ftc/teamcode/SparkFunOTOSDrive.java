@@ -37,8 +37,10 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // would be {-5, 10, -90}. These can be any value, even the angle can be
         // tweaked slightly to compensate for imperfect mounting (eg. 1.3 degrees).
 
-        // RR localizer note: These units are inches and radians.
-        public SparkFunOTOS.Pose2D offset = new SparkFunOTOS.Pose2D(0, 0, Math.toRadians(0));
+        // RR localizer note: these units are inches and radians
+        // also, tuning currently assumes your angular offset is a multiple of 90
+
+        public SparkFunOTOS.Pose2D offset = new SparkFunOTOS.Pose2D(0,0,Math.toRadians(180));//new SparkFunOTOS.Pose2D(0.44, 4.965, Math.toRadians(180));
 
         // Here we can set the linear and angular scalars, which can compensate for
         // scaling issues with the sensor measurements. Note that as of firmware
@@ -56,8 +58,12 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // multiple speeds to get an average, then set the linear scalar to the
         // inverse of the error. For example, if you move the robot 100 inches and
         // the sensor reports 103 inches, set the linear scalar to 100/103 = 0.971
-        public double linearScalar = 1.0;
-        public double angularScalar = 1.0;
+
+        // 12087 tuning note:
+        // these are initial tuning numbers based on weird mount and weird tiles
+        // TODO: TEST WITH GOOD MOUNT ON REAL TILES
+        public double linearScalar = 1.0; //114/101; //1.0615; //69/65;
+        public double angularScalar = 0.98534;//0.999444; // 3600/3602;
     }
 
     public static SparkFunOTOSDrive.Params PARAMS = new SparkFunOTOSDrive.Params();
@@ -67,9 +73,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
     public SparkFunOTOSDrive(HardwareMap hardwareMap, Pose2d pose) {
         super(hardwareMap, pose);
         otos = hardwareMap.get(SparkFunOTOSCorrected.class,"sensor_otos");
-        // RR localizer note:
-        // don't change the units, it will stop Dashboard field view from working properly
-        // and might cause various other issues
+
         otos.setLinearUnit(DistanceUnit.INCH);
         otos.setAngularUnit(AngleUnit.RADIANS);
 
@@ -90,35 +94,29 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // it will take 255 samples and wait until done; each sample takes about
         // 2.4ms, so about 612ms total
 
-        // RR localizer note: It is technically possible to change the number of samples to slightly reduce init times,
-        // however, I found that it caused pretty severe heading drift.
-        // Also, if you're careful to always wait more than 612ms in init, you could technically disable waitUntilDone;
-        // this would allow your OpMode code to run while the calibration occurs.
-        // However, that may cause other issues.
-        // In the future I hope to do that by default and just add a check in updatePoseEstimate for it
+        // RR localizer note: numSamples number completely arbitrary at the moment, feel free to change to fit your needs
+        // Will get better number once I actually get this sensor
         System.out.println(otos.calibrateImu(255, true));
         System.out.println("OTOS calibration complete!");
+        // RR localizer note:
+        // disable robot centric mode
+        otos.setSignalProcessConfig(new SparkFunOTOS.SignalProcessConfig((byte) 0x0F));
     }
     @Override
     public PoseVelocity2d updatePoseEstimate() {
         if (lastOtosPose != pose) {
-            // RR localizer note:
-            // Something else is modifying our pose (likely for relocalization),
-            // so we override otos pose with the new pose.
-            // This could potentially cause up to 1 loop worth of drift.
-            // I don't like this solution at all, but it preserves compatibility.
-            // The only alternative is to add getter and setters, but that breaks compat.
-            // Potential alternate solution: timestamp the pose set and backtrack it based on speed?
+            // rr localizer note:
+            // something other then this function has modified pose
+            // probably the user
+            // so we override otos pose with the new pose
+            // this could potentially cause up to 1 loops worth of drift
+            // I don't really like this solution at all, but it preserves compatibility
+            // the only alternative is to add getter and setters but that breaks compat
             otos.setPosition(RRPoseToOTOSPose(pose));
         }
-        // RR localizer note:
-        // The values are passed by reference, so we create variables first,
-        // then pass them into the function, then read from them.
-
-        // Reading acceleration worsens loop times by 1ms,
-        // but not reading it would need a custom driver and would break compatibility.
-        // The same is true for speed: we could calculate speed ourselves from pose and time,
-        // but it would be hard, less accurate, and would only save 1ms of loop time.
+        // passed by reference
+        // reading acc is slightly worse (1ms) for loop times but oh well, this is what the driver supports
+        // might have to make a custom driver eventually
         SparkFunOTOS.Pose2D otosPose = new SparkFunOTOS.Pose2D();
         SparkFunOTOS.Pose2D otosVel = new SparkFunOTOS.Pose2D();
         SparkFunOTOS.Pose2D otosAcc = new SparkFunOTOS.Pose2D();
@@ -126,7 +124,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         pose = OTOSPoseToRRPose(otosPose);
         lastOtosPose = pose;
 
-        // RR standard
+        // rr standard
         poseHistory.add(pose);
         while (poseHistory.size() > 100) {
             poseHistory.removeFirst();
@@ -135,7 +133,10 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         FlightRecorder.write("ESTIMATED_POSE", new PoseMessage(pose));
 
         // RR localizer note:
-        // OTOS velocity units happen to be identical to Roadrunners, so we don't need any conversion!
+        // TODO: sussy code
+        // unsure how to even do this properly or whether this is the right way to do it
+        // I don't know enough math to understand dual nums :(
+
         return new PoseVelocity2d(new Vector2d(otosVel.x, otosVel.y),otosVel.h);
     }
 
