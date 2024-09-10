@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.example'
+version = 'unspecified'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+repositories {
+    maven { url = 'https://maven.brott.dev/' }
+}
+
+dependencies {
+    implementation 'com.acmerobotics.roadrunner:MeepMeep:0.1.6'
+}

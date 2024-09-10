@@ -418,7 +418,6 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addData("x", drive.pose.position.x);
                 telemetry.addData("y", drive.pose.position.y);
                 telemetry.addData("heading", drive.pose.heading.log());
-                telemetry.addData("oldHeading",drive.lastOtosPose.heading.log());
             }
             if (showLoopTimes) {
                 telemetry.addLine("--- Loop Times ---");
