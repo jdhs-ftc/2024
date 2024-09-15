@@ -24,10 +24,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode;
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage;
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController;
-import org.firstinspires.ftc.teamcode.helpers.vision.CameraStreamProcessor;
 import org.firstinspires.ftc.teamcode.motor.MotorActions;
 import org.firstinspires.ftc.teamcode.motor.MotorControl;
-import org.firstinspires.ftc.teamcode.vision.pipelines.WhitePixelProcessor;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -68,6 +66,9 @@ public class TeleopActions extends ActionOpMode {
     boolean actionRunning = false;
     boolean suspendSet = false;
     LinkedList<Double> loopTimeAvg = new LinkedList<>();
+
+    double loopTimeBeforeUpdate = 0;
+    double loopTimeAfterUpdate = 0;
 
 
     @Override
@@ -423,7 +424,9 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addLine("--- Loop Times ---");
                 telemetry.addData("loopTimeMs", loopTimeMs);
                 telemetry.addData("loopTimeHz", 1000.0 / loopTimeMs);
-                telemetry.addData("OTOSReadAverage ", loopTimeAvg.stream().reduce(0.0,Double::sum) / loopTimeAvg.size());
+                telemetry.addData("LoopAverage ", loopTimeAvg.stream().reduce(0.0,Double::sum) / loopTimeAvg.size());
+                telemetry.addData("msBeforeUpdate",loopTimeBeforeUpdate);
+                telemetry.addData("msAfterUpdate",loopTimeAfterUpdate);
             }
             /*
             if (showMotorTelemetry) {
@@ -454,38 +457,13 @@ public class TeleopActions extends ActionOpMode {
             }
 
              */
+            loopTimeBeforeUpdate = loopTime.milliseconds();
             telemetry.update();
+            loopTimeAfterUpdate = loopTime.milliseconds();
         }
     }
 
-        Action pixelToHook () {
-            return new ParallelAction(new SequentialAction(
-                    new InstantAction(() -> actionRunning = true),
-                    motorActions.pixelToHook(),
-                    new InstantAction(() -> {
-                        pixelInClaw = false;
-                        pixelInHook = true;
-                    }),
-                    new InstantAction(() -> actionRunning = false)
-            ),
-                    new SequentialAction(
-                            moveBack3In()
-                    ));
-        }
-        Action placePixel (input input){
-            return new SequentialAction(
-                    new InstantAction(() -> actionRunning = true),
-                    motorActions.hookToBackdrop(),
-                    (telemetryPacket -> padRelease()),
-                    motorActions.placeSecondPixel(),
-                    (telemetryPacket -> padRelease()),
-                    motorActions.returnHook(),
-                    new InstantAction(() -> pixelInHook = false),
-                    new InstantAction(() -> actionRunning = false)
 
-            );
-
-        }
         // TODO: probably not needed, just make a normal action
         interface input {
             boolean isPressed();
@@ -494,71 +472,6 @@ public class TeleopActions extends ActionOpMode {
             return telemetryPacket -> input.isPressed();
         }
 
-        boolean padRelease () {
-            return !((gamepad2.right_trigger > 0.25) && previousGamepad2.right_trigger < 0.25);
-        }
-
-        Action moveBack3In() {
-            return new SequentialAction(
-                    new InstantAction(() -> drivingEnabled = false),
-                    new MoveBackAction(),
-                    new SleepAction(0.1),
-                    new StopMovingAction(),
-                    new InstantAction(() -> drivingEnabled = true)
-            );
-        }
-
-        class MoveBackAction implements Action {
-
-            @Override
-            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-                if (!gamepad2.left_bumper) {
-                    drive.setDrivePowers(
-                            new PoseVelocity2d(
-                                    new Vector2d(
-                                            -1,
-                                            0
-                                    ),
-                                    0
-                            )
-                    );
-                }
-                    return false;
-
-            }
-        }
-        class StopMovingAction implements Action {
-
-            @Override
-            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-                drive.setDrivePowers(
-                    new PoseVelocity2d(
-                            new Vector2d(
-                                    0,
-                                    0
-                            ),
-                            0
-                    )
-            );
-                return false;
-         }
-        }
-
-        boolean driveActionRunning() {
-            return containsDriveAction(runningActions);
-        }
-        boolean containsDriveAction(List<Action> actions) {
-            for (Action action : actions) {
-                if (action.getClass() == MecanumDrive.FollowTrajectoryAction.class || action.getClass() == MoveBackAction.class || action.getClass() == StopMovingAction.class) {
-                    return true;
-                }
-                if (action.getClass() == SequentialAction.class) {
-                    SequentialAction sequentialAction = (SequentialAction) action;
-                    return containsDriveAction(sequentialAction.getInitialActions());
-                    }
-                }
-            return false;
-        }
 
 }
 
