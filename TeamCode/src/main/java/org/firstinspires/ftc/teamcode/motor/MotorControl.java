@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.motor;
 
 import androidx.annotation.NonNull;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.ftc.RawEncoder;
 import com.qualcomm.robotcore.hardware.*;
 
@@ -25,17 +24,18 @@ public class MotorControl {
     //public final ColorSensor color;
 
     /**
-     * This initializes the arm and slide motors, and resets the mode to the default. This should be run before any other methods.
+     * This initializes the arm and slide motors and resets the mode to the default.
+     * This should be run before any other methods.
      *
      * @param hardwareMap The hardware map to use to get the motors.
      */
     public MotorControl(@NonNull HardwareMap hardwareMap) {
-        extendo = new Slide(hardwareMap, // port 0 of exp hub and chub, equiv to left_back I think)
+        extendo = new Slide(hardwareMap, // port 0 of exp hub and chub, equiv to left_back I think
                 "extendo",
                 new PIDFController.PIDCoefficients(3,0,0));
         extendo.setEncoder(hardwareMap.get(DcMotorEx.class,"left_back"));
         deposit = new Slide(hardwareMap, // port 1 of exp hub and chub,
-                // equiv to left_front i think could be wrong though
+                // equiv to left_front I think could be wrong though
                 "deposit",
                 new PIDFController.PIDCoefficients(3,0,0));
         deposit.setEncoder(hardwareMap.get(DcMotorEx.class,"right_back"));

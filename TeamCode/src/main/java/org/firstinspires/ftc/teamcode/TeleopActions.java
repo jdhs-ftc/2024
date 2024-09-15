@@ -232,11 +232,9 @@ public class TeleopActions extends ActionOpMode {
             //Pose2d poseEstimate = drive.pose;
             double rotationAmount = -drive.pose.heading.log(); // Rotation2d.log() makes it into a double in radians.
             if (fieldCentric && !padCameraAutoAim) {
-                if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on the color changes
-                    //input = drive.pose.heading.inverse().plus(Math.toRadians(90)).times(new Vector2d(-input.x, input.y)); // magic courtesy of https://github.com/acmerobotics/road-runner/issues/90#issuecomment-1722674965
+                if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on, the color changes
                     rotationAmount = rotationAmount - Math.toRadians(90);
                 } else {
-                    //input = drive.pose.heading.inverse().plus(Math.toRadians(-90)).times(new Vector2d(input.x, -input.y)); // magic courtesy of
                     rotationAmount = rotationAmount + Math.toRadians(90);
 
                 }
@@ -270,7 +268,7 @@ public class TeleopActions extends ActionOpMode {
                     joystickHeadingController.targetPosition = targetHeading.toDouble();
 
 
-                    // Set desired angular velocity to the heading controller output + angular
+                    // Set the desired angular velocity to the heading controller output + angular
                     // velocity feedforward
                     double headingInput = (joystickHeadingController.update(drive.pose.heading.log())
                             * MecanumDrive.PARAMS.kV
@@ -291,98 +289,20 @@ public class TeleopActions extends ActionOpMode {
 
             // LIFT CONTROL/FSM
 
-            /*
+
 
             // Slide (Manual)
-            if (motorControl.slide.getTargetPosition() > 1100 && padSlideControl > 0) {
-                motorControl.slide.setTargetPosition(1100);
+            if (motorControl.deposit.getTargetPosition() > 1100 && padSlideControl > 0) {
+                motorControl.deposit.setTargetPosition(1100);
 
-            } else if (motorControl.slide.getTargetPosition() <= 40 && padSlideControl < 0 && !padForceDown) {
-                motorControl.slide.setTargetPosition(40);
+            } else if (motorControl.deposit.getTargetPosition() <= 40 && padSlideControl < 0 && !padForceDown) {
+                motorControl.deposit.setTargetPosition(40);
 
             } else {
-                motorControl.slide.setTargetPosition(motorControl.slide.getTargetPosition() + (padSlideControl * padSlideControlMultiplier));
+                motorControl.deposit.setTargetPosition(motorControl.deposit.getTargetPosition() + (padSlideControl * padSlideControlMultiplier));
             }
 
 
-            motorControl.suspend.setPower(padSuspendControl * padSuspendControlMultiplier);
-
-
-            if (pixelInClaw && padHalfCycle && motorControl.slide.motor.getCurrentPosition() < 850 && !actionRunning) {
-                run(pixelToHook());
-            }
-            if (pixelInHook && padFullCycle && !actionRunning) {
-                run(placePixel(this::padRelease)); // TODO: maybe causes issues?
-            }
-
-
-            if (pixelInClaw && runningActions.isEmpty()) {
-                motorControl.claw.setPosition(0.82); //0.85
-            } else {
-                motorControl.claw.setPosition(0.94);
-            }
-
-
-
-            if (padClawToggle) {
-                pixelInClaw = !pixelInClaw;
-                if (pixelInClaw) {
-                    motorControl.claw.setPosition(0.82); //0.85
-                } else {
-                    motorControl.claw.setPosition(0.94);
-                }
-            }
-            if (padMissedHook) {
-                pixelInHook = false;
-                motorControl.seperator.setPosition(0);
-            }
-
-
-
-
-            // Reset
-
-            if (padForceDown) {
-                motorControl.hookArm.setPosition(1);
-            }
-
-            if (padAutoPlacer) {
-                motorControl.autoPlacer.setPosition(0.5);
-            } else {
-                motorControl.autoPlacer.setPosition(1);
-            }
-
-            // Shooter
-
-            if (padShooter) {
-                motorControl.shooter.setPower(-1);
-            } else {
-                motorControl.shooter.setPower(0);
-            }
-
-            /*
-            if (currentGamepad2.dpad_down && !previousGamepad2.dpad_down) {
-                runningActions.add(motorActions.seperator.hold());
-            } else if (!currentGamepad2.dpad_down && previousGamepad2.dpad_down){
-                runningActions.add(motorActions.seperator.release());
-            }
-
-             */
-            /*
-            if (gamepad2.dpad_down) {
-                motorControl.seperator.setPosition(0.35);
-            } else {
-                motorControl.seperator.setPosition(0);
-            }
-
-
-
-             if (currentGamepad2.triangle && !previousGamepad2.triangle) {
-                    motorControl.hookArm.setPosition(0.6);
-                    motorControl.slide.setTargetPosition(1200);
-             }
-
-             */
 
             double colorAlpha = 0;
             double pad2rumble;
