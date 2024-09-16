@@ -12,11 +12,15 @@ public class MotorActions {
     public final MotorControl motorControl;
     public final Extendo extendo;
     public final Deposit deposit;
+    public final Claw depositClaw;
+    public final Claw extendoClaw;
 
     public MotorActions(MotorControl motorControl) {
         this.motorControl = motorControl;
         this.extendo = new Extendo();
         this.deposit = new Deposit();
+        this.depositClaw = new Claw(motorControl.depositClaw);
+        this.extendoClaw = new Claw(motorControl.extendoClaw);
 
     }
     public Action waitUntilFinished() {
@@ -86,6 +90,20 @@ public class MotorActions {
         }
         public Action moveDown() {
             return setTargetPosition(40);
+        }
+    }
+
+    public static class Claw {
+        MotorControl.Claw claw;
+        Claw(MotorControl.Claw claw) {
+            this.claw = claw;
+        }
+        // TODO: add waits? depends on delay
+        public Action close() {
+            return new InstantAction(() -> claw.close());
+        }
+        public Action open() {
+            return new InstantAction(() -> claw.open());
         }
     }
 

@@ -1,20 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
 
-import androidx.annotation.NonNull;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.InstantAction;
-import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Rotation2d;
-import com.acmerobotics.roadrunner.SequentialAction;
-import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -48,8 +42,6 @@ public class TeleopActions extends ActionOpMode {
 
     List<Action> runningActions = new ArrayList<>();
     final ElapsedTime loopTime = new ElapsedTime();
-    boolean pixelInClaw = false;
-    boolean pixelInHook = true;//false;
     final Gamepad currentGamepad1 = new Gamepad();
     final Gamepad currentGamepad2 = new Gamepad();
     final Gamepad previousGamepad1 = new Gamepad();
@@ -95,15 +87,10 @@ public class TeleopActions extends ActionOpMode {
         telemetry.setMsTransmissionInterval(50);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
-        /*
+
         // Motor Init
         motorControl = new MotorControl(hardwareMap);
         motorActions = new MotorActions(motorControl);
-
-        motorControl.slide.findZero();
-        motorControl.activatePreset(MotorControl.combinedPreset.IDLE);
-
-         */
 
 
         waitForStart();
@@ -152,30 +139,20 @@ public class TeleopActions extends ActionOpMode {
             boolean padMidPreset = gamepad2.b;
             boolean padLowPreset = gamepad2.a;
 
-            boolean padClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper); //|| (gamepad1.square && !previousGamepad1.square);
-
-            boolean padShooter = gamepad2.square; //|| gamepad1.square;
+            boolean padDepositClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper); //|| (gamepad1.square && !previousGamepad1.square);
+            boolean padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper);
+            // carson mixes up lefts from rights;
+            // grip tape?
+            // use triggers?
 
             // Manual Control
-            double padSlideControl = -gamepad2.left_stick_y;
+            double padDepositControl = -gamepad2.left_stick_y;
+            double padExtendoControl = -gamepad2.right_stick_y;
             double padSlideControlMultiplier = 40;
-            /*
-            double padArmControl = -gamepad2.right_stick_y;
-            double padArmControlMultiplier = 2;
-
-             */
-
-            double padSuspendControl = -gamepad2.right_stick_y;
-            double padSuspendControlMultiplier = 1;
 
 
             // Misc
-            double padGunnerDrive = gamepad2.right_stick_x; // only when right trigger held
             boolean padForceDown = gamepad2.dpad_down && gamepad2.options;
-            boolean padMissedHook = gamepad2.dpad_up;
-            boolean padAutoPlacer = gamepad2.dpad_down && gamepad2.share;
-
-            boolean padSuspendMode = gamepad2.triangle && !previousGamepad2.triangle;
 
 
             // Update the speed
@@ -292,14 +269,31 @@ public class TeleopActions extends ActionOpMode {
 
 
             // Slide (Manual)
-            if (motorControl.deposit.getTargetPosition() > 1100 && padSlideControl > 0) {
+            // TODO: abstract this?
+            if (motorControl.deposit.getTargetPosition() > 1100 && padDepositControl > 0) {
                 motorControl.deposit.setTargetPosition(1100);
 
-            } else if (motorControl.deposit.getTargetPosition() <= 40 && padSlideControl < 0 && !padForceDown) {
+            } else if (motorControl.deposit.getTargetPosition() <= 40 && padDepositControl < 0 && !padForceDown) {
                 motorControl.deposit.setTargetPosition(40);
 
             } else {
-                motorControl.deposit.setTargetPosition(motorControl.deposit.getTargetPosition() + (padSlideControl * padSlideControlMultiplier));
+                motorControl.deposit.setTargetPosition(motorControl.deposit.getTargetPosition() + (padDepositControl * padSlideControlMultiplier));
+            }
+            if (motorControl.extendo.getTargetPosition() > 1100 && padExtendoControl > 0) {
+                motorControl.extendo.setTargetPosition(1100);
+
+            } else if (motorControl.extendo.getTargetPosition() <= 40 && padExtendoControl < 0 && !padForceDown) {
+                motorControl.extendo.setTargetPosition(40);
+
+            } else {
+                motorControl.extendo.setTargetPosition(motorControl.extendo.getTargetPosition() + (padExtendoControl * padSlideControlMultiplier));
+            }
+
+            if (padDepositClawToggle) {
+                motorControl.depositClaw.toggle();
+            }
+            if (padExtendoClawToggle) {
+                motorControl.extendoClaw.toggle();
             }
 
 
@@ -308,7 +302,7 @@ public class TeleopActions extends ActionOpMode {
             double pad2rumble;
 
             // rumble the gunner controller based on the claw color sensor
-            if (colorAlpha > 200 && !pixelInClaw) {
+            if (colorAlpha > 200 && !motorControl.extendoClaw.closed) {
                 pad2rumble = Math.log10(colorAlpha) / 6;
             } else {
                 pad2rumble = 0;
@@ -348,35 +342,22 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addData("msBeforeUpdate",loopTimeBeforeUpdate);
                 telemetry.addData("msAfterUpdate",loopTimeAfterUpdate);
             }
-            /*
+
             if (showMotorTelemetry) {
                 telemetry.addLine("--- Motors ---");
-                telemetry.addData("armTarget", motorControl.clawArm.getTargetPosition());
-                telemetry.addData("armPosition", motorControl.clawArm.motor.getCurrentPosition());
-                telemetry.addData("slideTarget", motorControl.slide.getTargetPosition());
-                telemetry.addData("slidePosition", motorControl.slide.motor.getCurrentPosition());
-                telemetry.addData("clawPower", motorControl.claw.getPosition());
-                telemetry.addData("hookPower", motorControl.hookArm.getPosition());
-                telemetry.addData("colorAlpha", colorAlpha);
-                telemetry.addData("colorAlphaLog", Math.log10(colorAlpha));
-                telemetry.addData("touchSensor", motorControl.touch.isPressed());
-                telemetry.addData("touchSensor", motorControl.magnet.isPressed());
+                telemetry.addData("extendoTarget", motorControl.extendo.getTargetPosition());
+                telemetry.addData("extendoPosition", motorControl.extendo.motor.getCurrentPosition());
+                telemetry.addData("depositTarget", motorControl.deposit.getTargetPosition());
+                telemetry.addData("depositPosition", motorControl.deposit.motor.getCurrentPosition());
+                telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
+                telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
 
 
             if (showStateTelemetry) {
                 telemetry.addLine("--- State Machine ---");
-                telemetry.addData("pixelInClaw", pixelInClaw);
-                telemetry.addData("pixelInHook", pixelInHook);
-                telemetry.addData("armState", motorControl.clawArm.currentPreset);
-                telemetry.addData("elapsedTime", liftTimer.milliseconds());
-                telemetry.addData("driveAction", driveActionRunning());
                 telemetry.addData("actions",runningActions);
-                telemetry.addData("suspendMode",suspendSet);
-                telemetry.addData("actionRunning", actionRunning);
             }
-
-             */
             loopTimeBeforeUpdate = loopTime.milliseconds();
             telemetry.update();
             loopTimeAfterUpdate = loopTime.milliseconds();

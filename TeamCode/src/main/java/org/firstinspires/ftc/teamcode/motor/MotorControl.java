@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.motor;
 
 import androidx.annotation.NonNull;
 
-import com.acmerobotics.roadrunner.ftc.RawEncoder;
 import com.qualcomm.robotcore.hardware.*;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
@@ -16,8 +15,8 @@ import java.util.ArrayList;
  */
 public class MotorControl {
 
-    public final Servo groundClaw;
-    public final Servo depositClaw;
+    public final Claw extendoClaw;
+    public final Claw depositClaw;
     public final Slide extendo;
     public final Slide deposit;
     public static ArrayList<ControlledMotor> motors = new ArrayList<>();
@@ -41,10 +40,8 @@ public class MotorControl {
         deposit.setEncoder(hardwareMap.get(DcMotorEx.class,"right_back"));
 
 
-        groundClaw = hardwareMap.get(Servo.class, "groundClaw");
-        depositClaw = hardwareMap.get(Servo.class, "depositClaw");
-        groundClaw.setPosition(0);
-        depositClaw.setPosition(0);
+        extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"));
+        depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
 
         //color = hardwareMap.get(ColorSensor.class, "color");
     }
@@ -74,7 +71,8 @@ public class MotorControl {
         boolean reversed = false;
         boolean resetting = false;
         PIDFController pid;
-        public RawEncoder encoder;
+        public DcMotorEx encoder;
+        public double encoderOffset = 0;
         /**
          * This initializes the slide motor. This should be run before any other methods.
          *
@@ -84,27 +82,20 @@ public class MotorControl {
             super();
             pid = new PIDFController(pidCoefficients);
             motor = hardwareMap.get(DcMotorEx.class, motorName);
-            encoder = new RawEncoder(motor);
+            encoder = motor;
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             motor.setCurrentAlert(6, CurrentUnit.AMPS);
             if (reversed) {
                 motor.setDirection(DcMotorSimple.Direction.REVERSE);
-                encoder.setDirection(DcMotorSimple.Direction.REVERSE);
             } else {
                 motor.setDirection(DcMotorSimple.Direction.FORWARD);
-                encoder.setDirection(DcMotorSimple.Direction.FORWARD);
             }
             motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         }
 
         public void setEncoder(DcMotorEx motor) {
-            encoder = new RawEncoder(motor);
-            if (reversed) {
-                encoder.setDirection(DcMotorSimple.Direction.REVERSE);
-            } else {
-                encoder.setDirection(DcMotorSimple.Direction.FORWARD);
-            }
+            encoder = motor;
         }
 
         /**
@@ -113,47 +104,96 @@ public class MotorControl {
         public void reset() {
             motor.setPower(0);
             targetPosition = 0;
-            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            setPosition(0);
         }
 
 
-        /**
-         * This updates the slide motor to match the current state. This should be run in a loop.
-         */
         public void update() {
             pid.targetPosition = targetPosition;
             if (resetting) {
-                if (motor.getCurrent(CurrentUnit.AMPS) > 2.5) {
+                if (motor.getCurrent(CurrentUnit.AMPS) > 2.5) { //current limit end detection
                     reset();
                     resetting = false;
                 }
             } else {
                 if (!motor.isOverCurrent()) {
-                    motor.setPower(pid.update(motor.getCurrentPosition()));
+                    motor.setPower(pid.update(getPosition()));
                 } else {
                     motor.setPower(0);
-
                 }
             }
         }
 
         public void findZero() {
-            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             motor.setPower(-0.5);
             resetting = true;
         }
 
+        public double getPosition() {
+            if (reversed) {
+                return (encoder.getCurrentPosition() * -1) - encoderOffset;
+            } else {
+                return encoder.getCurrentPosition() - encoderOffset;
+            }
+        }
+
+        public void setPosition(double position) {
+            // some weird math happening here
+            // this *should* work because we minus in getPosition but unsure
+            // TODO: prob causing problems
+            encoderOffset += getPosition();
+        }
+
 
         public boolean closeEnough() {
-            return Math.abs(motor.getCurrentPosition() - targetPosition) < 20;
+            return Math.abs(getPosition() - targetPosition) < 20;
         }
 
     }
 
-    /**
-     * This class controls the claw.
-     */
+
+    public static class Claw {
+        public Servo servo;
+        public boolean closed = false;
+        public double openPos = 0;
+        public double closedPos = 1; // TODO TUNE
+
+        public Claw(Servo servo) {
+            this.servo = servo;
+            open();
+        }
+        public Claw(Servo servo, double openPos, double closedPos) {
+            this.servo = servo;
+            this.openPos = openPos;
+            this.closedPos = closedPos;
+            open();
+        }
+
+
+        public void setPosition(double position) {
+            servo.setPosition(position);
+        }
+        public double getPosition() {
+            return servo.getPosition();
+        }
+
+        public void open() {
+            closed = false;
+            servo.setPosition(openPos);
+        }
+        public void close() {
+            closed = true;
+            servo.setPosition(closedPos);
+        }
+        public void toggle() {
+            if (closed) {
+                open();
+            } else {
+                close();
+            }
+        }
+
+    }
 
     public abstract static class ControlledMotor {
         public DcMotorEx motor;
