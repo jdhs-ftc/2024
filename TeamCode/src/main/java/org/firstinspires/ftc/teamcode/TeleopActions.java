@@ -75,7 +75,7 @@ public class TeleopActions extends ActionOpMode {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
         CONTROL_HUB = allHubs.get(0);
-        EXPANSION_HUB = allHubs.get(1);
+        //EXPANSION_HUB = allHubs.get(1);
 
         // RoadRunner Init
         drive = new SparkFunOTOSDrive(hardwareMap, PoseStorage.currentPose);
@@ -141,6 +141,7 @@ public class TeleopActions extends ActionOpMode {
 
             boolean padDepositClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper); //|| (gamepad1.square && !previousGamepad1.square);
             boolean padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper);
+            boolean padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25));
             // carson mixes up lefts from rights;
             // grip tape?
             // use triggers?
@@ -148,7 +149,7 @@ public class TeleopActions extends ActionOpMode {
             // Manual Control
             double padDepositControl = -gamepad2.left_stick_y;
             double padExtendoControl = -gamepad2.right_stick_y;
-            double padSlideControlMultiplier = 40;
+            double padSlideControlMultiplier = 10;
 
 
             // Misc
@@ -282,18 +283,22 @@ public class TeleopActions extends ActionOpMode {
             if (motorControl.extendo.getTargetPosition() > 1100 && padExtendoControl > 0) {
                 motorControl.extendo.setTargetPosition(1100);
 
-            } else if (motorControl.extendo.getTargetPosition() <= 40 && padExtendoControl < 0 && !padForceDown) {
-                motorControl.extendo.setTargetPosition(40);
+            } else if (motorControl.extendo.getTargetPosition() <= 0 && padExtendoControl < 0 && !padForceDown) {
+                motorControl.extendo.setTargetPosition(0);
 
             } else {
                 motorControl.extendo.setTargetPosition(motorControl.extendo.getTargetPosition() + (padExtendoControl * padSlideControlMultiplier));
             }
 
             if (padDepositClawToggle) {
-                motorControl.depositClaw.toggle();
+                //motorControl.depositClaw.toggle();
             }
             if (padExtendoClawToggle) {
-                motorControl.extendoClaw.toggle();
+                //motorControl.extendoClaw.toggle();
+            }
+
+            if (padArmToggle) {
+                motorControl.sArm.toggle();
             }
 
 
@@ -303,7 +308,7 @@ public class TeleopActions extends ActionOpMode {
             double pad2rumble;
 
             // rumble the gunner controller based on the claw color sensor
-            if (colorAlpha > 200 && !motorControl.extendoClaw.closed) {
+            if (colorAlpha > 200) {// && !motorControl.extendoClaw.closed) {
                 pad2rumble = Math.log10(colorAlpha) / 6;
             } else {
                 pad2rumble = 0;
@@ -320,7 +325,7 @@ public class TeleopActions extends ActionOpMode {
 
             updateAsync(packet);
             drive.updatePoseEstimate();
-            //motorControl.update();
+            motorControl.update();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
 
             double loopTimeMs = loopTime.milliseconds();
@@ -350,8 +355,8 @@ public class TeleopActions extends ActionOpMode {
                 telemetry.addData("extendoPosition", motorControl.extendo.motor.getCurrentPosition());
                 telemetry.addData("depositTarget", motorControl.deposit.getTargetPosition());
                 telemetry.addData("depositPosition", motorControl.deposit.motor.getCurrentPosition());
-                telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
-                telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
+                //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
+                //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
 
 

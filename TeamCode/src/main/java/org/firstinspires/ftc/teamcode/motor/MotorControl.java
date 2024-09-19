@@ -14,9 +14,9 @@ import java.util.ArrayList;
  * This class is used to control the motor systems on the robot.
  */
 public class MotorControl {
-
-    public final Claw extendoClaw;
-    public final Claw depositClaw;
+    public final ServoArm sArm;
+    //public final Claw extendoClaw;
+    //public final Claw depositClaw;
     public final Slide extendo;
     public final Slide deposit;
     public static ArrayList<ControlledMotor> motors = new ArrayList<>();
@@ -31,17 +31,21 @@ public class MotorControl {
     public MotorControl(@NonNull HardwareMap hardwareMap) {
         extendo = new Slide(hardwareMap, // port 0 of exp hub and chub, equiv to left_back I think
                 "extendo",
-                new PIDFController.PIDCoefficients(3,0,0));
-        extendo.setEncoder(hardwareMap.get(DcMotorEx.class,"left_back"));
+                new PIDFController.PIDCoefficients(0.01,0,0));
+        extendo.setEncoder(hardwareMap.get(DcMotorEx.class,"left_front"));
+        extendo.reversed = true;
         deposit = new Slide(hardwareMap, // port 1 of exp hub and chub,
                 // equiv to left_front I think could be wrong though
                 "deposit",
-                new PIDFController.PIDCoefficients(3,0,0));
-        deposit.setEncoder(hardwareMap.get(DcMotorEx.class,"right_back"));
+                new PIDFController.PIDCoefficients(0.01,0,0));
+        deposit.setEncoder(hardwareMap.get(DcMotorEx.class,"left_back"));
+        deposit.reversed = true;
 
 
         extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"));
         depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
+
+        sArm = new ServoArm(hardwareMap.get(Servo.class, "sArm"));
 
         //color = hardwareMap.get(ColorSensor.class, "color");
     }
@@ -68,7 +72,7 @@ public class MotorControl {
      * This class controls the slide motor.
      */
     public static class Slide extends ControlledMotor {
-        boolean reversed = false;
+        boolean reversed = true; // TODO EVERYTHING REVERSED
         boolean resetting = false;
         PIDFController pid;
         public DcMotorEx encoder;
@@ -130,11 +134,12 @@ public class MotorControl {
         }
 
         public double getPosition() {
-            if (reversed) {
+            if (!reversed) {
                 return (encoder.getCurrentPosition() * -1) - encoderOffset;
             } else {
                 return encoder.getCurrentPosition() - encoderOffset;
             }
+
         }
 
         public void setPosition(double position) {
@@ -142,6 +147,7 @@ public class MotorControl {
             // this *should* work because we minus in getPosition but unsure
             // TODO: prob causing problems
             encoderOffset += getPosition();
+
         }
 
 
@@ -190,6 +196,49 @@ public class MotorControl {
                 open();
             } else {
                 close();
+            }
+        }
+
+    }
+
+    public static class ServoArm {
+        public Servo servo;
+        public boolean down = false;
+        public double upPos = 0;
+        public double downPos = 1; // TODO TUNE
+
+        public ServoArm(Servo servo) {
+            this.servo = servo;
+            moveDown();
+        }
+        public ServoArm(Servo servo, double downPos, double upPos) {
+            this.servo = servo;
+            this.downPos = downPos;
+            this.upPos = upPos;
+            moveDown();
+        }
+
+
+        public void setPosition(double position) {
+            servo.setPosition(position);
+        }
+        public double getPosition() {
+            return servo.getPosition();
+        }
+
+        public void moveUp() {
+            down = false;
+            servo.setPosition(upPos);
+        }
+        public void moveDown() {
+            down = true;
+            servo.setPosition(downPos);
+        }
+        public void toggle() {
+            if (down) {
+                moveUp();
+            } else {
+                moveDown();
             }
         }
 
