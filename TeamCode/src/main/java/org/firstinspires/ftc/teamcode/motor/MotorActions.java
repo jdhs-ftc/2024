@@ -12,15 +12,15 @@ public class MotorActions {
     public final MotorControl motorControl;
     public final Extendo extendo;
     public final Deposit deposit;
-    public final Claw depositClaw;
-    public final Claw extendoClaw;
+    //public final Claw depositClaw;
+    //public final Claw extendoClaw;
 
     public MotorActions(MotorControl motorControl) {
         this.motorControl = motorControl;
         this.extendo = new Extendo();
         this.deposit = new Deposit();
-        this.depositClaw = new Claw(motorControl.depositClaw);
-        this.extendoClaw = new Claw(motorControl.extendoClaw);
+        //this.depositClaw = new Claw(motorControl.depositClaw);
+        //this.extendoClaw = new Claw(motorControl.extendoClaw);
 
     }
     public Action waitUntilFinished() {

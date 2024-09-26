@@ -42,12 +42,15 @@ public class MotorControl {
         deposit.reversed = true;
 
 
-        extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"));
-        depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
+        //extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"));
+        //depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
 
         sArm = new ServoArm(hardwareMap.get(Servo.class, "sArm"));
 
         //color = hardwareMap.get(ColorSensor.class, "color");
+        for (ControlledMotor motor : motors) {
+            motor.findZero();
+        }
     }
 
     /**
@@ -127,7 +130,7 @@ public class MotorControl {
                 }
             }
         }
-
+        @Override
         public void findZero() {
             motor.setPower(-0.5);
             resetting = true;
@@ -204,8 +207,8 @@ public class MotorControl {
     public static class ServoArm {
         public Servo servo;
         public boolean down = false;
-        public double upPos = 0;
-        public double downPos = 1; // TODO TUNE
+        public double upPos = 0.6;
+        public double downPos = 0.8; // TODO TUNE
 
         public ServoArm(Servo servo) {
             this.servo = servo;
@@ -259,6 +262,7 @@ public class MotorControl {
         public boolean isOverCurrent() {
             return motor.isOverCurrent();
         }
+        public abstract void findZero();
 
         public ControlledMotor() {
             motors.add(this);

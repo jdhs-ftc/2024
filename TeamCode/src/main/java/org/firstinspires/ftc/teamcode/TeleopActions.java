@@ -62,6 +62,8 @@ public class TeleopActions extends ActionOpMode {
     double loopTimeBeforeUpdate = 0;
     double loopTimeAfterUpdate = 0;
 
+    ElapsedTime timeSinceDriverTurned = new ElapsedTime();
+
 
     @Override
     public void runOpMode() {
@@ -88,14 +90,15 @@ public class TeleopActions extends ActionOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
 
-        // Motor Init
-        motorControl = new MotorControl(hardwareMap);
-        motorActions = new MotorActions(motorControl);
+
 
 
         waitForStart();
 
         if (isStopRequested()) return;
+        // Motor Init
+        motorControl = new MotorControl(hardwareMap);
+        motorActions = new MotorActions(motorControl);
 
 
         // Run Period
@@ -154,6 +157,8 @@ public class TeleopActions extends ActionOpMode {
 
             // Misc
             boolean padForceDown = gamepad2.dpad_down && gamepad2.options;
+
+            boolean padResetExtendo = gamepad2.dpad_up && gamepad2.options;
 
 
             // Update the speed
@@ -232,6 +237,7 @@ public class TeleopActions extends ActionOpMode {
                             )
                     );
                     targetHeading = drive.pose.heading;
+                    timeSinceDriverTurned.reset();
                 } else {
                     // Set the target heading for the heading controller to our desired angle
                     if (Math.sqrt(Math.pow(controllerHeading.x, 2.0) + Math.pow(controllerHeading.y, 2.0)) > 0.4) {
@@ -245,21 +251,36 @@ public class TeleopActions extends ActionOpMode {
 
                     joystickHeadingController.targetPosition = targetHeading.toDouble();
 
-
+                    double headingInput;
                     // Set the desired angular velocity to the heading controller output + angular
                     // velocity feedforward
-                    double headingInput = (joystickHeadingController.update(drive.pose.heading.log())
-                            * MecanumDrive.PARAMS.kV
-                            * MecanumDrive.PARAMS.trackWidthTicks);
-                    drive.setDrivePowers(
-                            new PoseVelocity2d(
-                                    new Vector2d(
-                                            input.x,
-                                            input.y
-                                    ),
-                                    headingInput
-                            )
-                    );
+                    if (timeSinceDriverTurned.milliseconds() > 250) {
+                        headingInput = (joystickHeadingController.update(drive.pose.heading.log())
+                                * MecanumDrive.PARAMS.kV
+                                * MecanumDrive.PARAMS.trackWidthTicks);
+                        drive.setDrivePowers(
+                                new PoseVelocity2d(
+                                        new Vector2d(
+                                                input.x,
+                                                input.y
+                                        ),
+                                        headingInput
+                                )
+                        );
+
+                    } else {
+                        headingInput = 0;
+                        targetHeading = drive.pose.heading;
+                        drive.setDrivePowers(
+                                new PoseVelocity2d(
+                                        new Vector2d(
+                                                input.x,
+                                                input.y
+                                        ),
+                                        headingInput
+                                )
+                        );
+                    }
 
                 }
             }
@@ -271,20 +292,22 @@ public class TeleopActions extends ActionOpMode {
 
             // Slide (Manual)
             // TODO: abstract this?
-            if (motorControl.deposit.getTargetPosition() > 1100 && padDepositControl > 0) {
-                motorControl.deposit.setTargetPosition(1100);
+            if (motorControl.deposit.getTargetPosition() > 1600 && padDepositControl > 0) {
+                motorControl.deposit.setTargetPosition(1600);
 
-            } else if (motorControl.deposit.getTargetPosition() <= 40 && padDepositControl < 0 && !padForceDown) {
-                motorControl.deposit.setTargetPosition(40);
+            } else if (motorControl.deposit.getTargetPosition() <= 20 && padDepositControl < 0 && !padForceDown) {
+                motorControl.deposit.findZero();
+                motorControl.deposit.setTargetPosition(20);
 
             } else {
                 motorControl.deposit.setTargetPosition(motorControl.deposit.getTargetPosition() + (padDepositControl * padSlideControlMultiplier));
             }
-            if (motorControl.extendo.getTargetPosition() > 1100 && padExtendoControl > 0) {
-                motorControl.extendo.setTargetPosition(1100);
+            if (motorControl.extendo.getTargetPosition() > 1530 && padExtendoControl > 0) {
+                motorControl.extendo.setTargetPosition(1530);
 
-            } else if (motorControl.extendo.getTargetPosition() <= 0 && padExtendoControl < 0 && !padForceDown) {
-                motorControl.extendo.setTargetPosition(0);
+            } else if (motorControl.extendo.getTargetPosition() <= 20 && padExtendoControl < 0 && !padForceDown) {
+                motorControl.extendo.findZero();
+                motorControl.extendo.setTargetPosition(20);
 
             } else {
                 motorControl.extendo.setTargetPosition(motorControl.extendo.getTargetPosition() + (padExtendoControl * padSlideControlMultiplier));
@@ -299,6 +322,19 @@ public class TeleopActions extends ActionOpMode {
 
             if (padArmToggle) {
                 motorControl.sArm.toggle();
+            }
+
+
+
+            if (padHighPreset) {
+                motorControl.deposit.setTargetPosition(1600);
+            }
+            if (padMidPreset) {
+                motorControl.extendo.setTargetPosition(1530);
+            }
+            if (padLowPreset) {
+                motorControl.deposit.setTargetPosition(20);
+                motorControl.extendo.setTargetPosition(20);
             }
 
 
@@ -352,9 +388,9 @@ public class TeleopActions extends ActionOpMode {
             if (showMotorTelemetry) {
                 telemetry.addLine("--- Motors ---");
                 telemetry.addData("extendoTarget", motorControl.extendo.getTargetPosition());
-                telemetry.addData("extendoPosition", motorControl.extendo.motor.getCurrentPosition());
+                telemetry.addData("extendoPosition", motorControl.extendo.getPosition());
                 telemetry.addData("depositTarget", motorControl.deposit.getTargetPosition());
-                telemetry.addData("depositPosition", motorControl.deposit.motor.getCurrentPosition());
+                telemetry.addData("depositPosition", motorControl.deposit.getPosition());
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
