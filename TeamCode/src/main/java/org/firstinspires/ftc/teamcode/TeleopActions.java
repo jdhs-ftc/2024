@@ -38,7 +38,7 @@ public class TeleopActions extends ActionOpMode {
     LynxModule CONTROL_HUB;
     LynxModule EXPANSION_HUB;
     boolean fieldCentric = true;
-    public SparkFunOTOSDrive drive;
+    public PinpointDrive drive;
 
     List<Action> runningActions = new ArrayList<>();
     final ElapsedTime loopTime = new ElapsedTime();
@@ -80,7 +80,7 @@ public class TeleopActions extends ActionOpMode {
         //EXPANSION_HUB = allHubs.get(1);
 
         // RoadRunner Init
-        drive = new SparkFunOTOSDrive(hardwareMap, PoseStorage.currentPose);
+        drive = new PinpointDrive(hardwareMap, PoseStorage.currentPose);
 
 
         joystickHeadingController.setInputBounds(-Math.PI, Math.PI);
@@ -145,6 +145,7 @@ public class TeleopActions extends ActionOpMode {
             boolean padDepositClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper); //|| (gamepad1.square && !previousGamepad1.square);
             boolean padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper);
             boolean padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25));
+            boolean padArmUpFull = (gamepad2.left_trigger > 0.25 && !(previousGamepad2.left_trigger > 0.25));
             // carson mixes up lefts from rights;
             // grip tape?
             // use triggers?
@@ -322,6 +323,9 @@ public class TeleopActions extends ActionOpMode {
 
             if (padArmToggle) {
                 motorControl.sArm.toggle();
+            }
+            if (padArmUpFull) {
+                motorControl.sArm.setPosition(1.0);
             }
 
 

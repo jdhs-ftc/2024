@@ -207,8 +207,8 @@ public class MotorControl {
     public static class ServoArm {
         public Servo servo;
         public boolean down = false;
-        public double upPos = 0.6;
-        public double downPos = 0.8; // TODO TUNE
+        public double upPos = 0.2;
+        public double downPos = 0.0; // TODO TUNE
 
         public ServoArm(Servo servo) {
             this.servo = servo;

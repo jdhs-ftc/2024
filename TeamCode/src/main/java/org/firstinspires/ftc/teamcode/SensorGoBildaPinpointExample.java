@@ -25,12 +25,15 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.ftc.GoBildaPinpointDriver;
+import com.acmerobotics.roadrunner.ftc.GoBildaPinpointDriverRR;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 /*
@@ -63,9 +66,13 @@ For support, contact tech@gobilda.com
 //@Disabled
 public class SensorGoBildaPinpointExample extends LinearOpMode {
 
-    GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
+    GoBildaPinpointDriverRR odo; // Declare OpMode member for the Odometry Computer
 
     double oldTime = 0;
+
+    ElapsedTime readTimer = new ElapsedTime();
+
+    ArrayList<Double> readTimes = new ArrayList<>();
 
 
     @Override
@@ -74,7 +81,7 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
         // Initialize the hardware variables. Note that the strings used here must correspond
         // to the names assigned during the robot configuration step on the DS or RC devices.
 
-        odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
+        odo = hardwareMap.get(GoBildaPinpointDriverRR.class,"pinpoint");
 
         /*
         Set the odometry pod positions relative to the point that the odometry computer tracks around.
@@ -122,6 +129,8 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
         telemetry.addData("Device SCalar", odo.getYawScalar());
         telemetry.update();
 
+        odo.update();
+
         // Wait for the game to start (driver presses START)
         waitForStart();
         resetRuntime();
@@ -130,11 +139,19 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
+            readTimer.reset();
             /*
             Request a bulk update from the Pinpoint odometry computer. This checks almost all outputs
             from the device in a single I2C read.
              */
-            odo.bulkUpdate();
+            //odo.bulkUpdate();
+            odo.update();//GoBildaPinpointDriver.readData.UPDATE_POSITION_AND_VELOCITY);
+            double updateTimeMS = readTimer.milliseconds();
+            readTimes.add(updateTimeMS);
+            if (readTimes.size() > 500) {
+                readTimes.remove(0);
+            }
+            double updateTimeAvg = readTimes.stream().reduce(Double::sum).get() / readTimes.size();
 
 
             if (gamepad1.a){
@@ -188,6 +205,10 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
             telemetry.addData("Status", odo.getDeviceStatus());
 
             telemetry.addData("REV Hub Frequency: ", frequency); //prints the control system refresh rate
+            telemetry.addData("REV Hub MS: ",loopTime * 1000);
+            telemetry.addData("Pinpoint Read Time MS:", updateTimeMS);
+            telemetry.addData("Pinpoint Read Time MS avg:", updateTimeAvg);
+            telemetry.addData("Avg Samples:",readTimes.size());
             telemetry.update();
         }
     }}
