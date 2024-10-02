@@ -318,14 +318,14 @@ public class TeleopActions extends ActionOpMode {
                 //motorControl.depositClaw.toggle();
             }
             if (padExtendoClawToggle) {
-                //motorControl.extendoClaw.toggle();
+                motorControl.extendoClaw.toggle();
             }
 
             if (padArmToggle) {
                 motorControl.sArm.toggle();
             }
             if (padArmUpFull) {
-                motorControl.sArm.setPosition(1.0);
+                motorControl.sArm.setPosition(0.6);
             }
 
 

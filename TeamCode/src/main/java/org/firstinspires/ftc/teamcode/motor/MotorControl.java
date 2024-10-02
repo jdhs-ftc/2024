@@ -1,8 +1,10 @@
 package org.firstinspires.ftc.teamcode.motor;
 
 
+import android.os.Build;
 import androidx.annotation.NonNull;
 
+import androidx.annotation.RequiresApi;
 import com.qualcomm.robotcore.hardware.*;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
@@ -15,7 +17,7 @@ import java.util.ArrayList;
  */
 public class MotorControl {
     public final ServoArm sArm;
-    //public final Claw extendoClaw;
+    public final Claw extendoClaw;
     //public final Claw depositClaw;
     public final Slide extendo;
     public final Slide deposit;
@@ -42,7 +44,7 @@ public class MotorControl {
         deposit.reversed = true;
 
 
-        //extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"));
+        extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"), 0.7, 1.0);
         //depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
 
         sArm = new ServoArm(hardwareMap.get(Servo.class, "sArm"));
@@ -208,7 +210,7 @@ public class MotorControl {
         public Servo servo;
         public boolean down = false;
         public double upPos = 0.2;
-        public double downPos = 0.0; // TODO TUNE
+        public double downPos = 0.03; // TODO TUNE
 
         public ServoArm(Servo servo) {
             this.servo = servo;
