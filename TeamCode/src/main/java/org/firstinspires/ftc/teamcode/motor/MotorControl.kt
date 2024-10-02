@@ -1,273 +1,242 @@
-package org.firstinspires.ftc.teamcode.motor;
+package org.firstinspires.ftc.teamcode.motor
 
+import com.qualcomm.robotcore.hardware.*
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
+import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
+import kotlin.math.abs
 
-import android.os.Build;
-import androidx.annotation.NonNull;
-
-import androidx.annotation.RequiresApi;
-import com.qualcomm.robotcore.hardware.*;
-
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.teamcode.helpers.control.PIDFController;
-
-import java.util.ArrayList;
 
 /**
  * This class is used to control the motor systems on the robot.
  */
-public class MotorControl {
-    public final ServoArm sArm;
-    public final Claw extendoClaw;
+class MotorControl(hardwareMap: HardwareMap) {
+    @JvmField
+    val sArm: ServoArm
+    @JvmField
+    val extendoClaw: Claw
+
     //public final Claw depositClaw;
-    public final Slide extendo;
-    public final Slide deposit;
-    public static ArrayList<ControlledMotor> motors = new ArrayList<>();
+    @JvmField
+    val extendo: Slide = Slide(
+        hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
+        "extendo",
+        PIDFController.PIDCoefficients(0.01, 0.0, 0.0)
+    )
+
+    @JvmField
+    val deposit: Slide
     //public final ColorSensor color;
-
-    /**
-     * This initializes the arm and slide motors and resets the mode to the default.
-     * This should be run before any other methods.
-     *
-     * @param hardwareMap The hardware map to use to get the motors.
-     */
-    public MotorControl(@NonNull HardwareMap hardwareMap) {
-        extendo = new Slide(hardwareMap, // port 0 of exp hub and chub, equiv to left_back I think
-                "extendo",
-                new PIDFController.PIDCoefficients(0.01,0,0));
-        extendo.setEncoder(hardwareMap.get(DcMotorEx.class,"left_front"));
-        extendo.reversed = true;
-        deposit = new Slide(hardwareMap, // port 1 of exp hub and chub,
-                // equiv to left_front I think could be wrong though
-                "deposit",
-                new PIDFController.PIDCoefficients(0.01,0,0));
-        deposit.setEncoder(hardwareMap.get(DcMotorEx.class,"left_back"));
-        deposit.reversed = true;
+    init {
+        extendo.setEncoder(hardwareMap.get(DcMotorEx::class.java, "left_front"))
+        extendo.reversed = true
+        deposit = Slide(
+            hardwareMap,  // port 1 of exp hub and chub,
+            // equiv to left_front I think could be wrong though
+            "deposit",
+            PIDFController.PIDCoefficients(0.01, 0.0, 0.0)
+        )
+        deposit.setEncoder(hardwareMap.get(DcMotorEx::class.java, "left_back"))
+        deposit.reversed = true
 
 
-        extendoClaw = new Claw(hardwareMap.get(Servo.class, "extendoClaw"), 0.7, 1.0);
+        extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 1.0)
+
         //depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
-
-        sArm = new ServoArm(hardwareMap.get(Servo.class, "sArm"));
+        sArm = ServoArm(hardwareMap.get(Servo::class.java, "sArm"))
 
         //color = hardwareMap.get(ColorSensor.class, "color");
-        for (ControlledMotor motor : motors) {
-            motor.findZero();
+        for (motor in motors) {
+            motor.findZero()
         }
     }
 
     /**
      * This class updates the arm and slide motors to match the current state.
      */
-    public void update() {
-        for (ControlledMotor motor : motors) {
-            motor.update();
+    fun update() {
+        for (motor in motors) {
+            motor.update()
         }
     }
 
 
-    public boolean closeEnough() {
-        return motors.stream().allMatch(ControlledMotor::closeEnough);
+    fun closeEnough(): Boolean {
+        return motors.stream().allMatch { obj: ControlledMotor -> obj.closeEnough() }
     }
 
-    public boolean isOverCurrent() {
-        return motors.stream().anyMatch(ControlledMotor::isOverCurrent);
-    }
+    val isOverCurrent: Boolean
+        get() = motors.stream().anyMatch { obj: ControlledMotor -> obj.isOverCurrent }
 
     /**
      * This class controls the slide motor.
      */
-    public static class Slide extends ControlledMotor {
-        boolean reversed = true; // TODO EVERYTHING REVERSED
-        boolean resetting = false;
-        PIDFController pid;
-        public DcMotorEx encoder;
-        public double encoderOffset = 0;
-        /**
-         * This initializes the slide motor. This should be run before any other methods.
-         *
-         * @param hardwareMap The hardware map to use to get the motors.
-         */
-        public Slide(HardwareMap hardwareMap,String motorName,PIDFController.PIDCoefficients pidCoefficients) {
-            super();
-            pid = new PIDFController(pidCoefficients);
-            motor = hardwareMap.get(DcMotorEx.class, motorName);
-            encoder = motor;
-            motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            motor.setCurrentAlert(6, CurrentUnit.AMPS);
-            if (reversed) {
-                motor.setDirection(DcMotorSimple.Direction.REVERSE);
-            } else {
-                motor.setDirection(DcMotorSimple.Direction.FORWARD);
-            }
-            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    class Slide(hardwareMap: HardwareMap, motorName: String?, pidCoefficients: PIDFController.PIDCoefficients?) :
+        ControlledMotor(hardwareMap.get(DcMotorEx::class.java, motorName)) {
+        var reversed: Boolean = true // TODO EVERYTHING REVERSED
+        var resetting: Boolean = false
+        var pid: PIDFController = PIDFController(pidCoefficients)
+        var encoder: DcMotorEx?
+        var encoderOffset: Double = 0.0
 
+        init {
+            encoder = motor
+            motor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+            motor.setCurrentAlert(6.0, CurrentUnit.AMPS)
+            if (reversed) {
+                motor.direction = DcMotorSimple.Direction.REVERSE
+            } else {
+                motor.direction = DcMotorSimple.Direction.FORWARD
+            }
+            motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
         }
 
-        public void setEncoder(DcMotorEx motor) {
-            encoder = motor;
+        fun setEncoder(motor: DcMotorEx?) {
+            encoder = motor
         }
 
         /**
          * This stops the slide, sets the state to down, sets the target to 0, and resets the encoder.
          */
-        public void reset() {
-            motor.setPower(0);
-            targetPosition = 0;
-            setPosition(0);
+        override fun reset() {
+            motor.power = 0.0
+            targetPosition = 0.0
+            position = 0.0
         }
 
 
-        public void update() {
-            pid.targetPosition = targetPosition;
+        override fun update() {
+            pid.targetPosition = targetPosition
             if (resetting) {
                 if (motor.getCurrent(CurrentUnit.AMPS) > 2.5) { //current limit end detection
-                    reset();
-                    resetting = false;
+                    reset()
+                    resetting = false
                 }
             } else {
-                if (!motor.isOverCurrent()) {
-                    motor.setPower(pid.update(getPosition()));
+                if (!motor.isOverCurrent) {
+                    motor.power = pid.update(position)
                 } else {
-                    motor.setPower(0);
+                    motor.power = 0.0
                 }
             }
         }
-        @Override
-        public void findZero() {
-            motor.setPower(-0.5);
-            resetting = true;
+
+        override fun findZero() {
+            motor.power = -0.5
+            resetting = true
         }
 
-        public double getPosition() {
-            if (!reversed) {
-                return (encoder.getCurrentPosition() * -1) - encoderOffset;
+        var position: Double = 0.0
+            get() = if (!reversed) {
+                (encoder!!.currentPosition * -1) - encoderOffset
             } else {
-                return encoder.getCurrentPosition() - encoderOffset;
+                encoder!!.currentPosition - encoderOffset
+            }
+            set(position) {
+                // some weird math happening here
+                // this *should* work because we minus in getPosition but unsure
+                // TODO: prob causing problems
+                encoderOffset += field
+                field = position
             }
 
+
+        override fun closeEnough(): Boolean {
+            return abs(position - targetPosition) < 20
         }
-
-        public void setPosition(double position) {
-            // some weird math happening here
-            // this *should* work because we minus in getPosition but unsure
-            // TODO: prob causing problems
-            encoderOffset += getPosition();
-
-        }
-
-
-        public boolean closeEnough() {
-            return Math.abs(getPosition() - targetPosition) < 20;
-        }
-
     }
 
 
-    public static class Claw {
-        public Servo servo;
-        public boolean closed = false;
-        public double openPos = 0;
-        public double closedPos = 1; // TODO TUNE
+    class Claw(val servo: Servo, val openPos: Double, val closedPos: Double) {
+        var closed: Boolean = false
 
-        public Claw(Servo servo) {
-            this.servo = servo;
-            open();
-        }
-        public Claw(Servo servo, double openPos, double closedPos) {
-            this.servo = servo;
-            this.openPos = openPos;
-            this.closedPos = closedPos;
-            open();
+        init {
+            open()
         }
 
 
-        public void setPosition(double position) {
-            servo.setPosition(position);
-        }
-        public double getPosition() {
-            return servo.getPosition();
+        var position: Double
+            get() = servo.position
+            set(position) {
+                servo.position = position
+            }
+
+        fun open() {
+            closed = false
+            servo.position = openPos
         }
 
-        public void open() {
-            closed = false;
-            servo.setPosition(openPos);
+        fun close() {
+            closed = true
+            servo.position = closedPos
         }
-        public void close() {
-            closed = true;
-            servo.setPosition(closedPos);
-        }
-        public void toggle() {
+
+        fun toggle() {
             if (closed) {
-                open();
+                open()
             } else {
-                close();
+                close()
             }
         }
-
     }
 
-    public static class ServoArm {
-        public Servo servo;
-        public boolean down = false;
-        public double upPos = 0.2;
-        public double downPos = 0.03; // TODO TUNE
+    class ServoArm(val servo: Servo) {
+        var down: Boolean = false
+        var upPos: Double = 0.2
+        var downPos: Double = 0.03 // TODO TUNE
 
-        public ServoArm(Servo servo) {
-            this.servo = servo;
-            moveDown();
+        init {
+            moveDown()
         }
-        public ServoArm(Servo servo, double downPos, double upPos) {
-            this.servo = servo;
-            this.downPos = downPos;
-            this.upPos = upPos;
-            moveDown();
+
+        constructor(servo: Servo, downPos: Double, upPos: Double) : this(servo) {
+            this.downPos = downPos
+            this.upPos = upPos
         }
 
 
-        public void setPosition(double position) {
-            servo.setPosition(position);
-        }
-        public double getPosition() {
-            return servo.getPosition();
+        var position: Double
+            get() = servo.position
+            set(position) {
+                servo.position = position
+            }
+
+        fun moveUp() {
+            down = false
+            servo.position = upPos
         }
 
-        public void moveUp() {
-            down = false;
-            servo.setPosition(upPos);
+        fun moveDown() {
+            down = true
+            servo.position = downPos
         }
-        public void moveDown() {
-            down = true;
-            servo.setPosition(downPos);
-        }
-        public void toggle() {
+
+        fun toggle() {
             if (down) {
-                moveUp();
+                moveUp()
             } else {
-                moveDown();
+                moveDown()
             }
         }
-
     }
 
-    public abstract static class ControlledMotor {
-        public DcMotorEx motor;
-        double targetPosition;
-        public double getTargetPosition() {
-            return targetPosition;
-        }
-        public void setTargetPosition(double targetPosition) {
-            this.targetPosition = targetPosition;
-        }
-        public abstract void update();
-        public abstract void reset();
-        public abstract boolean closeEnough();
-        public boolean isOverCurrent() {
-            return motor.isOverCurrent();
-        }
-        public abstract void findZero();
+    abstract class ControlledMotor(val motor: DcMotorEx) {
+        @JvmField
+        var targetPosition: Double = 0.0
 
-        public ControlledMotor() {
-            motors.add(this);
+        abstract fun update()
+        abstract fun reset()
+        abstract fun closeEnough(): Boolean
+        val isOverCurrent: Boolean
+            get() = motor.isOverCurrent
+
+        abstract fun findZero()
+
+        init {
+            motors.add(this)
         }
+    }
+
+    companion object {
+        var motors: ArrayList<ControlledMotor> = ArrayList()
     }
 }

@@ -293,25 +293,25 @@ public class TeleopActions extends ActionOpMode {
 
             // Slide (Manual)
             // TODO: abstract this?
-            if (motorControl.deposit.getTargetPosition() > 1600 && padDepositControl > 0) {
-                motorControl.deposit.setTargetPosition(1600);
+            if (motorControl.deposit.targetPosition > 1600 && padDepositControl > 0) {
+                motorControl.deposit.targetPosition = 1600;
 
-            } else if (motorControl.deposit.getTargetPosition() <= 20 && padDepositControl < 0 && !padForceDown) {
+            } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0 && !padForceDown) {
                 motorControl.deposit.findZero();
-                motorControl.deposit.setTargetPosition(20);
+                motorControl.deposit.targetPosition = 20;
 
             } else {
-                motorControl.deposit.setTargetPosition(motorControl.deposit.getTargetPosition() + (padDepositControl * padSlideControlMultiplier));
+                motorControl.deposit.targetPosition = motorControl.deposit.targetPosition + (padDepositControl * padSlideControlMultiplier);
             }
-            if (motorControl.extendo.getTargetPosition() > 1530 && padExtendoControl > 0) {
-                motorControl.extendo.setTargetPosition(1530);
+            if (motorControl.extendo.targetPosition > 1530 && padExtendoControl > 0) {
+                motorControl.extendo.targetPosition = 1530;
 
-            } else if (motorControl.extendo.getTargetPosition() <= 20 && padExtendoControl < 0 && !padForceDown) {
+            } else if (motorControl.extendo.targetPosition <= 20 && padExtendoControl < 0 && !padForceDown) {
                 motorControl.extendo.findZero();
-                motorControl.extendo.setTargetPosition(20);
+                motorControl.extendo.targetPosition = 20;
 
             } else {
-                motorControl.extendo.setTargetPosition(motorControl.extendo.getTargetPosition() + (padExtendoControl * padSlideControlMultiplier));
+                motorControl.extendo.targetPosition = motorControl.extendo.targetPosition + (padExtendoControl * padSlideControlMultiplier);
             }
 
             if (padDepositClawToggle) {
@@ -331,14 +331,14 @@ public class TeleopActions extends ActionOpMode {
 
 
             if (padHighPreset) {
-                motorControl.deposit.setTargetPosition(1600);
+                motorControl.deposit.targetPosition = 1600;
             }
             if (padMidPreset) {
-                motorControl.extendo.setTargetPosition(1530);
+                motorControl.extendo.targetPosition = 1530;
             }
             if (padLowPreset) {
-                motorControl.deposit.setTargetPosition(20);
-                motorControl.extendo.setTargetPosition(20);
+                motorControl.deposit.targetPosition = 20;
+                motorControl.extendo.targetPosition = 20;
             }
 
 
@@ -391,9 +391,9 @@ public class TeleopActions extends ActionOpMode {
 
             if (showMotorTelemetry) {
                 telemetry.addLine("--- Motors ---");
-                telemetry.addData("extendoTarget", motorControl.extendo.getTargetPosition());
+                telemetry.addData("extendoTarget", motorControl.extendo.targetPosition);
                 telemetry.addData("extendoPosition", motorControl.extendo.getPosition());
-                telemetry.addData("depositTarget", motorControl.deposit.getTargetPosition());
+                telemetry.addData("depositTarget", motorControl.deposit.targetPosition);
                 telemetry.addData("depositPosition", motorControl.deposit.getPosition());
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());

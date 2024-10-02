@@ -49,7 +49,7 @@ public class MotorActions {
     public class Extendo {
         public Action setTargetPosition(double position) {
             return t -> {
-                motorControl.extendo.setTargetPosition(position);
+                motorControl.extendo.targetPosition = position;
                 return false;
             };
         }
@@ -72,7 +72,7 @@ public class MotorActions {
     public class Deposit {
         public Action setTargetPosition(double position) {
             return t -> {
-                motorControl.extendo.setTargetPosition(position);
+                motorControl.extendo.targetPosition = position;
                 return false;
             };
         }
