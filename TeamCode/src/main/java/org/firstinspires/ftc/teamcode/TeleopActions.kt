@@ -5,9 +5,12 @@ import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.Rotation2d
+import com.acmerobotics.roadrunner.SequentialAction
+import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
@@ -19,7 +22,6 @@ import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
-import java.util.ArrayList
 import java.util.LinkedList
 import java.util.function.Consumer
 import kotlin.math.log10
@@ -43,8 +45,6 @@ class TeleopActions : ActionOpMode() {
 
     var fieldCentric = true
 
-
-    var runningActions = ArrayList<Action?>()
     val loopTime = ElapsedTime()
     val currentGamepad1 = Gamepad()
     val currentGamepad2 = Gamepad()
@@ -144,9 +144,12 @@ class TeleopActions : ActionOpMode() {
 
             val padDepositClawToggle =
                 (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
-            val padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper)
+            //val padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper)
             val padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25))
-            val padArmUpFull = (gamepad2.left_trigger > 0.25 && !(previousGamepad2.left_trigger > 0.25))
+            val padArmUpFull = (gamepad2.right_bumper && !(previousGamepad2.right_bumper))
+
+            val padExtendoArmDown = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
+            val padExtendoGrabAndArmUp = (!(gamepad2.right_trigger > 0.25) && (previousGamepad2.right_trigger > 0.25)) // trigger falling edge
 
             // carson mixes up lefts from rights;
             // grip tape?
@@ -316,15 +319,22 @@ class TeleopActions : ActionOpMode() {
             if (padDepositClawToggle) {
                 motorControl!!.depositClaw.toggle();
             }
+            /*
             if (padExtendoClawToggle) {
                 motorControl!!.extendoClaw.toggle()
-            }
+            }*
+
+             */
 
             if (padArmToggle) {
-                motorControl!!.sArm.toggle()
+                motorControl!!.extendoArm.toggle()
             }
             if (padArmUpFull) {
-                motorControl!!.sArm.position = 0.6
+                run(UniqueAction(SequentialAction(
+
+
+                )))
+                motorControl!!.extendoArm.position = 0.6
             }
 
 
@@ -338,6 +348,21 @@ class TeleopActions : ActionOpMode() {
                 motorControl!!.deposit.targetPosition = 20.0
                 motorControl!!.extendo.targetPosition = 20.0
             }
+
+            if (padExtendoArmDown) {
+                run(UniqueAction(SequentialAction(
+                    InstantAction {motorControl!!.extendoClaw.open()}, // open claw
+                    InstantAction { motorControl!!.extendoArm.moveDown() }, // move to ground
+                    Action { return@Action !padExtendoGrabAndArmUp }, // wait until trigger releases
+                    InstantAction {motorControl!!.extendoClaw.close()}, // close claw
+                    SleepAction(0.3), // TODO tune
+                    InstantAction { motorControl!!.extendoArm.moveUp() } // move claw to "clears ground bar" pos
+                )))
+            }
+
+
+
+
 
 
             val colorAlpha = 0.0

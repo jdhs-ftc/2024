@@ -12,15 +12,15 @@ public class MotorActions {
     public final MotorControl motorControl;
     public final Extendo extendo;
     public final Deposit deposit;
-    //public final Claw depositClaw;
-    //public final Claw extendoClaw;
+    public final Claw depositClaw;
+    public final Claw extendoClaw;
 
     public MotorActions(MotorControl motorControl) {
         this.motorControl = motorControl;
         this.extendo = new Extendo();
         this.deposit = new Deposit();
-        //this.depositClaw = new Claw(motorControl.depositClaw);
-        //this.extendoClaw = new Claw(motorControl.extendoClaw);
+        this.depositClaw = new Claw(motorControl.depositClaw);
+        this.extendoClaw = new Claw(motorControl.extendoClaw);
 
     }
     public Action waitUntilFinished() {
@@ -86,10 +86,10 @@ public class MotorActions {
         }
 
         public Action moveUp() {
-            return setTargetPosition(1200);
+            return setTargetPosition(1600);
         }
         public Action moveDown() {
-            return setTargetPosition(40);
+            return setTargetPosition(20);
         }
     }
 

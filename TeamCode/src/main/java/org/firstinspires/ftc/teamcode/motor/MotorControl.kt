@@ -11,18 +11,19 @@ import kotlin.math.abs
  */
 class MotorControl(hardwareMap: HardwareMap) {
     @JvmField
-    val sArm: ServoArm
+    val extendoArm: ServoArm
     @JvmField
     val extendoClaw: Claw
-    @JvmField
-    val depositClaw: Claw
     @JvmField
     val extendo: Slide = Slide(
         hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
         "extendo",
         PIDFController.PIDCoefficients(0.01, 0.0, 0.0)
     )
-
+    @JvmField
+    val depositArm: ServoArm
+    @JvmField
+    val depositClaw: Claw
     @JvmField
     val deposit: Slide
     //public final ColorSensor color;
@@ -40,8 +41,9 @@ class MotorControl(hardwareMap: HardwareMap) {
 
 
         extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 1.0)
-        depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.0, 1.0);
-        sArm = ServoArm(hardwareMap.get(Servo::class.java, "sArm"))
+        depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.0, 1.0)
+        extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.03, 0.2) // dump pos 0.6, set in class
+        depositArm = ServoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
 
         //color = hardwareMap.get(ColorSensor.class, "color");
         for (motor in motors) {
@@ -69,12 +71,12 @@ class MotorControl(hardwareMap: HardwareMap) {
     /**
      * This class controls the slide motor.
      */
-    class Slide(hardwareMap: HardwareMap, motorName: String?, pidCoefficients: PIDFController.PIDCoefficients?) :
+    class Slide(hardwareMap: HardwareMap, motorName: String, pidCoefficients: PIDFController.PIDCoefficients) :
         ControlledMotor(hardwareMap.get(DcMotorEx::class.java, motorName)) {
         var reversed: Boolean = true // TODO EVERYTHING REVERSED
         var resetting: Boolean = false
         var pid: PIDFController = PIDFController(pidCoefficients)
-        var encoder: DcMotorEx?
+        var encoder: DcMotorEx
         var encoderOffset: Double = 0.0
 
         init {
@@ -89,7 +91,7 @@ class MotorControl(hardwareMap: HardwareMap) {
             motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
         }
 
-        fun setEncoder(motor: DcMotorEx?) {
+        fun setEncoder(motor: DcMotorEx) {
             encoder = motor
         }
 
@@ -126,9 +128,9 @@ class MotorControl(hardwareMap: HardwareMap) {
 
         var position: Double = 0.0
             get() = if (!reversed) {
-                (encoder!!.currentPosition * -1) - encoderOffset
+                (encoder.currentPosition * -1) - encoderOffset
             } else {
-                encoder!!.currentPosition - encoderOffset
+                encoder.currentPosition - encoderOffset
             }
             set(position) {
                 // some weird math happening here
@@ -178,7 +180,7 @@ class MotorControl(hardwareMap: HardwareMap) {
         }
     }
 
-    class ServoArm(val servo: Servo) {
+    open class ServoArm(val servo: Servo) {
         var down: Boolean = false
         var upPos: Double = 0.2
         var downPos: Double = 0.03 // TODO TUNE
@@ -201,12 +203,12 @@ class MotorControl(hardwareMap: HardwareMap) {
 
         fun moveUp() {
             down = false
-            servo.position = upPos
+            position = upPos
         }
 
         fun moveDown() {
             down = true
-            servo.position = downPos
+            position = downPos
         }
 
         fun toggle() {
@@ -215,6 +217,17 @@ class MotorControl(hardwareMap: HardwareMap) {
             } else {
                 moveDown()
             }
+        }
+    }
+    class ExtendoArm(servo: Servo) : ServoArm(servo) {
+        constructor(servo: Servo, downPos: Double, upPos: Double) : this(servo) {
+            this.downPos = downPos
+            this.upPos = upPos
+        }
+        val dumpPos = 0.6
+        fun moveDump() {
+            down = false
+            position = dumpPos
         }
     }
 

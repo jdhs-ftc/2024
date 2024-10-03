@@ -14,7 +14,7 @@ import java.util.Objects;
 
 public abstract class ActionOpMode extends LinearOpMode {
     private final FtcDashboard dash = FtcDashboard.getInstance();
-    private List<Action> runningActions = new ArrayList<>();
+    public List<Action> runningActions = new ArrayList<>();
     private List<UniqueAction> uniqueActionsQueue = new ArrayList<>();
 
     protected void runBlocking(Action a) {
