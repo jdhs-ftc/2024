@@ -14,8 +14,8 @@ class MotorControl(hardwareMap: HardwareMap) {
     val sArm: ServoArm
     @JvmField
     val extendoClaw: Claw
-
-    //public final Claw depositClaw;
+    @JvmField
+    val depositClaw: Claw
     @JvmField
     val extendo: Slide = Slide(
         hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
@@ -40,8 +40,7 @@ class MotorControl(hardwareMap: HardwareMap) {
 
 
         extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 1.0)
-
-        //depositClaw = new Claw(hardwareMap.get(Servo.class, "depositClaw"));
+        depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.0, 1.0);
         sArm = ServoArm(hardwareMap.get(Servo::class.java, "sArm"))
 
         //color = hardwareMap.get(ColorSensor.class, "color");

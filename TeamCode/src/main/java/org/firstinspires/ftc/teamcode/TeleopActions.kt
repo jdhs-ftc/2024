@@ -1,205 +1,206 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode
 
+import com.acmerobotics.dashboard.FtcDashboard
+import com.acmerobotics.dashboard.config.Config
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket
+import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.Pose2d
+import com.acmerobotics.roadrunner.PoseVelocity2d
+import com.acmerobotics.roadrunner.Rotation2d
+import com.acmerobotics.roadrunner.Vector2d
+import com.qualcomm.hardware.lynx.LynxModule
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import com.qualcomm.robotcore.hardware.Gamepad
+import com.qualcomm.robotcore.util.ElapsedTime
+import org.firstinspires.ftc.teamcode.TeleopActions.Input
+import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
+import org.firstinspires.ftc.teamcode.helpers.PoseStorage
+import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
+import org.firstinspires.ftc.teamcode.motor.MotorActions
+import org.firstinspires.ftc.teamcode.motor.MotorControl
+import java.util.ArrayList
+import java.util.LinkedList
+import java.util.function.Consumer
+import kotlin.math.log10
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.PoseVelocity2d;
-import com.acmerobotics.roadrunner.Rotation2d;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
-
-import org.firstinspires.ftc.teamcode.helpers.ActionOpMode;
-import org.firstinspires.ftc.teamcode.helpers.PoseStorage;
-import org.firstinspires.ftc.teamcode.helpers.control.PIDFController;
-import org.firstinspires.ftc.teamcode.motor.MotorActions;
-import org.firstinspires.ftc.teamcode.motor.MotorControl;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 
 @TeleOp(name = "Teleop Field Centric")
 @Config
-public class TeleopActions extends ActionOpMode {
-
-
+class TeleopActions : ActionOpMode() {
     // Declare a PIDF Controller to regulate heading
-    private final PIDFController.PIDCoefficients HEADING_PID_JOYSTICK = new PIDFController.PIDCoefficients(0.6, 0.0, 1);
-    private final PIDFController joystickHeadingController = new PIDFController(HEADING_PID_JOYSTICK);
-    double speed;
-    Rotation2d targetHeading = PoseStorage.currentPose.heading;
-    LynxModule CONTROL_HUB;
-    LynxModule EXPANSION_HUB;
-    boolean fieldCentric = true;
-    public PinpointDrive drive;
+    private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
+    private val joystickHeadingController = PIDFController(headingPIDJoystick)
+    var speed: Double = 0.0
+    var targetHeading: Rotation2d = PoseStorage.currentPose.heading
+    var controlHub: LynxModule? = null
+    var expansionHub: LynxModule? = null
+    var drive: PinpointDrive? = null
+    var motorControl: MotorControl? = null
+    var motorActions: MotorActions? = null
 
-    List<Action> runningActions = new ArrayList<>();
-    final ElapsedTime loopTime = new ElapsedTime();
-    final Gamepad currentGamepad1 = new Gamepad();
-    final Gamepad currentGamepad2 = new Gamepad();
-    final Gamepad previousGamepad1 = new Gamepad();
-    final Gamepad previousGamepad2 = new Gamepad();
-    boolean showMotorTelemetry = true;
-    boolean showStateTelemetry = true;
-    boolean showLoopTimes = true;
-    boolean showPoseTelemetry = true;
-    boolean showCameraTelemetry = false;
-
-    MotorControl motorControl;
-    MotorActions motorActions;
-    boolean drivingEnabled = true;
-    boolean actionRunning = false;
-    boolean suspendSet = false;
-    LinkedList<Double> loopTimeAvg = new LinkedList<>();
-
-    double loopTimeBeforeUpdate = 0;
-    double loopTimeAfterUpdate = 0;
-
-    ElapsedTime timeSinceDriverTurned = new ElapsedTime();
+    var fieldCentric = true
 
 
-    @Override
-    public void runOpMode() {
+    var runningActions = ArrayList<Action?>()
+    val loopTime = ElapsedTime()
+    val currentGamepad1 = Gamepad()
+    val currentGamepad2 = Gamepad()
+    val previousGamepad1 = Gamepad()
+    val previousGamepad2 = Gamepad()
 
+    var showMotorTelemetry = true
+    var showStateTelemetry = true
+    var showLoopTimes = true
+    var showPoseTelemetry = true
+    var showCameraTelemetry = false
+
+
+    var drivingEnabled = true
+    var actionRunning = false
+    var suspendSet = false
+    var loopTimeAvg = LinkedList<Double>()
+
+    var loopTimeBeforeUpdate = 0.0
+    var loopTimeAfterUpdate = 0.0
+
+    var timeSinceDriverTurned = ElapsedTime()
+
+
+    override fun runOpMode() {
         //  Initialization Period
 
         // Enable Bulk Caching
-        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
 
-        for (LynxModule module : allHubs) {
-            module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        val allHubs = hardwareMap.getAll<LynxModule?>(LynxModule::class.java)
+
+        for (module in allHubs) {
+            module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL)
         }
-        CONTROL_HUB = allHubs.get(0);
+        controlHub = allHubs.get(0)
+
         //EXPANSION_HUB = allHubs.get(1);
 
         // RoadRunner Init
-        drive = new PinpointDrive(hardwareMap, PoseStorage.currentPose);
+        drive = PinpointDrive(hardwareMap, PoseStorage.currentPose)
 
 
-        joystickHeadingController.setInputBounds(-Math.PI, Math.PI);
+        joystickHeadingController.setInputBounds(-Math.PI, Math.PI)
 
         // Telemetry Init
-        telemetry.setMsTransmissionInterval(50);
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetry.setMsTransmissionInterval(50)
+        telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry())
 
 
+        waitForStart()
 
-
-
-        waitForStart();
-
-        if (isStopRequested()) return;
+        if (isStopRequested()) return
         // Motor Init
-        motorControl = new MotorControl(hardwareMap);
-        motorActions = new MotorActions(motorControl);
+        motorControl = MotorControl(hardwareMap)
+        motorActions = MotorActions(motorControl)
 
 
         // Run Period
-
         while (opModeIsActive() && !isStopRequested()) {
             // Reset measured loop time
-            loopTime.reset();
+            loopTime.reset()
             // Reset bulk cache
-            allHubs.forEach(LynxModule::clearBulkCache);
+            allHubs.forEach(Consumer { obj: LynxModule? -> obj!!.clearBulkCache() })
 
             // This lets us do reliable rising edge detection, even if it changes mid loop
-            previousGamepad1.copy(currentGamepad1);
-            previousGamepad2.copy(currentGamepad2);
+            previousGamepad1.copy(currentGamepad1)
+            previousGamepad2.copy(currentGamepad2)
 
-            currentGamepad1.copy(gamepad1);
-            currentGamepad2.copy(gamepad2);
+            currentGamepad1.copy(gamepad1)
+            currentGamepad2.copy(gamepad2)
 
             // CONTROLS
 
             // Gamepad 1
             // Driving Modifiers
-            boolean padSlowMode = gamepad1.left_bumper;
-            boolean padFastMode = gamepad1.right_bumper;
-            boolean padResetPose = gamepad1.dpad_left && !previousGamepad1.dpad_left;
+            val padSlowMode = gamepad1.left_bumper
+            val padFastMode = gamepad1.right_bumper
+            val padResetPose = gamepad1.dpad_left && !previousGamepad1.dpad_left
 
             // Misc/Obscure
-            boolean padCameraAutoAim = gamepad1.right_stick_button;
+            val padCameraAutoAim = gamepad1.right_stick_button
 
             // Extra Settings
-            boolean pad1ExtraSettings = gamepad1.share;
-            boolean pad1ExTeamSwitch = gamepad1.dpad_left && !previousGamepad1.dpad_left; // 1 rumble blue, 2 rumble red
-            boolean pad1ExToggleFieldCentric = gamepad1.dpad_up && !previousGamepad1.dpad_up;
+            val pad1ExtraSettings = gamepad1.share
+            val pad1ExTeamSwitch = gamepad1.dpad_left && !previousGamepad1.dpad_left // 1 rumble blue, 2 rumble red
+            val pad1ExToggleFieldCentric = gamepad1.dpad_up && !previousGamepad1.dpad_up
 
 
             // Gamepad 2
             // Presets/Automated
-            boolean padHalfCycle = gamepad2.left_trigger > 0.25;
-            boolean padFullCycle = gamepad2.right_trigger > 0.25 || gamepad1.circle;
+            val padHalfCycle = gamepad2.left_trigger > 0.25
+            val padFullCycle = gamepad2.right_trigger > 0.25 || gamepad1.circle
 
-            boolean padHighPreset = gamepad2.y;
-            boolean padMidPreset = gamepad2.b;
-            boolean padLowPreset = gamepad2.a;
+            val padHighPreset = gamepad2.y
+            val padMidPreset = gamepad2.b
+            val padLowPreset = gamepad2.a
 
-            boolean padDepositClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper); //|| (gamepad1.square && !previousGamepad1.square);
-            boolean padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper);
-            boolean padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25));
-            boolean padArmUpFull = (gamepad2.left_trigger > 0.25 && !(previousGamepad2.left_trigger > 0.25));
+            val padDepositClawToggle =
+                (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
+            val padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper)
+            val padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25))
+            val padArmUpFull = (gamepad2.left_trigger > 0.25 && !(previousGamepad2.left_trigger > 0.25))
+
             // carson mixes up lefts from rights;
             // grip tape?
             // use triggers?
 
             // Manual Control
-            double padDepositControl = -gamepad2.left_stick_y;
-            double padExtendoControl = -gamepad2.right_stick_y;
-            double padSlideControlMultiplier = 10;
+            val padDepositControl = -gamepad2.left_stick_y.toDouble()
+            val padExtendoControl = -gamepad2.right_stick_y.toDouble()
+            val padSlideControlMultiplier = 10.0
 
 
             // Misc
-            boolean padForceDown = gamepad2.dpad_down && gamepad2.options;
+            val padForceDown = gamepad2.dpad_down && gamepad2.options
 
-            boolean padResetExtendo = gamepad2.dpad_up && gamepad2.options;
+            val padResetExtendo = gamepad2.dpad_up && gamepad2.options
 
 
             // Update the speed
-            if (padSlowMode) {
-                speed = .35;
+            speed = if (padSlowMode) {
+                .35
             } else if (padFastMode) {
-                speed = 1.5;
+                1.5
             } else {
-                speed = 0.3;//.8; // prev 0.8
+                1.0 //.8; // prev 0.8
             }
             // especially in driver practice, imu drifts eventually
             // this lets them reset just in case
             if (padResetPose) {
-                if (!(PoseStorage.currentTeam == PoseStorage.Team.BLUE)) { // Team is declared and saved there for auto
-                    drive.pose = new Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(90.0));
+                if (PoseStorage.currentTeam != PoseStorage.Team.BLUE) { // Team is declared and saved there for auto
+                    drive!!.pose = Pose2d(drive!!.pose.position.x, drive!!.pose.position.y, Math.toRadians(90.0))
                 } else {
-                    drive.pose = new Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(-90.0));
+                    drive!!.pose = Pose2d(drive!!.pose.position.x, drive!!.pose.position.y, Math.toRadians(-90.0))
                 }
-                targetHeading = drive.pose.heading;
-                gamepad1.rumbleBlips(1); // tell the driver it succeeded
+                targetHeading = drive!!.pose.heading
+                gamepad1.rumbleBlips(1) // tell the driver it succeeded
             }
             // Second layer
             if (pad1ExtraSettings) {
                 if (pad1ExToggleFieldCentric) {
-                    fieldCentric = !fieldCentric;
+                    fieldCentric = !fieldCentric
                     if (fieldCentric) {
-                        gamepad1.rumbleBlips(2);
+                        gamepad1.rumbleBlips(2)
                     } else {
-                        gamepad1.rumbleBlips(1);
+                        gamepad1.rumbleBlips(1)
                     }
                 }
 
                 if (pad1ExTeamSwitch) {
                     if (PoseStorage.currentTeam == PoseStorage.Team.RED) {
-                        gamepad1.rumbleBlips(1);
-                        PoseStorage.currentTeam = PoseStorage.Team.BLUE;
-
+                        gamepad1.rumbleBlips(1)
+                        PoseStorage.currentTeam = PoseStorage.Team.BLUE
                     } else {
-                        gamepad1.rumbleBlips(2);
-                        PoseStorage.currentTeam = PoseStorage.Team.RED;
+                        gamepad1.rumbleBlips(2)
+                        PoseStorage.currentTeam = PoseStorage.Team.RED
                     }
                 }
             }
@@ -208,81 +209,83 @@ public class TeleopActions extends ActionOpMode {
 
             // Create a vector from the gamepad x/y inputs
             // Then, rotate that vector by the inverse of that heading
-            Vector2d input = new Vector2d(
-                    -gamepad1.left_stick_y * speed,
-                    -gamepad1.left_stick_x * speed
-            );
+            var input = Vector2d(
+                -gamepad1.left_stick_y * speed,
+                -gamepad1.left_stick_x * speed
+            )
 
             //Pose2d poseEstimate = drive.pose;
-            double rotationAmount = -drive.pose.heading.log(); // Rotation2d.log() makes it into a double in radians.
+            var rotationAmount = -drive!!.pose.heading.log() // Rotation2d.log() makes it into a double in radians.
             if (fieldCentric && !padCameraAutoAim) {
                 if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on, the color changes
-                    rotationAmount = rotationAmount - Math.toRadians(90);
+                    rotationAmount = rotationAmount - Math.toRadians(90.0)
                 } else {
-                    rotationAmount = rotationAmount + Math.toRadians(90);
-
+                    rotationAmount = rotationAmount + Math.toRadians(90.0)
                 }
-                input = Rotation2d.fromDouble(rotationAmount).times(new Vector2d(input.x, input.y)); // magic courtesy of https://github.com/acmerobotics/road-runner/issues/90#issuecomment-1722674965
+                input = Rotation2d.fromDouble(rotationAmount).times(
+                    Vector2d(
+                        input.x,
+                        input.y
+                    )
+                ) // magic courtesy of https://github.com/acmerobotics/road-runner/issues/90#issuecomment-1722674965
             }
-            Vector2d controllerHeading = new Vector2d(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
+            val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
 
             if (drivingEnabled) {
                 if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) {
-                    drive.setDrivePowers(
-                            new PoseVelocity2d(
-                                    new Vector2d(
-                                            input.x,
-                                            input.y
-                                    ),
-                                    (gamepad1.left_trigger - gamepad1.right_trigger) * speed
-                            )
-                    );
-                    targetHeading = drive.pose.heading;
-                    timeSinceDriverTurned.reset();
+                    drive!!.setDrivePowers(
+                        PoseVelocity2d(
+                            Vector2d(
+                                input.x,
+                                input.y
+                            ),
+                            (gamepad1.left_trigger - gamepad1.right_trigger) * speed
+                        )
+                    )
+                    targetHeading = drive!!.pose.heading
+                    timeSinceDriverTurned.reset()
                 } else {
                     // Set the target heading for the heading controller to our desired angle
-                    if (Math.sqrt(Math.pow(controllerHeading.x, 2.0) + Math.pow(controllerHeading.y, 2.0)) > 0.4) {
+                    if (sqrt(controllerHeading.x.pow(2.0) + controllerHeading.y.pow(2.0)) > 0.4) {
                         // Cast the angle based on the angleCast of the joystick as a heading
                         if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) {
-                            targetHeading = controllerHeading.angleCast().plus(Math.toRadians(-90));
+                            targetHeading = controllerHeading.angleCast().plus(Math.toRadians(-90.0))
                         } else {
-                            targetHeading = controllerHeading.angleCast().plus(Math.toRadians(90));
+                            targetHeading = controllerHeading.angleCast().plus(Math.toRadians(90.0))
                         }
                     }
 
-                    joystickHeadingController.targetPosition = targetHeading.toDouble();
+                    joystickHeadingController.targetPosition = targetHeading.toDouble()
 
-                    double headingInput;
+                    var headingInput: Double
                     // Set the desired angular velocity to the heading controller output + angular
                     // velocity feedforward
                     if (timeSinceDriverTurned.milliseconds() > 250) {
-                        headingInput = (joystickHeadingController.update(drive.pose.heading.log())
+                        headingInput = ((joystickHeadingController.update(drive!!.pose.heading.log())
                                 * MecanumDrive.PARAMS.kV
-                                * MecanumDrive.PARAMS.trackWidthTicks);
-                        drive.setDrivePowers(
-                                new PoseVelocity2d(
-                                        new Vector2d(
-                                                input.x,
-                                                input.y
-                                        ),
-                                        headingInput
-                                )
-                        );
-
+                                * MecanumDrive.PARAMS.trackWidthTicks))
+                        drive!!.setDrivePowers(
+                            PoseVelocity2d(
+                                Vector2d(
+                                    input.x,
+                                    input.y
+                                ),
+                                headingInput
+                            )
+                        )
                     } else {
-                        headingInput = 0;
-                        targetHeading = drive.pose.heading;
-                        drive.setDrivePowers(
-                                new PoseVelocity2d(
-                                        new Vector2d(
-                                                input.x,
-                                                input.y
-                                        ),
-                                        headingInput
-                                )
-                        );
+                        headingInput = 0.0
+                        targetHeading = drive!!.pose.heading
+                        drive!!.setDrivePowers(
+                            PoseVelocity2d(
+                                Vector2d(
+                                    input.x,
+                                    input.y
+                                ),
+                                headingInput
+                            )
+                        )
                     }
-
                 }
             }
 
@@ -290,135 +293,132 @@ public class TeleopActions extends ActionOpMode {
             // LIFT CONTROL/FSM
 
 
-
             // Slide (Manual)
             // TODO: abstract this?
-            if (motorControl.deposit.targetPosition > 1600 && padDepositControl > 0) {
-                motorControl.deposit.targetPosition = 1600;
-
-            } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0 && !padForceDown) {
-                motorControl.deposit.findZero();
-                motorControl.deposit.targetPosition = 20;
-
+            if (motorControl!!.deposit.targetPosition > 1600 && padDepositControl > 0) {
+                motorControl!!.deposit.targetPosition = 1600.0
+            } else if (motorControl!!.deposit.targetPosition <= 20 && padDepositControl < 0 && !padForceDown) {
+                motorControl!!.deposit.findZero()
+                motorControl!!.deposit.targetPosition = 20.0
             } else {
-                motorControl.deposit.targetPosition = motorControl.deposit.targetPosition + (padDepositControl * padSlideControlMultiplier);
+                motorControl!!.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
             }
-            if (motorControl.extendo.targetPosition > 1530 && padExtendoControl > 0) {
-                motorControl.extendo.targetPosition = 1530;
 
-            } else if (motorControl.extendo.targetPosition <= 20 && padExtendoControl < 0 && !padForceDown) {
-                motorControl.extendo.findZero();
-                motorControl.extendo.targetPosition = 20;
-
+            if (motorControl!!.extendo.targetPosition > 1530 && padExtendoControl > 0) {
+                motorControl!!.extendo.targetPosition = 1530.0
+            } else if (motorControl!!.extendo.targetPosition <= 20 && padExtendoControl < 0 && !padForceDown) {
+                motorControl!!.extendo.findZero()
+                motorControl!!.extendo.targetPosition = 20.0
             } else {
-                motorControl.extendo.targetPosition = motorControl.extendo.targetPosition + (padExtendoControl * padSlideControlMultiplier);
+                motorControl!!.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
             }
 
             if (padDepositClawToggle) {
-                //motorControl.depositClaw.toggle();
+                motorControl!!.depositClaw.toggle();
             }
             if (padExtendoClawToggle) {
-                motorControl.extendoClaw.toggle();
+                motorControl!!.extendoClaw.toggle()
             }
 
             if (padArmToggle) {
-                motorControl.sArm.toggle();
+                motorControl!!.sArm.toggle()
             }
             if (padArmUpFull) {
-                motorControl.sArm.setPosition(0.6);
+                motorControl!!.sArm.position = 0.6
             }
-
 
 
             if (padHighPreset) {
-                motorControl.deposit.targetPosition = 1600;
+                motorControl!!.deposit.targetPosition = 1600.0
             }
             if (padMidPreset) {
-                motorControl.extendo.targetPosition = 1530;
+                motorControl!!.extendo.targetPosition = 1530.0
             }
             if (padLowPreset) {
-                motorControl.deposit.targetPosition = 20;
-                motorControl.extendo.targetPosition = 20;
+                motorControl!!.deposit.targetPosition = 20.0
+                motorControl!!.extendo.targetPosition = 20.0
             }
 
 
-
-
-            double colorAlpha = 0;
-            double pad2rumble;
+            val colorAlpha = 0.0
 
             // rumble the gunner controller based on the claw color sensor
-            if (colorAlpha > 200) {// && !motorControl.extendoClaw.closed) {
-                pad2rumble = Math.log10(colorAlpha) / 6;
+            var pad2rumble: Double = if (colorAlpha > 200) { // && !motorControl.extendoClaw.closed) {
+                log10(colorAlpha) / 6
             } else {
-                pad2rumble = 0;
+                0.0
             }
-            gamepad2.rumble(pad2rumble, pad2rumble, Gamepad.RUMBLE_DURATION_CONTINUOUS);
+            gamepad2.rumble(pad2rumble, pad2rumble, Gamepad.RUMBLE_DURATION_CONTINUOUS)
+
 
             // update RR, update motor controllers
 
 
             // TELEMETRY
+            val packet = TelemetryPacket()
+            Drawing.drawRobot(
+                packet.fieldOverlay(),
+                drive!!.pose
+            ) //new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
 
-            TelemetryPacket packet = new TelemetryPacket();
-            Drawing.drawRobot(packet.fieldOverlay(), drive.pose); //new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
+            updateAsync(packet)
+            drive!!.updatePoseEstimate()
+            motorControl!!.update()
+            FtcDashboard.getInstance().sendTelemetryPacket(packet)
 
-            updateAsync(packet);
-            drive.updatePoseEstimate();
-            motorControl.update();
-            FtcDashboard.getInstance().sendTelemetryPacket(packet);
-
-            double loopTimeMs = loopTime.milliseconds();
-            loopTimeAvg.add(loopTimeMs);
-            while (loopTimeAvg.size() > 1000) {
-                loopTimeAvg.removeFirst();
+            val loopTimeMs = loopTime.milliseconds()
+            loopTimeAvg.add(loopTimeMs)
+            while (loopTimeAvg.size > 1000) {
+                loopTimeAvg.removeFirst()
             }
 
             if (showPoseTelemetry) {
-                telemetry.addLine("--- Pose ---");
-                telemetry.addData("x", drive.pose.position.x);
-                telemetry.addData("y", drive.pose.position.y);
-                telemetry.addData("heading", drive.pose.heading.log());
+                telemetry.addLine("--- Pose ---")
+                telemetry.addData("x", drive!!.pose.position.x)
+                telemetry.addData("y", drive!!.pose.position.y)
+                telemetry.addData("heading", drive!!.pose.heading.log())
             }
             if (showLoopTimes) {
-                telemetry.addLine("--- Loop Times ---");
-                telemetry.addData("loopTimeMs", loopTimeMs);
-                telemetry.addData("loopTimeHz", 1000.0 / loopTimeMs);
-                telemetry.addData("LoopAverage ", loopTimeAvg.stream().reduce(0.0,Double::sum) / loopTimeAvg.size());
-                telemetry.addData("msBeforeUpdate",loopTimeBeforeUpdate);
-                telemetry.addData("msAfterUpdate",loopTimeAfterUpdate);
+                telemetry.addLine("--- Loop Times ---")
+                telemetry.addData("loopTimeMs", loopTimeMs)
+                telemetry.addData("loopTimeHz", 1000.0 / loopTimeMs)
+                telemetry.addData(
+                    "LoopAverage ",
+                    loopTimeAvg.sum() / loopTimeAvg.size
+                )
+                telemetry.addData("msBeforeUpdate", loopTimeBeforeUpdate)
+                telemetry.addData("msAfterUpdate", loopTimeAfterUpdate)
             }
 
             if (showMotorTelemetry) {
-                telemetry.addLine("--- Motors ---");
-                telemetry.addData("extendoTarget", motorControl.extendo.targetPosition);
-                telemetry.addData("extendoPosition", motorControl.extendo.getPosition());
-                telemetry.addData("depositTarget", motorControl.deposit.targetPosition);
-                telemetry.addData("depositPosition", motorControl.deposit.getPosition());
+                telemetry.addLine("--- Motors ---")
+                telemetry.addData("extendoTarget", motorControl!!.extendo.targetPosition)
+                telemetry.addData("extendoPosition", motorControl!!.extendo.position)
+                telemetry.addData("depositTarget", motorControl!!.deposit.targetPosition)
+                telemetry.addData("depositPosition", motorControl!!.deposit.position)
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
 
 
             if (showStateTelemetry) {
-                telemetry.addLine("--- State Machine ---");
-                telemetry.addData("actions",runningActions);
+                telemetry.addLine("--- State Machine ---")
+                telemetry.addData("actions", runningActions)
             }
-            loopTimeBeforeUpdate = loopTime.milliseconds();
-            telemetry.update();
-            loopTimeAfterUpdate = loopTime.milliseconds();
+            loopTimeBeforeUpdate = loopTime.milliseconds()
+            telemetry.update()
+            loopTimeAfterUpdate = loopTime.milliseconds()
         }
     }
 
 
-        // TODO: probably not needed, just make a normal action
-        interface input {
-            boolean isPressed();
-        }
-        Action waitForInput (input input){
-            return telemetryPacket -> input.isPressed();
-        }
+    // TODO: probably not needed, just make a normal action
+    interface Input {
+        fun isPressed(): Boolean
+    }
 
-
+    fun waitForInput(input: Input): Action {
+        return Action { telemetryPacket: TelemetryPacket -> input.isPressed() }
+    }
 }
 

@@ -40,7 +40,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         // RR localizer note: these units are inches and radians
         // also, tuning currently assumes your angular offset is a multiple of 90
 
-        public SparkFunOTOS.Pose2D offset = new SparkFunOTOS.Pose2D(0,0,Math.toRadians(0));//new SparkFunOTOS.Pose2D(0.44, 4.965, Math.toRadians(180));
+        public SparkFunOTOS.Pose2D offset = new SparkFunOTOS.Pose2D(-5.9,-0.37,Math.toRadians(0));//new SparkFunOTOS.Pose2D(0.44, 4.965, Math.toRadians(180));
 
         // Here we can set the linear and angular scalars, which can compensate for
         // scaling issues with the sensor measurements. Note that as of firmware
@@ -100,7 +100,7 @@ public class SparkFunOTOSDrive extends MecanumDrive {
         System.out.println("OTOS calibration complete!");
         // RR localizer note:
         // disable robot centric mode
-        otos.setSignalProcessConfig(new SparkFunOTOS.SignalProcessConfig((byte) 0x0F));
+        //otos.setSignalProcessConfig(new SparkFunOTOS.SignalProcessConfig((byte) 0x0F));
     }
     @Override
     public PoseVelocity2d updatePoseEstimate() {
