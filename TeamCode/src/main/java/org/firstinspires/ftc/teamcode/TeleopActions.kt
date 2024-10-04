@@ -90,8 +90,8 @@ class TeleopActions : ActionOpMode() {
         joystickHeadingController.setInputBounds(-Math.PI, Math.PI)
 
         // Telemetry Init
-        telemetry.setMsTransmissionInterval(50)
-        telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry())
+        telemetry.msTransmissionInterval = 50
+        telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
 
 
         waitForStart()
@@ -99,7 +99,7 @@ class TeleopActions : ActionOpMode() {
         if (isStopRequested()) return
         // Motor Init
         motorControl = MotorControl(hardwareMap)
-        motorActions = MotorActions(motorControl)
+        motorActions = MotorActions(motorControl!!)
 
 
         // Run Period
@@ -135,9 +135,8 @@ class TeleopActions : ActionOpMode() {
 
             // Gamepad 2
             // Presets/Automated
-            val padHalfCycle = gamepad2.left_trigger > 0.25
-            val padFullCycle = gamepad2.right_trigger > 0.25 || gamepad1.circle
-
+            val padWallPreset = (gamepad2.x && !previousGamepad2.x)
+            val padWallPresetRelease = (!gamepad2.x && previousGamepad2.x)
             val padHighPreset = gamepad2.y
             val padMidPreset = gamepad2.b
             val padLowPreset = gamepad2.a
@@ -351,12 +350,23 @@ class TeleopActions : ActionOpMode() {
 
             if (padExtendoArmDown) {
                 run(UniqueAction(SequentialAction(
-                    InstantAction {motorControl!!.extendoClaw.open()}, // open claw
-                    InstantAction { motorControl!!.extendoArm.moveDown() }, // move to ground
+                    motorActions!!.extendoClaw.open(), // open claw
+                    motorActions!!.extendoArm.moveDown(), // move to ground
                     Action { return@Action !padExtendoGrabAndArmUp }, // wait until trigger releases
-                    InstantAction {motorControl!!.extendoClaw.close()}, // close claw
+                    motorActions!!.extendoClaw.close(), // close claw
                     SleepAction(0.3), // TODO tune
-                    InstantAction { motorControl!!.extendoArm.moveUp() } // move claw to "clears ground bar" pos
+                    motorActions!!.extendoArm.moveUp() // move claw to "clears ground bar" pos
+                )))
+            }
+            if (padWallPreset) {
+                run(UniqueAction(SequentialAction(
+                    motorActions!!.deposit.setTargetPosition(100.0), // TODO TUNE!
+                    motorActions!!.extendoArm.moveUp(),
+                    motorActions!!.depositArm.moveUp(),
+                    motorActions!!.depositClaw.open(),
+                    Action { return@Action !padWallPresetRelease },
+                    motorActions!!.extendoClaw.open(),
+                    motorActions!!.depositClaw.close(),
                 )))
             }
 

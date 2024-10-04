@@ -1,110 +1,115 @@
-package org.firstinspires.ftc.teamcode.motor;
+package org.firstinspires.ftc.teamcode.motor
 
-import androidx.annotation.NonNull;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket
+import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.InstantAction
+import com.acmerobotics.roadrunner.InstantFunction
+import org.firstinspires.ftc.teamcode.motor.MotorActions.Deposit
+import org.firstinspires.ftc.teamcode.motor.MotorActions.Extendo
 
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.InstantAction;
-import com.acmerobotics.roadrunner.SequentialAction;
-import com.acmerobotics.roadrunner.SleepAction;
+class MotorActions(val motorControl: MotorControl) {
+    val extendo = Extendo()
+    val deposit = Deposit()
+    val depositClaw = Claw(motorControl.depositClaw)
+    val extendoClaw = Claw(motorControl.extendoClaw)
+    val depositArm = ServoArm(motorControl.depositArm)
+    val extendoArm = ServoArm(motorControl.extendoArm)
 
-public class MotorActions {
-    public final MotorControl motorControl;
-    public final Extendo extendo;
-    public final Deposit deposit;
-    public final Claw depositClaw;
-    public final Claw extendoClaw;
-
-    public MotorActions(MotorControl motorControl) {
-        this.motorControl = motorControl;
-        this.extendo = new Extendo();
-        this.deposit = new Deposit();
-        this.depositClaw = new Claw(motorControl.depositClaw);
-        this.extendoClaw = new Claw(motorControl.extendoClaw);
-
-    }
-    public Action waitUntilFinished() {
-        return t -> motorControl.closeEnough();
+    fun waitUntilFinished(): Action {
+        return Action { t: TelemetryPacket? -> motorControl.closeEnough() }
     }
 
-    public Action update() {
-        return t -> {
-            motorControl.update();
-            return true; // this returns true to make it loop forever; use RaceParallelCommand
-        };
+    fun update(): Action {
+        return Action { t: TelemetryPacket? ->
+            motorControl.update()
+            true // this returns true to make it loop forever; use RaceParallelCommand
+        }
     }
 
 
-    public Action log(String message) {
-        return new Action() {
-            @Override
-            public boolean run(@NonNull TelemetryPacket t) {
-                System.out.println(message);
-                return false;
+    fun log(message: String?): Action {
+        return object : Action {
+            override fun run(t: TelemetryPacket): Boolean {
+                println(message)
+                return false
             }
-        };
+        }
     }
 
 
-    public class Extendo {
-        public Action setTargetPosition(double position) {
-            return t -> {
-                motorControl.extendo.targetPosition = position;
-                return false;
-            };
+    inner class Extendo {
+        fun setTargetPosition(position: Double): Action {
+            return Action { t: TelemetryPacket? ->
+                motorControl.extendo.targetPosition = position
+                false
+            }
         }
-        public Action waitUntilFinished() {
-            return new Action() {
-                @Override
-                public boolean run(@NonNull TelemetryPacket t) {
-                    return !motorControl.extendo.closeEnough();
+
+        fun waitUntilFinished(): Action {
+            return object : Action {
+                override fun run(t: TelemetryPacket): Boolean {
+                    return !motorControl.extendo.closeEnough()
                 }
-            };
+            }
         }
 
-        public Action moveUp() {
-            return setTargetPosition(1200);
-        }
-        public Action moveDown() {
-            return setTargetPosition(40);
-        }
-    }
-    public class Deposit {
-        public Action setTargetPosition(double position) {
-            return t -> {
-                motorControl.extendo.targetPosition = position;
-                return false;
-            };
-        }
-        public Action waitUntilFinished() {
-            return new Action() {
-                @Override
-                public boolean run(@NonNull TelemetryPacket t) {
-                    return !motorControl.extendo.closeEnough();
-                }
-            };
+        fun moveUp(): Action {
+            return setTargetPosition(1200.0)
         }
 
-        public Action moveUp() {
-            return setTargetPosition(1600);
-        }
-        public Action moveDown() {
-            return setTargetPosition(20);
+        fun moveDown(): Action {
+            return setTargetPosition(40.0)
         }
     }
 
-    public static class Claw {
-        MotorControl.Claw claw;
-        Claw(MotorControl.Claw claw) {
-            this.claw = claw;
+    inner class Deposit {
+        fun setTargetPosition(position: Double): Action {
+            return InstantAction {
+                motorControl.extendo.targetPosition = position
+            }
         }
+
+        fun waitUntilFinished(): Action {
+            return Action {
+                return@Action !motorControl.extendo.closeEnough()
+            }
+        }
+
+        fun moveUp(): Action {
+            return setTargetPosition(1600.0)
+        }
+
+        fun moveDown(): Action {
+            return setTargetPosition(20.0)
+        }
+    }
+
+    class Claw internal constructor(val claw: MotorControl.Claw) {
+
         // TODO: add waits? depends on delay
-        public Action close() {
-            return new InstantAction(() -> claw.close());
+        fun close(): Action {
+            return InstantAction(InstantFunction { claw.close() })
         }
-        public Action open() {
-            return new InstantAction(() -> claw.open());
+
+        fun open(): Action {
+            return InstantAction(InstantFunction { claw.open() })
         }
     }
 
+    open class ServoArm (val servoArm: MotorControl.ServoArm) {
+        fun setPosition(position: Double): Action {
+            return InstantAction { servoArm.position = position }
+        }
+        fun moveUp(): Action {
+            return InstantAction { servoArm.moveUp() }
+        }
+        fun moveDown(): Action {
+            return InstantAction { servoArm.moveDown() }
+        }
+    }
+    class ExtendoArm (val extendoArm: MotorControl.ExtendoArm) : ServoArm(extendoArm) {
+        fun moveDump(): Action {
+            return InstantAction { extendoArm.moveDump() }
+        }
+    }
 }
