@@ -65,13 +65,13 @@ class MotorActions(val motorControl: MotorControl) {
     inner class Deposit {
         fun setTargetPosition(position: Double): Action {
             return InstantAction {
-                motorControl.extendo.targetPosition = position
+                motorControl.deposit.targetPosition = position
             }
         }
 
         fun waitUntilFinished(): Action {
             return Action {
-                return@Action !motorControl.extendo.closeEnough()
+                return@Action !motorControl.deposit.closeEnough()
             }
         }
 

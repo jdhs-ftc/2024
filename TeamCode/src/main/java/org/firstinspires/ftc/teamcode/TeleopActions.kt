@@ -5,7 +5,6 @@ import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
-import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.Rotation2d
@@ -13,8 +12,12 @@ import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
 import com.qualcomm.hardware.lynx.LynxModule
+import com.qualcomm.hardware.lynx.LynxModule.BulkCachingMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.Gamepad
+import com.qualcomm.robotcore.hardware.configuration.LynxConstants
+import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.TeleopActions.Input
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
@@ -35,15 +38,14 @@ class TeleopActions : ActionOpMode() {
     // Declare a PIDF Controller to regulate heading
     private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
     private val joystickHeadingController = PIDFController(headingPIDJoystick)
-    var speed: Double = 0.0
-    var targetHeading: Rotation2d = PoseStorage.currentPose.heading
-    var controlHub: LynxModule? = null
-    var expansionHub: LynxModule? = null
-    var drive: PinpointDrive? = null
-    var motorControl: MotorControl? = null
-    var motorActions: MotorActions? = null
 
-    var fieldCentric = true
+    val allHubs by lazy {hardwareMap.getAll<LynxModule>(LynxModule::class.java)}
+    val controlHub by lazy {allHubs.find {it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && it.isParent && LynxConstants.isEmbeddedSerialNumber(it.serialNumber)} as LynxModule}
+    val expansionHub by lazy {allHubs.find {it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && (!it.isParent || (it.isParent && !LynxConstants.isEmbeddedSerialNumber(it.serialNumber)))} as LynxModule}
+    val drive by lazy { PinpointDrive(hardwareMap, PoseStorage.currentPose) }
+    val motorControl by lazy {MotorControl(hardwareMap)}
+    val motorActions by lazy {MotorActions(motorControl)}
+
 
     val loopTime = ElapsedTime()
     val currentGamepad1 = Gamepad()
@@ -51,40 +53,33 @@ class TeleopActions : ActionOpMode() {
     val previousGamepad1 = Gamepad()
     val previousGamepad2 = Gamepad()
 
+    var speed = 1.0
+    var targetHeading = PoseStorage.currentPose.heading
+    var fieldCentric = true
+    var drivingEnabled = true
+    var padReleased = true
+
     var showMotorTelemetry = true
     var showStateTelemetry = true
     var showLoopTimes = true
     var showPoseTelemetry = true
     var showCameraTelemetry = false
-
-
-    var drivingEnabled = true
     var actionRunning = false
-    var suspendSet = false
-    var loopTimeAvg = LinkedList<Double>()
 
-    var loopTimeBeforeUpdate = 0.0
-    var loopTimeAfterUpdate = 0.0
-
-    var timeSinceDriverTurned = ElapsedTime()
+    val loopTimeAvg = LinkedList<Double>()
+    val timeSinceDriverTurned = ElapsedTime()
 
 
     override fun runOpMode() {
         //  Initialization Period
 
         // Enable Bulk Caching
-
-        val allHubs = hardwareMap.getAll<LynxModule?>(LynxModule::class.java)
-
-        for (module in allHubs) {
-            module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL)
-        }
-        controlHub = allHubs.get(0)
+        allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL}
 
         //EXPANSION_HUB = allHubs.get(1);
 
         // RoadRunner Init
-        drive = PinpointDrive(hardwareMap, PoseStorage.currentPose)
+        drive // init with by lazy
 
 
         joystickHeadingController.setInputBounds(-Math.PI, Math.PI)
@@ -96,18 +91,18 @@ class TeleopActions : ActionOpMode() {
 
         waitForStart()
 
-        if (isStopRequested()) return
+        if (isStopRequested) return
         // Motor Init
-        motorControl = MotorControl(hardwareMap)
-        motorActions = MotorActions(motorControl!!)
+        motorControl // init with by lazy
+        motorActions
 
 
         // Run Period
-        while (opModeIsActive() && !isStopRequested()) {
+        while (opModeIsActive() && !isStopRequested) {
             // Reset measured loop time
             loopTime.reset()
             // Reset bulk cache
-            allHubs.forEach(Consumer { obj: LynxModule? -> obj!!.clearBulkCache() })
+            allHubs.forEach { it.clearBulkCache() }
 
             // This lets us do reliable rising edge detection, even if it changes mid loop
             previousGamepad1.copy(currentGamepad1)
@@ -136,7 +131,8 @@ class TeleopActions : ActionOpMode() {
             // Gamepad 2
             // Presets/Automated
             val padWallPreset = (gamepad2.x && !previousGamepad2.x)
-            val padWallPresetRelease = (!gamepad2.x && previousGamepad2.x)
+            val padWallPresetRelease = !gamepad2.x
+            padReleased = padReleased && padWallPresetRelease
             val padHighPreset = gamepad2.y
             val padMidPreset = gamepad2.b
             val padLowPreset = gamepad2.a
@@ -148,7 +144,8 @@ class TeleopActions : ActionOpMode() {
             val padArmUpFull = (gamepad2.right_bumper && !(previousGamepad2.right_bumper))
 
             val padExtendoArmDown = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
-            val padExtendoGrabAndArmUp = (!(gamepad2.right_trigger > 0.25) && (previousGamepad2.right_trigger > 0.25)) // trigger falling edge
+            val padExtendoGrabAndArmUp = !(gamepad2.right_trigger > 0.25) // trigger falling edge
+            padReleased = padReleased && padExtendoGrabAndArmUp
 
             // carson mixes up lefts from rights;
             // grip tape?
@@ -178,11 +175,11 @@ class TeleopActions : ActionOpMode() {
             // this lets them reset just in case
             if (padResetPose) {
                 if (PoseStorage.currentTeam != PoseStorage.Team.BLUE) { // Team is declared and saved there for auto
-                    drive!!.pose = Pose2d(drive!!.pose.position.x, drive!!.pose.position.y, Math.toRadians(90.0))
+                    drive.pose = Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(90.0))
                 } else {
-                    drive!!.pose = Pose2d(drive!!.pose.position.x, drive!!.pose.position.y, Math.toRadians(-90.0))
+                    drive.pose = Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(-90.0))
                 }
-                targetHeading = drive!!.pose.heading
+                targetHeading = drive.pose.heading
                 gamepad1.rumbleBlips(1) // tell the driver it succeeded
             }
             // Second layer
@@ -217,77 +214,55 @@ class TeleopActions : ActionOpMode() {
             )
 
             //Pose2d poseEstimate = drive.pose;
-            var rotationAmount = -drive!!.pose.heading.log() // Rotation2d.log() makes it into a double in radians.
+            var rotationAmount = drive.pose.heading.inverse() // inverse it
             if (fieldCentric && !padCameraAutoAim) {
-                if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on, the color changes
-                    rotationAmount = rotationAmount - Math.toRadians(90.0)
+                rotationAmount = if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on, the forward angle from driver's perspective changes
+                    rotationAmount + Math.toRadians(-90.0)
                 } else {
-                    rotationAmount = rotationAmount + Math.toRadians(90.0)
+                    rotationAmount + Math.toRadians(90.0)
                 }
-                input = Rotation2d.fromDouble(rotationAmount).times(
-                    Vector2d(
-                        input.x,
-                        input.y
-                    )
-                ) // magic courtesy of https://github.com/acmerobotics/road-runner/issues/90#issuecomment-1722674965
+                input = rotationAmount * input // rotate the input by the rotationamount
+            // (rotationAmount MUST go first here)
             }
             val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
 
             if (drivingEnabled) {
+                var headingInput: Double
                 if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) {
-                    drive!!.setDrivePowers(
+                    headingInput = (gamepad1.left_trigger - gamepad1.right_trigger) * speed
+                    targetHeading = drive.pose.heading
+                    timeSinceDriverTurned.reset()
+                } else {
+                    // Set the target heading for the heading controller to our desired angle
+                    if (controllerHeading.norm() > 0.4) { // if the joystick is tilted more then 0.4 from center
+                        // Cast the angle based on the angleCast of the joystick as a heading
+                        targetHeading = if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) {
+                            controllerHeading.angleCast().plus(Math.toRadians(-90.0))
+                        } else {
+                            controllerHeading.angleCast().plus(Math.toRadians(90.0))
+                        }
+                    }
+
+                    joystickHeadingController.targetPosition = targetHeading.toDouble()
+                    // Set the desired angular velocity to the heading controller output plus angular
+                    // velocity feedforward
+                    if (timeSinceDriverTurned.milliseconds() > 250) {
+                        headingInput = ((joystickHeadingController.update(drive.pose.heading.log())
+                                * MecanumDrive.PARAMS.kV
+                                * MecanumDrive.PARAMS.trackWidthTicks))
+                    } else {
+                        headingInput = 0.0
+                        targetHeading = drive.pose.heading
+                    }
+                    drive.setDrivePowers(
                         PoseVelocity2d(
                             Vector2d(
                                 input.x,
                                 input.y
                             ),
-                            (gamepad1.left_trigger - gamepad1.right_trigger) * speed
+                            headingInput
                         )
                     )
-                    targetHeading = drive!!.pose.heading
-                    timeSinceDriverTurned.reset()
-                } else {
-                    // Set the target heading for the heading controller to our desired angle
-                    if (sqrt(controllerHeading.x.pow(2.0) + controllerHeading.y.pow(2.0)) > 0.4) {
-                        // Cast the angle based on the angleCast of the joystick as a heading
-                        if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) {
-                            targetHeading = controllerHeading.angleCast().plus(Math.toRadians(-90.0))
-                        } else {
-                            targetHeading = controllerHeading.angleCast().plus(Math.toRadians(90.0))
-                        }
-                    }
-
-                    joystickHeadingController.targetPosition = targetHeading.toDouble()
-
-                    var headingInput: Double
-                    // Set the desired angular velocity to the heading controller output + angular
-                    // velocity feedforward
-                    if (timeSinceDriverTurned.milliseconds() > 250) {
-                        headingInput = ((joystickHeadingController.update(drive!!.pose.heading.log())
-                                * MecanumDrive.PARAMS.kV
-                                * MecanumDrive.PARAMS.trackWidthTicks))
-                        drive!!.setDrivePowers(
-                            PoseVelocity2d(
-                                Vector2d(
-                                    input.x,
-                                    input.y
-                                ),
-                                headingInput
-                            )
-                        )
-                    } else {
-                        headingInput = 0.0
-                        targetHeading = drive!!.pose.heading
-                        drive!!.setDrivePowers(
-                            PoseVelocity2d(
-                                Vector2d(
-                                    input.x,
-                                    input.y
-                                ),
-                                headingInput
-                            )
-                        )
-                    }
                 }
             }
 
@@ -297,76 +272,77 @@ class TeleopActions : ActionOpMode() {
 
             // Slide (Manual)
             // TODO: abstract this?
-            if (motorControl!!.deposit.targetPosition > 1600 && padDepositControl > 0) {
-                motorControl!!.deposit.targetPosition = 1600.0
-            } else if (motorControl!!.deposit.targetPosition <= 20 && padDepositControl < 0 && !padForceDown) {
-                motorControl!!.deposit.findZero()
-                motorControl!!.deposit.targetPosition = 20.0
+            if (motorControl.deposit.targetPosition > 1600 && padDepositControl > 0) {
+                motorControl.deposit.targetPosition = 1600.0
+            } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0 && !padForceDown) {
+                motorControl.deposit.findZero()
+                motorControl.deposit.targetPosition = 20.0
             } else {
-                motorControl!!.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
+                motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
             }
 
-            if (motorControl!!.extendo.targetPosition > 1530 && padExtendoControl > 0) {
-                motorControl!!.extendo.targetPosition = 1530.0
-            } else if (motorControl!!.extendo.targetPosition <= 20 && padExtendoControl < 0 && !padForceDown) {
-                motorControl!!.extendo.findZero()
-                motorControl!!.extendo.targetPosition = 20.0
+            if (motorControl.extendo.targetPosition > 1530 && padExtendoControl > 0) {
+                motorControl.extendo.targetPosition = 1530.0
+            } else if (motorControl.extendo.targetPosition <= 20 && padExtendoControl < 0 && !padForceDown) {
+                motorControl.extendo.findZero()
+                motorControl.extendo.targetPosition = 20.0
             } else {
-                motorControl!!.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
+                motorControl.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
             }
 
             if (padDepositClawToggle) {
-                motorControl!!.depositClaw.toggle();
+                motorControl.depositClaw.toggle();
             }
             /*
             if (padExtendoClawToggle) {
-                motorControl!!.extendoClaw.toggle()
+                motorControl.extendoClaw.toggle()
             }*
 
              */
 
             if (padArmToggle) {
-                motorControl!!.extendoArm.toggle()
+                motorControl.extendoArm.toggle()
             }
             if (padArmUpFull) {
                 run(UniqueAction(SequentialAction(
 
 
                 )))
-                motorControl!!.extendoArm.position = 0.6
+                motorControl.extendoArm.position = 0.6
             }
 
 
             if (padHighPreset) {
-                motorControl!!.deposit.targetPosition = 1600.0
+                motorControl.deposit.targetPosition = 1600.0
             }
             if (padMidPreset) {
-                motorControl!!.extendo.targetPosition = 1530.0
+                motorControl.extendo.targetPosition = 1530.0
             }
             if (padLowPreset) {
-                motorControl!!.deposit.targetPosition = 20.0
-                motorControl!!.extendo.targetPosition = 20.0
+                motorControl.deposit.targetPosition = 20.0
+                motorControl.extendo.targetPosition = 20.0
             }
 
             if (padExtendoArmDown) {
                 run(UniqueAction(SequentialAction(
-                    motorActions!!.extendoClaw.open(), // open claw
-                    motorActions!!.extendoArm.moveDown(), // move to ground
-                    Action { return@Action !padExtendoGrabAndArmUp }, // wait until trigger releases
-                    motorActions!!.extendoClaw.close(), // close claw
+                    motorActions.extendoClaw.open(), // open claw
+                    motorActions.extendoArm.moveDown(), // move to ground
+                    Action { return@Action !this::padReleased.get() }, // wait until trigger releases
+                    // (goofy stuff happening here)
+                    motorActions.extendoClaw.close(), // close claw
                     SleepAction(0.3), // TODO tune
-                    motorActions!!.extendoArm.moveUp() // move claw to "clears ground bar" pos
+                    motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
                 )))
             }
             if (padWallPreset) {
                 run(UniqueAction(SequentialAction(
-                    motorActions!!.deposit.setTargetPosition(100.0), // TODO TUNE!
-                    motorActions!!.extendoArm.moveUp(),
-                    motorActions!!.depositArm.moveUp(),
-                    motorActions!!.depositClaw.open(),
-                    Action { return@Action !padWallPresetRelease },
-                    motorActions!!.extendoClaw.open(),
-                    motorActions!!.depositClaw.close(),
+                    motorActions.deposit.setTargetPosition(100.0), // TODO TUNE!
+                    motorActions.extendoArm.moveUp(),
+                    motorActions.depositArm.moveUp(),
+                    motorActions.depositClaw.open(),
+                    Action { return@Action !this::padReleased.get() },
+                    motorActions.extendoClaw.open(),
+                    motorActions.depositClaw.close(),
                 )))
             }
 
@@ -393,12 +369,12 @@ class TeleopActions : ActionOpMode() {
             val packet = TelemetryPacket()
             Drawing.drawRobot(
                 packet.fieldOverlay(),
-                drive!!.pose
+                drive.pose
             ) //new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
 
             updateAsync(packet)
-            drive!!.updatePoseEstimate()
-            motorControl!!.update()
+            drive.updatePoseEstimate()
+            motorControl.update()
             FtcDashboard.getInstance().sendTelemetryPacket(packet)
 
             val loopTimeMs = loopTime.milliseconds()
@@ -409,9 +385,9 @@ class TeleopActions : ActionOpMode() {
 
             if (showPoseTelemetry) {
                 telemetry.addLine("--- Pose ---")
-                telemetry.addData("x", drive!!.pose.position.x)
-                telemetry.addData("y", drive!!.pose.position.y)
-                telemetry.addData("heading", drive!!.pose.heading.log())
+                telemetry.addData("x", drive.pose.position.x)
+                telemetry.addData("y", drive.pose.position.y)
+                telemetry.addData("heading", drive.pose.heading.log())
             }
             if (showLoopTimes) {
                 telemetry.addLine("--- Loop Times ---")
@@ -421,17 +397,15 @@ class TeleopActions : ActionOpMode() {
                     "LoopAverage ",
                     loopTimeAvg.sum() / loopTimeAvg.size
                 )
-                telemetry.addData("msBeforeUpdate", loopTimeBeforeUpdate)
-                telemetry.addData("msAfterUpdate", loopTimeAfterUpdate)
             }
 
             if (showMotorTelemetry) {
                 telemetry.addLine("--- Motors ---")
-                telemetry.addData("extendoTarget", motorControl!!.extendo.targetPosition)
-                telemetry.addData("extendoPosition", motorControl!!.extendo.position)
-                telemetry.addData("depositTarget", motorControl!!.deposit.targetPosition)
-                telemetry.addData("depositPosition", motorControl!!.deposit.position)
-                //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
+                telemetry.addData("extendoTarget", motorControl.extendo.targetPosition)
+                telemetry.addData("extendoPosition", motorControl.extendo.position)
+                telemetry.addData("depositTarget", motorControl.deposit.targetPosition)
+                telemetry.addData("depositPosition", motorControl.deposit.position)
+            //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
 
@@ -440,9 +414,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addLine("--- State Machine ---")
                 telemetry.addData("actions", runningActions)
             }
-            loopTimeBeforeUpdate = loopTime.milliseconds()
             telemetry.update()
-            loopTimeAfterUpdate = loopTime.milliseconds()
         }
     }
 

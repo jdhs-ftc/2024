@@ -1,8 +1,13 @@
 package org.firstinspires.ftc.teamcode.motor
 
-import com.qualcomm.robotcore.hardware.*
+import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.DcMotorEx
+import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.HardwareMap
+import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
+import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
 import kotlin.math.abs
 
 
@@ -10,6 +15,9 @@ import kotlin.math.abs
  * This class is used to control the motor systems on the robot.
  */
 class MotorControl(hardwareMap: HardwareMap) {
+    init { //empty out the motors list, its static so remains between op modes by default :skull:
+        motors = ArrayList()
+    }
     @JvmField
     val extendoArm: ServoArm
     @JvmField
@@ -18,7 +26,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     val extendo: Slide = Slide(
         hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
         "extendo",
-        PIDFController.PIDCoefficients(0.01, 0.0, 0.0)
+        PIDFController(PIDCoefficients(0.01, 0.0, 0.0))
     )
     @JvmField
     val depositArm: ServoArm
@@ -28,15 +36,15 @@ class MotorControl(hardwareMap: HardwareMap) {
     val deposit: Slide
     //public final ColorSensor color;
     init {
-        extendo.setEncoder(hardwareMap.get(DcMotorEx::class.java, "left_front"))
+        extendo.encoder = hardwareMap.get(DcMotorEx::class.java, "left_front")
         extendo.reversed = true
         deposit = Slide(
             hardwareMap,  // port 1 of exp hub and chub,
             // equiv to left_front I think could be wrong though
             "deposit",
-            PIDFController.PIDCoefficients(0.01, 0.0, 0.0)
+            PIDFController(PIDCoefficients(0.01, 0.0, 0.0), PIDFController.FeedforwardFun{a,b -> return@FeedforwardFun 0.15 })
         )
-        deposit.setEncoder(hardwareMap.get(DcMotorEx::class.java, "left_back"))
+        deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
         deposit.reversed = true
 
 
@@ -71,17 +79,15 @@ class MotorControl(hardwareMap: HardwareMap) {
     /**
      * This class controls the slide motor.
      */
-    class Slide(hardwareMap: HardwareMap, motorName: String, pidCoefficients: PIDFController.PIDCoefficients) :
+    class Slide(hardwareMap: HardwareMap, motorName: String, val pid: PIDFController) :
         ControlledMotor(hardwareMap.get(DcMotorEx::class.java, motorName)) {
-        var reversed: Boolean = true // TODO EVERYTHING REVERSED
-        var resetting: Boolean = false
-        var pid: PIDFController = PIDFController(pidCoefficients)
-        var encoder: DcMotorEx
+        var reversed = true // TODO EVERYTHING REVERSED
+        var resetting = false
+        var encoder: DcMotorEx = motor
         var encoderOffset: Double = 0.0
 
         init {
-            encoder = motor
-            motor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+            motor.zeroPowerBehavior =DcMotor .ZeroPowerBehavior.BRAKE
             motor.setCurrentAlert(6.0, CurrentUnit.AMPS)
             if (reversed) {
                 motor.direction = DcMotorSimple.Direction.REVERSE
@@ -89,10 +95,7 @@ class MotorControl(hardwareMap: HardwareMap) {
                 motor.direction = DcMotorSimple.Direction.FORWARD
             }
             motor.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
-        }
-
-        fun setEncoder(motor: DcMotorEx) {
-            encoder = motor
+            targetPosition = 20.0
         }
 
         /**
@@ -114,7 +117,7 @@ class MotorControl(hardwareMap: HardwareMap) {
                 }
             } else {
                 if (!motor.isOverCurrent) {
-                    motor.power = pid.update(position)
+                    motor.power = pid.update(position) // TODO SQRT
                 } else {
                     motor.power = 0.0
                 }
@@ -233,7 +236,7 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     abstract class ControlledMotor(val motor: DcMotorEx) {
         @JvmField
-        var targetPosition: Double = 0.0
+        var targetPosition = 0.0
 
         abstract fun update()
         abstract fun reset()

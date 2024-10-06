@@ -60,5 +60,5 @@ dependencies {
     implementation "com.acmerobotics.roadrunner:actions:1.0.0"
     implementation "com.acmerobotics.dashboard:dashboard:0.4.16"
     implementation project(':RoadRunner')
-    implementation 'androidx.core:core-ktx:1.13.1'
+    //implementation 'androidx.core:core-ktx:1.13.1'
 }
