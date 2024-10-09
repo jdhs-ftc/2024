@@ -5,16 +5,15 @@ import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.ParallelAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
-import com.acmerobotics.roadrunner.Rotation2d
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.hardware.lynx.LynxModule.BulkCachingMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
-import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
@@ -26,10 +25,7 @@ import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.util.LinkedList
-import java.util.function.Consumer
 import kotlin.math.log10
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 
 @TeleOp(name = "Teleop Field Centric")
@@ -137,8 +133,7 @@ class TeleopActions : ActionOpMode() {
             val padMidPreset = gamepad2.b
             val padLowPreset = gamepad2.a
 
-            val padDepositClawToggle =
-                (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
+            val padDepositClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
             //val padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper)
             val padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25))
             val padArmUpFull = (gamepad2.right_bumper && !(previousGamepad2.right_bumper))
@@ -146,6 +141,8 @@ class TeleopActions : ActionOpMode() {
             val padExtendoArmDown = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
             val padExtendoGrabAndArmUp = !(gamepad2.right_trigger > 0.25) // trigger falling edge
             padReleased = padReleased && padExtendoGrabAndArmUp
+
+            //val padDepositArmDump =
 
             // carson mixes up lefts from rights;
             // grip tape?
@@ -291,7 +288,7 @@ class TeleopActions : ActionOpMode() {
             }
 
             if (padDepositClawToggle) {
-                motorControl.depositClaw.toggle();
+                motorControl.depositClaw.toggle()
             }
             /*
             if (padExtendoClawToggle) {
@@ -305,10 +302,27 @@ class TeleopActions : ActionOpMode() {
             }
             if (padArmUpFull) {
                 run(UniqueAction(SequentialAction(
-
-
+                    motorActions.extendo.moveDown(),
+                    motorActions.deposit.moveDown(),
+                    motorActions.depositArm.moveDown(),
+                    motorActions.extendoArm.moveDump(),
+                    motorActions.depositLid.open(),
+                    // wait for extendo arm to get to target
+                    // maybe use gamepad here?
+                    SleepAction(0.5),
+                    motorActions.extendoClaw.open(),
+                    ParallelAction(
+                        SequentialAction(
+                            SleepAction(0.25), // wait for sample to fall
+                            motorActions.depositLid.close(),
+                        ),
+                        SequentialAction(
+                            SleepAction(0.1), // wait for claw to open
+                            motorActions.extendoArm.moveUp(),
+                            SleepAction(0.1) // wait for extendo arm to finish moving to just above ground position
+                        )
+                    )
                 )))
-                motorControl.extendoArm.position = 0.6
             }
 
 
@@ -323,7 +337,7 @@ class TeleopActions : ActionOpMode() {
                 motorControl.extendo.targetPosition = 20.0
             }
 
-            if (padExtendoArmDown) {
+            if (padExtendoArmDown) { // TODO i dont think uniqueaction works for some reason
                 run(UniqueAction(SequentialAction(
                     motorActions.extendoClaw.open(), // open claw
                     motorActions.extendoArm.moveDown(), // move to ground
@@ -337,17 +351,15 @@ class TeleopActions : ActionOpMode() {
             if (padWallPreset) {
                 run(UniqueAction(SequentialAction(
                     motorActions.deposit.setTargetPosition(100.0), // TODO TUNE!
+                    motorActions.extendo.moveDown(),
                     motorActions.extendoArm.moveUp(),
-                    motorActions.depositArm.moveUp(),
+                    motorActions.depositArm.moveDown(),
                     motorActions.depositClaw.open(),
                     Action { return@Action !this::padReleased.get() },
                     motorActions.extendoClaw.open(),
                     motorActions.depositClaw.close(),
                 )))
             }
-
-
-
 
 
 
@@ -370,7 +382,13 @@ class TeleopActions : ActionOpMode() {
             Drawing.drawRobot(
                 packet.fieldOverlay(),
                 drive.pose
-            ) //new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
+            )
+            // why is this commented out
+            // what was I even trying to do with this
+            // did I think pose was in ticks?? this would technically hve worked for that ig?????
+            // or did roadrunner use this?
+            // - j5155, 2024, with no memory of what this was (which means it was probably written in 2022)
+            //new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
 
             updateAsync(packet)
             drive.updatePoseEstimate()

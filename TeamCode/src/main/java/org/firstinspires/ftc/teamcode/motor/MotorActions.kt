@@ -13,7 +13,8 @@ class MotorActions(val motorControl: MotorControl) {
     val depositClaw = Claw(motorControl.depositClaw)
     val extendoClaw = Claw(motorControl.extendoClaw)
     val depositArm = ServoArm(motorControl.depositArm)
-    val extendoArm = ServoArm(motorControl.extendoArm)
+    val extendoArm = ExtendoArm(motorControl.extendoArm)
+    val depositLid = Claw(motorControl.depositLid)
 
     fun waitUntilFinished(): Action {
         return Action { t: TelemetryPacket? -> motorControl.closeEnough() }

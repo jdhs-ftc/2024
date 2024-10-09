@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
+import org.firstinspires.ftc.teamcode.helpers.FakeServo
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
 import kotlin.math.abs
@@ -19,7 +20,7 @@ class MotorControl(hardwareMap: HardwareMap) {
         motors = ArrayList()
     }
     @JvmField
-    val extendoArm: ServoArm
+    val extendoArm: ExtendoArm
     @JvmField
     val extendoClaw: Claw
     @JvmField
@@ -30,6 +31,8 @@ class MotorControl(hardwareMap: HardwareMap) {
     )
     @JvmField
     val depositArm: ServoArm
+    @JvmField
+    val depositLid: Claw
     @JvmField
     val depositClaw: Claw
     @JvmField
@@ -51,8 +54,8 @@ class MotorControl(hardwareMap: HardwareMap) {
         extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 1.0)
         depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.0, 1.0)
         extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.03, 0.2) // dump pos 0.6, set in class
-        depositArm = ServoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
-
+        depositArm = ServoArm(FakeServo(), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
+        depositLid = Claw(FakeServo(),0.0,1.0) // TODO CHANGE TO NOT FAKE
         //color = hardwareMap.get(ColorSensor.class, "color");
         for (motor in motors) {
             motor.findZero()
