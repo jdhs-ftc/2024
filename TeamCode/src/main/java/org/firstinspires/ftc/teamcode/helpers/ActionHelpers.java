@@ -8,7 +8,7 @@ import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Actions;
 
 import java.util.function.Consumer;
-
+// Released under the MIT License and the BSD-3-Clause license by j5155 (you may use it under either one)
 public class ActionHelpers {
     public static class RaceParallelCommand implements Action {
         private final Action[] actions;
