@@ -10,6 +10,8 @@ import org.firstinspires.ftc.teamcode.helpers.FakeServo
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
 import kotlin.math.abs
+import kotlin.math.sign
+import kotlin.math.sqrt
 
 
 /**
@@ -27,7 +29,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     val extendo: Slide = Slide(
         hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
         "extendo",
-        PIDFController(PIDCoefficients(0.01, 0.0, 0.0))
+        PIDFController(PIDCoefficients(0.001, 0.0, 0.0))
     )
     @JvmField
     val depositArm: ServoArm
@@ -45,7 +47,7 @@ class MotorControl(hardwareMap: HardwareMap) {
             hardwareMap,  // port 1 of exp hub and chub,
             // equiv to left_front I think could be wrong though
             "deposit",
-            PIDFController(PIDCoefficients(0.01, 0.0, 0.0), PIDFController.FeedforwardFun{a,b -> return@FeedforwardFun 0.15 })
+            PIDFController(PIDCoefficients(0.005, 0.0, 0.0), PIDFController.FeedforwardFun{a,b -> return@FeedforwardFun 0.15 })
         )
         deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
         deposit.reversed = true
@@ -120,7 +122,8 @@ class MotorControl(hardwareMap: HardwareMap) {
                 }
             } else {
                 if (!motor.isOverCurrent) {
-                    motor.power = pid.update(position) // TODO SQRT
+                    val output = pid.update(position)
+                    motor.power = sign(output) * sqrt(abs(output))
                 } else {
                     motor.power = 0.0
                 }

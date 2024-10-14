@@ -5,8 +5,8 @@ import com.qualcomm.robotcore.hardware.Servo
 import com.qualcomm.robotcore.hardware.ServoController
 
 class FakeServo : Servo {
-    var direction: Servo.Direction = Servo.Direction.FORWARD
-    var position: Double = 0.0
+    internal var fakeDirection: Servo.Direction = Servo.Direction.FORWARD
+    internal var fakePosition: Double = 0.0
     override fun getController(): ServoController? {
         return null
     }
@@ -16,18 +16,18 @@ class FakeServo : Servo {
     }
 
     override fun setDirection(direction: Servo.Direction?) {
-        this.direction = direction!!
+        this.fakeDirection = direction!!
     }
 
     override fun getDirection(): Servo.Direction? {
-        return direction
+        return fakeDirection
     }
     override fun setPosition(position: Double) {
-        this.position = position
+        this.fakePosition = position
     }
 
     override fun getPosition(): Double {
-        return position
+        return fakePosition
     }
 
     override fun scaleRange(min: Double, max: Double) {

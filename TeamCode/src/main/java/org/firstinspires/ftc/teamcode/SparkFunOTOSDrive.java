@@ -132,10 +132,6 @@ public class SparkFunOTOSDrive extends MecanumDrive {
 
         FlightRecorder.write("ESTIMATED_POSE", new PoseMessage(pose));
 
-        // RR localizer note:
-        // TODO: sussy code
-        // unsure how to even do this properly or whether this is the right way to do it
-        // I don't know enough math to understand dual nums :(
 
         return new PoseVelocity2d(new Vector2d(otosVel.x, otosVel.y),otosVel.h);
     }

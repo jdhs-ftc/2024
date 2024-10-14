@@ -25,7 +25,10 @@ import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.util.LinkedList
+import kotlin.math.abs
 import kotlin.math.log10
+import kotlin.math.pow
+import kotlin.math.sign
 
 
 @TeleOp(name = "Teleop Field Centric")
@@ -149,15 +152,15 @@ class TeleopActions : ActionOpMode() {
             // use triggers?
 
             // Manual Control
-            val padDepositControl = -gamepad2.left_stick_y.toDouble()
-            val padExtendoControl = -gamepad2.right_stick_y.toDouble()
-            val padSlideControlMultiplier = 10.0
+            var padDepositControl = -gamepad2.left_stick_y.toDouble()
+            padDepositControl = sign(padDepositControl) * abs(padDepositControl).pow(2)
+            var padExtendoControl = -gamepad2.right_stick_y.toDouble()
+            padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
+            val padSlideControlMultiplier = 20.0
 
 
             // Misc
-            val padForceDown = gamepad2.dpad_down && gamepad2.options
-
-            val padResetExtendo = gamepad2.dpad_up && gamepad2.options
+            val padForceDown = gamepad2.left_stick_button || gamepad2.right_stick_button
 
 
             // Update the speed
@@ -271,8 +274,10 @@ class TeleopActions : ActionOpMode() {
             // TODO: abstract this?
             if (motorControl.deposit.targetPosition > 1600 && padDepositControl > 0) {
                 motorControl.deposit.targetPosition = 1600.0
-            } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0 && !padForceDown) {
-                motorControl.deposit.findZero()
+            } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0) {
+                if (padForceDown) {
+                    motorControl.deposit.findZero()
+                }
                 motorControl.deposit.targetPosition = 20.0
             } else {
                 motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
@@ -280,8 +285,10 @@ class TeleopActions : ActionOpMode() {
 
             if (motorControl.extendo.targetPosition > 1530 && padExtendoControl > 0) {
                 motorControl.extendo.targetPosition = 1530.0
-            } else if (motorControl.extendo.targetPosition <= 20 && padExtendoControl < 0 && !padForceDown) {
-                motorControl.extendo.findZero()
+            } else if (motorControl.extendo.targetPosition <= 20 && padExtendoControl < 0) {
+                if (padForceDown) {
+                    motorControl.extendo.findZero()
+                }
                 motorControl.extendo.targetPosition = 20.0
             } else {
                 motorControl.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
@@ -423,6 +430,8 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("extendoPosition", motorControl.extendo.position)
                 telemetry.addData("depositTarget", motorControl.deposit.targetPosition)
                 telemetry.addData("depositPosition", motorControl.deposit.position)
+                telemetry.addData("extendoOffset", motorControl.extendo.encoderOffset)
+                telemetry.addData("extendoResetting", motorControl.extendo.resetting)
             //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
