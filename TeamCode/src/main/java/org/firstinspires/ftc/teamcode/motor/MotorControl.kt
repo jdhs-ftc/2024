@@ -21,24 +21,32 @@ class MotorControl(hardwareMap: HardwareMap) {
     init { //empty out the motors list, its static so remains between op modes by default :skull:
         motors = ArrayList()
     }
+
     @JvmField
     val extendoArm: ExtendoArm
+
     @JvmField
     val extendoClaw: Claw
+
     @JvmField
     val extendo: Slide = Slide(
         hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
         "extendo",
         PIDFController(PIDCoefficients(0.001, 0.0, 0.0))
     )
+
     @JvmField
     val depositArm: ServoArm
+
     @JvmField
     val depositLid: Claw
+
     @JvmField
     val depositClaw: Claw
+
     @JvmField
     val deposit: Slide
+
     //public final ColorSensor color;
     init {
         extendo.encoder = hardwareMap.get(DcMotorEx::class.java, "left_front")
@@ -47,7 +55,9 @@ class MotorControl(hardwareMap: HardwareMap) {
             hardwareMap,  // port 1 of exp hub and chub,
             // equiv to left_front I think could be wrong though
             "deposit",
-            PIDFController(PIDCoefficients(0.005, 0.0, 0.0), PIDFController.FeedforwardFun{a,b -> return@FeedforwardFun 0.15 })
+            PIDFController(
+                PIDCoefficients(0.005, 0.0, 0.0),
+                PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.15 })
         )
         deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
         deposit.reversed = true
@@ -57,7 +67,7 @@ class MotorControl(hardwareMap: HardwareMap) {
         depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.0, 1.0)
         extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.03, 0.2) // dump pos 0.6, set in class
         depositArm = ServoArm(FakeServo(), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
-        depositLid = Claw(FakeServo(),0.0,1.0) // TODO CHANGE TO NOT FAKE
+        depositLid = Claw(FakeServo(), 0.0, 1.0) // TODO CHANGE TO NOT FAKE
         //color = hardwareMap.get(ColorSensor.class, "color");
         for (motor in motors) {
             motor.findZero()
@@ -92,7 +102,7 @@ class MotorControl(hardwareMap: HardwareMap) {
         var encoderOffset: Double = 0.0
 
         init {
-            motor.zeroPowerBehavior =DcMotor .ZeroPowerBehavior.BRAKE
+            motor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
             motor.setCurrentAlert(6.0, CurrentUnit.AMPS)
             if (reversed) {
                 motor.direction = DcMotorSimple.Direction.REVERSE
@@ -141,11 +151,11 @@ class MotorControl(hardwareMap: HardwareMap) {
             } else {
                 encoder.currentPosition - encoderOffset
             }
-            set(position) {
+            set(newPosition) {
                 // some weird math happening here
                 // this *should* work because we minus in getPosition but unsure
                 // TODO: prob causing problems
-                encoderOffset += field
+                encoderOffset = encoder.currentPosition - newPosition
                 field = position
             }
 
@@ -228,12 +238,14 @@ class MotorControl(hardwareMap: HardwareMap) {
             }
         }
     }
+
     class ExtendoArm(servo: Servo) : ServoArm(servo) {
         constructor(servo: Servo, downPos: Double, upPos: Double) : this(servo) {
             this.downPos = downPos
             this.upPos = upPos
         }
-        val dumpPos = 0.6
+
+        val dumpPos = 1.0 // 0.6
         fun moveDump() {
             down = false
             position = dumpPos

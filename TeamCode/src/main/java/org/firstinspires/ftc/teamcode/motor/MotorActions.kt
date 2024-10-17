@@ -97,18 +97,21 @@ class MotorActions(val motorControl: MotorControl) {
         }
     }
 
-    open class ServoArm (val servoArm: MotorControl.ServoArm) {
+    open class ServoArm(val servoArm: MotorControl.ServoArm) {
         fun setPosition(position: Double): Action {
             return InstantAction { servoArm.position = position }
         }
+
         fun moveUp(): Action {
             return InstantAction { servoArm.moveUp() }
         }
+
         fun moveDown(): Action {
             return InstantAction { servoArm.moveDown() }
         }
     }
-    class ExtendoArm (val extendoArm: MotorControl.ExtendoArm) : ServoArm(extendoArm) {
+
+    class ExtendoArm(val extendoArm: MotorControl.ExtendoArm) : ServoArm(extendoArm) {
         fun moveDump(): Action {
             return InstantAction { extendoArm.moveDump() }
         }

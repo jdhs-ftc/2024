@@ -38,12 +38,24 @@ class TeleopActions : ActionOpMode() {
     private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
     private val joystickHeadingController = PIDFController(headingPIDJoystick)
 
-    val allHubs by lazy {hardwareMap.getAll<LynxModule>(LynxModule::class.java)}
-    val controlHub by lazy {allHubs.find {it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && it.isParent && LynxConstants.isEmbeddedSerialNumber(it.serialNumber)} as LynxModule}
-    val expansionHub by lazy {allHubs.find {it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && (!it.isParent || (it.isParent && !LynxConstants.isEmbeddedSerialNumber(it.serialNumber)))} as LynxModule}
+    val allHubs by lazy { hardwareMap.getAll<LynxModule>(LynxModule::class.java) }
+    val controlHub by lazy {
+        allHubs.find {
+            it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && it.isParent && LynxConstants.isEmbeddedSerialNumber(
+                it.serialNumber
+            )
+        } as LynxModule
+    }
+    val expansionHub by lazy {
+        allHubs.find {
+            it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && (!it.isParent || (it.isParent && !LynxConstants.isEmbeddedSerialNumber(
+                it.serialNumber
+            )))
+        } as LynxModule
+    }
     val drive by lazy { PinpointDrive(hardwareMap, PoseStorage.currentPose) }
-    val motorControl by lazy {MotorControl(hardwareMap)}
-    val motorActions by lazy {MotorActions(motorControl)}
+    val motorControl by lazy { MotorControl(hardwareMap) }
+    val motorActions by lazy { MotorActions(motorControl) }
 
 
     val loopTime = ElapsedTime()
@@ -56,7 +68,6 @@ class TeleopActions : ActionOpMode() {
     var targetHeading = PoseStorage.currentPose.heading
     var fieldCentric = true
     var drivingEnabled = true
-    var padReleased = true
 
     var showMotorTelemetry = true
     var showStateTelemetry = true
@@ -68,12 +79,14 @@ class TeleopActions : ActionOpMode() {
     val loopTimeAvg = LinkedList<Double>()
     val timeSinceDriverTurned = ElapsedTime()
 
+    val sampleMode = false
+
 
     override fun runOpMode() {
         //  Initialization Period
 
         // Enable Bulk Caching
-        allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL}
+        allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL }
 
         //EXPANSION_HUB = allHubs.get(1);
 
@@ -110,6 +123,8 @@ class TeleopActions : ActionOpMode() {
             currentGamepad1.copy(gamepad1)
             currentGamepad2.copy(gamepad2)
 
+            padReleased = true
+
             // CONTROLS
 
             // Gamepad 1
@@ -136,12 +151,14 @@ class TeleopActions : ActionOpMode() {
             val padMidPreset = gamepad2.b
             val padLowPreset = gamepad2.a
 
-            val padDepositClawToggle = (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
+            val padDepositClawToggle =
+                (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
             //val padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper)
             val padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25))
             val padArmUpFull = (gamepad2.right_bumper && !(previousGamepad2.right_bumper))
 
-            val padExtendoArmDown = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
+            val padExtendoArmDown =
+                (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
             val padExtendoGrabAndArmUp = !(gamepad2.right_trigger > 0.25) // trigger falling edge
             padReleased = padReleased && padExtendoGrabAndArmUp
 
@@ -216,13 +233,14 @@ class TeleopActions : ActionOpMode() {
             //Pose2d poseEstimate = drive.pose;
             var rotationAmount = drive.pose.heading.inverse() // inverse it
             if (fieldCentric && !padCameraAutoAim) {
-                rotationAmount = if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on, the forward angle from driver's perspective changes
-                    rotationAmount + Math.toRadians(-90.0)
-                } else {
-                    rotationAmount + Math.toRadians(90.0)
-                }
+                rotationAmount =
+                    if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) { // Depending on which side we're on, the forward angle from driver's perspective changes
+                        rotationAmount + Math.toRadians(-90.0)
+                    } else {
+                        rotationAmount + Math.toRadians(90.0)
+                    }
                 input = rotationAmount * input // rotate the input by the rotationamount
-            // (rotationAmount MUST go first here)
+                // (rotationAmount MUST go first here)
             }
             val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
 
@@ -254,16 +272,16 @@ class TeleopActions : ActionOpMode() {
                         headingInput = 0.0
                         targetHeading = drive.pose.heading
                     }
-                    drive.setDrivePowers(
-                        PoseVelocity2d(
-                            Vector2d(
-                                input.x,
-                                input.y
-                            ),
-                            headingInput
-                        )
-                    )
                 }
+                drive.setDrivePowers(
+                    PoseVelocity2d(
+                        Vector2d(
+                            input.x,
+                            input.y
+                        ),
+                        headingInput
+                    )
+                )
             }
 
 
@@ -307,29 +325,35 @@ class TeleopActions : ActionOpMode() {
             if (padArmToggle) {
                 motorControl.extendoArm.toggle()
             }
-            if (padArmUpFull) {
-                run(UniqueAction(SequentialAction(
-                    motorActions.extendo.moveDown(),
-                    motorActions.deposit.moveDown(),
-                    motorActions.depositArm.moveDown(),
-                    motorActions.extendoArm.moveDump(),
-                    motorActions.depositLid.open(),
-                    // wait for extendo arm to get to target
-                    // maybe use gamepad here?
-                    SleepAction(0.5),
-                    motorActions.extendoClaw.open(),
-                    ParallelAction(
-                        SequentialAction(
-                            SleepAction(0.25), // wait for sample to fall
-                            motorActions.depositLid.close(),
-                        ),
-                        SequentialAction(
-                            SleepAction(0.1), // wait for claw to open
-                            motorActions.extendoArm.moveUp(),
-                            SleepAction(0.1) // wait for extendo arm to finish moving to just above ground position
+            if (sampleMode) {
+                if (padArmUpFull) {
+                    run(
+                        UniqueAction(
+                            SequentialAction(
+                                motorActions.extendo.moveDown(),
+                                motorActions.deposit.moveDown(),
+                                motorActions.depositArm.moveDown(),
+                                motorActions.extendoArm.moveDump(),
+                                motorActions.depositLid.open(),
+                                // wait for extendo arm to get to target
+                                // maybe use gamepad here?
+                                SleepAction(0.5),
+                                motorActions.extendoClaw.open(),
+                                ParallelAction(
+                                    SequentialAction(
+                                        SleepAction(0.25), // wait for sample to fall
+                                        motorActions.depositLid.close(),
+                                    ),
+                                    SequentialAction(
+                                        SleepAction(0.1), // wait for claw to open
+                                        motorActions.extendoArm.moveUp(),
+                                        SleepAction(0.1) // wait for extendo arm to finish moving to just above ground position
+                                    )
+                                )
+                            )
                         )
                     )
-                )))
+                }
             }
 
 
@@ -345,29 +369,36 @@ class TeleopActions : ActionOpMode() {
             }
 
             if (padExtendoArmDown) { // TODO i dont think uniqueaction works for some reason
-                run(UniqueAction(SequentialAction(
-                    motorActions.extendoClaw.open(), // open claw
-                    motorActions.extendoArm.moveDown(), // move to ground
-                    Action { return@Action !this::padReleased.get() }, // wait until trigger releases
-                    // (goofy stuff happening here)
-                    motorActions.extendoClaw.close(), // close claw
-                    SleepAction(0.3), // TODO tune
-                    motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
-                )))
+                run(
+                    UniqueAction(
+                        SequentialAction(
+                            motorActions.extendoClaw.open(), // open claw
+                            motorActions.extendoArm.moveDown(), // move to ground
+                            WaitForPadRelease(), // wait until trigger releases
+                            // (goofy stuff happening here)
+                            motorActions.extendoClaw.close(), // close claw
+                            SleepAction(0.3), // TODO tune
+                            motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
+                        )
+                    )
+                )
             }
             if (padWallPreset) {
-                run(UniqueAction(SequentialAction(
-                    motorActions.deposit.setTargetPosition(100.0), // TODO TUNE!
-                    motorActions.extendo.moveDown(),
-                    motorActions.extendoArm.moveUp(),
-                    motorActions.depositArm.moveDown(),
-                    motorActions.depositClaw.open(),
-                    Action { return@Action !this::padReleased.get() },
-                    motorActions.extendoClaw.open(),
-                    motorActions.depositClaw.close(),
-                )))
+                run(
+                    UniqueAction(
+                        SequentialAction(
+                            motorActions.deposit.setTargetPosition(100.0), // TODO TUNE!
+                            motorActions.extendo.moveDown(),
+                            motorActions.extendoArm.moveUp(),
+                            motorActions.depositArm.moveDown(),
+                            motorActions.depositClaw.open(),
+                            WaitForPadRelease(),
+                            motorActions.extendoClaw.open(),
+                            motorActions.depositClaw.close(),
+                        )
+                    )
+                )
             }
-
 
 
             val colorAlpha = 0.0
@@ -432,7 +463,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("depositPosition", motorControl.deposit.position)
                 telemetry.addData("extendoOffset", motorControl.extendo.encoderOffset)
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
-            //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
+                //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }
 
@@ -453,6 +484,15 @@ class TeleopActions : ActionOpMode() {
 
     fun waitForInput(input: Input): Action {
         return Action { telemetryPacket: TelemetryPacket -> input.isPressed() }
+    }
+    class WaitForPadRelease: Action {
+        override fun run(p: TelemetryPacket): Boolean {
+            return !padReleased
+        }
+
+    }
+    companion object {
+        var padReleased = true
     }
 }
 
