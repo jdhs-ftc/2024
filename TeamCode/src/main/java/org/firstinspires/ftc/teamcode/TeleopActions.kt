@@ -18,6 +18,7 @@ import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import org.firstinspires.ftc.teamcode.TeleopActions.Input
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
@@ -377,7 +378,7 @@ class TeleopActions : ActionOpMode() {
                             WaitForPadRelease(), // wait until trigger releases
                             // (goofy stuff happening here)
                             motorActions.extendoClaw.close(), // close claw
-                            SleepAction(0.3), // TODO tune
+                            //SleepAction(0.3), // TODO tune
                             motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
                         )
                     )
@@ -389,8 +390,8 @@ class TeleopActions : ActionOpMode() {
                         SequentialAction(
                             motorActions.deposit.setTargetPosition(100.0), // TODO TUNE!
                             motorActions.extendo.moveDown(),
-                            motorActions.extendoArm.moveUp(),
-                            motorActions.depositArm.moveDown(),
+                            motorActions.extendoArm.moveDump(),
+                            motorActions.depositArm.moveUp(),
                             motorActions.depositClaw.open(),
                             WaitForPadRelease(),
                             motorActions.extendoClaw.open(),
@@ -454,7 +455,6 @@ class TeleopActions : ActionOpMode() {
                     loopTimeAvg.sum() / loopTimeAvg.size
                 )
             }
-
             if (showMotorTelemetry) {
                 telemetry.addLine("--- Motors ---")
                 telemetry.addData("extendoTarget", motorControl.extendo.targetPosition)
@@ -463,6 +463,17 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("depositPosition", motorControl.deposit.position)
                 telemetry.addData("extendoOffset", motorControl.extendo.encoderOffset)
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
+                telemetry.addData("depositClawPosition",motorControl.depositClaw.position)
+                /*
+                telemetry.addData("dColorDistance",motorControl.dColor.readDistance())
+
+                telemetry.addData("dColorRed",motorControl.dColor.base.red())
+                telemetry.addData("dColorGreen",motorControl.dColor.base.green())
+                telemetry.addData("dColorBlue",motorControl.dColor.base.blue())
+
+                 */
+
+
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
                 //telemetry.addData("depositClawPos", motorControl.depositClaw.getPosition());
             }

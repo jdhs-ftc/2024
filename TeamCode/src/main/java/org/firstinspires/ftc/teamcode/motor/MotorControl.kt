@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode.motor
 
+import com.qualcomm.hardware.rev.RevColorSensorV3
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
+import org.firstinspires.ftc.teamcode.helpers.ColorRangefinder
 import org.firstinspires.ftc.teamcode.helpers.FakeServo
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
@@ -47,6 +49,9 @@ class MotorControl(hardwareMap: HardwareMap) {
     @JvmField
     val deposit: Slide
 
+    @JvmField
+    val dColor: ColorRangefinder
+
     //public final ColorSensor color;
     init {
         extendo.encoder = hardwareMap.get(DcMotorEx::class.java, "left_front")
@@ -64,11 +69,12 @@ class MotorControl(hardwareMap: HardwareMap) {
 
 
         extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 1.0)
-        depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.0, 1.0)
-        extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.03, 0.2) // dump pos 0.6, set in class
+        depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.2, 0.65)
+        extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.7, 0.5) //0.03, 0.2) // dump pos 0.6, set in class
         depositArm = ServoArm(FakeServo(), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
         depositLid = Claw(FakeServo(), 0.0, 1.0) // TODO CHANGE TO NOT FAKE
-        //color = hardwareMap.get(ColorSensor.class, "color");
+        dColor = ColorRangefinder(hardwareMap.get(RevColorSensorV3::class.java, "dColor"))
+        //dColor.setLedBrightness(255) // TODO only use when aligning
         for (motor in motors) {
             motor.findZero()
         }
@@ -145,7 +151,7 @@ class MotorControl(hardwareMap: HardwareMap) {
             resetting = true
         }
 
-        var position: Double = 0.0
+        var position: Double
             get() = if (!reversed) {
                 (encoder.currentPosition * -1) - encoderOffset
             } else {
@@ -156,7 +162,6 @@ class MotorControl(hardwareMap: HardwareMap) {
                 // this *should* work because we minus in getPosition but unsure
                 // TODO: prob causing problems
                 encoderOffset = encoder.currentPosition - newPosition
-                field = position
             }
 
 
@@ -245,7 +250,7 @@ class MotorControl(hardwareMap: HardwareMap) {
             this.upPos = upPos
         }
 
-        val dumpPos = 1.0 // 0.6
+        val dumpPos = 0.0 // 0.6
         fun moveDump() {
             down = false
             position = dumpPos
