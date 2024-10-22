@@ -31,8 +31,7 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     @JvmField
     val extendo: Slide = Slide(
-        hardwareMap,  // port 0 of exp hub and chub, equiv to left_back I think
-        "extendo",
+        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 0, encoder is  left_front
         PIDFController(PIDCoefficients(0.001, 0.0, 0.0))
     )
 
@@ -57,9 +56,9 @@ class MotorControl(hardwareMap: HardwareMap) {
         extendo.reversed = true
 
         deposit = Slide(
-            hardwareMap,  // port 1 of exp hub and chub,
-            // equiv to left_front I think could be wrong though
-            "deposit",
+            CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "deposit")),
+            // port 1 of exp hub and chub,
+            // encoder is left_back
             PIDFController(
                 PIDCoefficients(0.005, 0.0, 0.0),
                 PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.15 })
@@ -88,9 +87,9 @@ class MotorControl(hardwareMap: HardwareMap) {
     /**
      * This class controls the slide motor.
      */
-    class Slide(hardwareMap: HardwareMap, motorName: String, val pid: PIDFController) :
-        ControlledMotor(CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, motorName))) {
-        var reversed = true // TODO EVERYTHING REVERSED
+    class Slide(motor: DcMotorEx, val pid: PIDFController) :
+        ControlledMotor(motor) {
+        var reversed = true // EVERYTHING REVERSED, this working is a coincidence
         var resetting = false
         var encoder: DcMotorEx = motor
         var encoderOffset: Double = 0.0
