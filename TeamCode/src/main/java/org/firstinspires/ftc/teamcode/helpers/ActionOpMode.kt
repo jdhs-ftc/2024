@@ -1,101 +1,90 @@
-package org.firstinspires.ftc.teamcode.helpers;
+package org.firstinspires.ftc.teamcode.helpers
 
-import androidx.annotation.NonNull;
+import com.acmerobotics.dashboard.FtcDashboard
+import com.acmerobotics.dashboard.canvas.Canvas
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket
+import com.acmerobotics.roadrunner.Action
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
+import org.firstinspires.ftc.teamcode.helpers.ActionOpMode.UniqueAction
+import java.util.ArrayList
+import java.util.function.Consumer
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.canvas.Canvas;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.Action;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+abstract class ActionOpMode : LinearOpMode() {
+    private val dash: FtcDashboard = FtcDashboard.getInstance()
+    var runningActions = ArrayList<Action>()
+    private val uniqueActionsQueue = ArrayList<UniqueAction>()
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+    protected fun runBlocking(action: Action) {
+        val canvas = Canvas()
+        action.preview(canvas)
 
-public abstract class ActionOpMode extends LinearOpMode {
-    private final FtcDashboard dash = FtcDashboard.getInstance();
-    public List<Action> runningActions = new ArrayList<>();
-    private List<UniqueAction> uniqueActionsQueue = new ArrayList<>();
+        var actionStillRunning = true
+        while (actionStillRunning && !isStopRequested) {
+            val packet = TelemetryPacket()
+            packet.fieldOverlay().operations.addAll(canvas.operations)
 
-    protected void runBlocking(Action a) {
-        Canvas c = new Canvas();
-        a.preview(c);
+            actionStillRunning = action.run(packet)
 
-        boolean b = true;
-        while (b && !isStopRequested()) {
-            TelemetryPacket p = new TelemetryPacket();
-            p.fieldOverlay().getOperations().addAll(c.getOperations());
-
-            b = a.run(p);
-
-            dash.sendTelemetryPacket(p);
+            dash.sendTelemetryPacket(packet)
         }
     }
 
-    protected void updateAsync(TelemetryPacket packet) {
-        updateUniqueQueue();
+    protected fun updateAsync(packet: TelemetryPacket) {
+        updateUniqueQueue()
         // update running actions
-        List<Action> newActions = new ArrayList<>();
-        for (Action action : runningActions) {
-            action.preview(packet.fieldOverlay());
+        val newActions = ArrayList<Action>()
+        for (action in runningActions) {
+            action.preview(packet.fieldOverlay())
             if (action.run(packet)) {
-                newActions.add(action);
+                newActions.add(action)
             }
         }
-        runningActions = newActions;
+        runningActions = newActions
     }
 
-    private void updateUniqueQueue() {
-        List<UniqueAction> oldActions = uniqueActionsQueue;
-        uniqueActionsQueue = new ArrayList<>();
-        oldActions.forEach(this::run);
+    private fun updateUniqueQueue() {
+        val oldActions = uniqueActionsQueue
+        uniqueActionsQueue.clear()
+        // running run on a UniqueAction will automatically re add it to the queue, or start running it
+        // is consumer necessary here?
+        oldActions.forEach(Consumer { a -> this.run(a) })
     }
 
-    protected void run(Action a) {
-        if (a instanceof UniqueAction &&
-                runningActions.stream().anyMatch(
-                        (b) -> b instanceof UniqueAction &&
-                                Objects.equals(((UniqueAction) b).key, ((UniqueAction) a).key))) {
-
-            uniqueActionsQueue.add((UniqueAction) a);
+    protected fun run(a: Action) {
+        if (duplicated(a)) {
+            uniqueActionsQueue.add(a)
         } else {
-            runningActions.add(a);
+            runningActions.add(a)
         }
     }
 
-    protected void runNoQueue(Action a) {
-        if (!(a instanceof UniqueAction &&
-                runningActions.stream().anyMatch(
-                        (b) -> b instanceof UniqueAction &&
-                                Objects.equals(((UniqueAction) b).key, ((UniqueAction) a).key)))) {
-
-            runningActions.add(a);
-
+    protected fun runNoQueue(a: Action) {
+        if (!duplicated(a)) {
+            runningActions.add(a)
         }
+    }
 
-
+    @OptIn(ExperimentalContracts::class)
+    fun duplicated(a: Action): Boolean {
+        contract {
+            // this allows the other function to add it to the uniqueActionsQueue without casting
+            returns(true) implies (a is UniqueAction)
+        }
+        return a is UniqueAction && runningActions.stream().anyMatch { b: Action ->
+            b is UniqueAction && b.key == a.key
+        }
     }
 
 
-    public static class UniqueAction implements Action {
-        public String key = "UniqueAction";
-        private final Action action;
-        public UniqueAction(String key, Action action) {
-            this.key = key;
-            this.action = action;
-        }
-        public UniqueAction(Action action) {
-            this.action = action;
+    class UniqueAction(val action: Action, val key: String = "UniqueAction") : Action {
+        override fun run(t: TelemetryPacket): Boolean {
+            return action.run(t)
         }
 
-        @Override
-        public boolean run(@NonNull TelemetryPacket t) {
-            return action.run(t);
-        }
-
-        @Override
-        public void preview(@NonNull Canvas fieldOverlay) {
-            action.preview(fieldOverlay);
+        override fun preview(fieldOverlay: Canvas) {
+            action.preview(fieldOverlay)
         }
     }
 }

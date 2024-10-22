@@ -4,8 +4,6 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.InstantFunction
-import org.firstinspires.ftc.teamcode.motor.MotorActions.Deposit
-import org.firstinspires.ftc.teamcode.motor.MotorActions.Extendo
 
 class MotorActions(val motorControl: MotorControl) {
     val extendo = Extendo()
@@ -28,21 +26,15 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
 
-    fun log(message: String?): Action {
-        return object : Action {
-            override fun run(t: TelemetryPacket): Boolean {
-                println(message)
-                return false
-            }
-        }
+    fun log(message: String): Action {
+        return InstantAction { println(message) }
     }
 
 
     inner class Extendo {
         fun setTargetPosition(position: Double): Action {
-            return Action { t: TelemetryPacket? ->
+            return InstantAction {
                 motorControl.extendo.targetPosition = position
-                false
             }
         }
 

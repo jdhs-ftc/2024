@@ -1,13 +1,12 @@
 package org.firstinspires.ftc.teamcode.motor
 
-import com.qualcomm.hardware.rev.RevColorSensorV3
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
-import org.firstinspires.ftc.teamcode.helpers.ColorRangefinder
+import org.firstinspires.ftc.teamcode.helpers.CachingDcMotorEx
 import org.firstinspires.ftc.teamcode.helpers.FakeServo
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
@@ -20,15 +19,15 @@ import kotlin.math.sqrt
  * This class is used to control the motor systems on the robot.
  */
 class MotorControl(hardwareMap: HardwareMap) {
-    init { //empty out the motors list, its static so remains between op modes by default :skull:
+    init { // empty the motor list, it's static so remains between op modes by default :skull:
         motors = ArrayList()
     }
 
     @JvmField
-    val extendoArm: ExtendoArm
+    val extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.7, 0.5) //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
-    val extendoClaw: Claw
+    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 0.3)
 
     @JvmField
     val extendo: Slide = Slide(
@@ -38,24 +37,25 @@ class MotorControl(hardwareMap: HardwareMap) {
     )
 
     @JvmField
-    val depositArm: ServoArm
+    val depositArm = ServoArm(FakeServo(), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
 
     @JvmField
-    val depositLid: Claw
+    val depositLid = Claw(FakeServo(), 0.0, 1.0) // TODO CHANGE TO NOT FAKE
 
     @JvmField
-    val depositClaw: Claw
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.2, 0.65)
 
     @JvmField
     val deposit: Slide
 
-    @JvmField
-    val dColor: ColorRangefinder
+    val pin0 = hardwareMap.digitalChannel.get("digital0")
+    val pin1 = hardwareMap.digitalChannel.get("digital1")
 
     //public final ColorSensor color;
     init {
         extendo.encoder = hardwareMap.get(DcMotorEx::class.java, "left_front")
         extendo.reversed = true
+
         deposit = Slide(
             hardwareMap,  // port 1 of exp hub and chub,
             // equiv to left_front I think could be wrong though
@@ -67,41 +67,29 @@ class MotorControl(hardwareMap: HardwareMap) {
         deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
         deposit.reversed = true
 
-
-        extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 1.0)
-        depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.2, 0.65)
-        extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.7, 0.5) //0.03, 0.2) // dump pos 0.6, set in class
-        depositArm = ServoArm(FakeServo(), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
-        depositLid = Claw(FakeServo(), 0.0, 1.0) // TODO CHANGE TO NOT FAKE
-        dColor = ColorRangefinder(hardwareMap.get(RevColorSensorV3::class.java, "dColor"))
-        //dColor.setLedBrightness(255) // TODO only use when aligning
-        for (motor in motors) {
-            motor.findZero()
-        }
+        motors.forEach { it.findZero() }
     }
 
     /**
      * This class updates the arm and slide motors to match the current state.
      */
     fun update() {
-        for (motor in motors) {
-            motor.update()
-        }
+        motors.forEach { it.update() }
     }
 
 
     fun closeEnough(): Boolean {
-        return motors.stream().allMatch { obj: ControlledMotor -> obj.closeEnough() }
+        return motors.stream().allMatch { it.closeEnough() }
     }
 
     val isOverCurrent: Boolean
-        get() = motors.stream().anyMatch { obj: ControlledMotor -> obj.isOverCurrent }
+        get() = motors.stream().anyMatch { it.isOverCurrent }
 
     /**
      * This class controls the slide motor.
      */
     class Slide(hardwareMap: HardwareMap, motorName: String, val pid: PIDFController) :
-        ControlledMotor(hardwareMap.get(DcMotorEx::class.java, motorName)) {
+        ControlledMotor(CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, motorName))) {
         var reversed = true // TODO EVERYTHING REVERSED
         var resetting = false
         var encoder: DcMotorEx = motor

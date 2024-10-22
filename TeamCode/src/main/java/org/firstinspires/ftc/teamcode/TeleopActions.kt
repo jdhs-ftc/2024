@@ -11,6 +11,7 @@ import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
+import com.outoftheboxrobotics.photoncore.Photon
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.hardware.lynx.LynxModule.BulkCachingMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
@@ -18,8 +19,6 @@ import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
-import org.firstinspires.ftc.teamcode.TeleopActions.Input
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
@@ -34,6 +33,7 @@ import kotlin.math.sign
 
 @TeleOp(name = "Teleop Field Centric")
 @Config
+@Photon
 class TeleopActions : ActionOpMode() {
     // Declare a PIDF Controller to regulate heading
     private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
@@ -41,18 +41,19 @@ class TeleopActions : ActionOpMode() {
 
     val allHubs by lazy { hardwareMap.getAll<LynxModule>(LynxModule::class.java) }
     val controlHub by lazy {
-        allHubs.find {
-            it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && it.isParent && LynxConstants.isEmbeddedSerialNumber(
-                it.serialNumber
-            )
-        } as LynxModule
+        allHubs.find { // search through all LynxModules (chub, ex hub, shub)
+            it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER // check that it's an expansion hub not a servo hub
+                    && it.isParent // check that it's directly connected over USB
+                    && LynxConstants.isEmbeddedSerialNumber(it.serialNumber) // check that it's a control hub's integrated expansion hub
+        } as LynxModule // ensure it's non-null
     }
     val expansionHub by lazy {
-        allHubs.find {
-            it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER && (!it.isParent || (it.isParent && !LynxConstants.isEmbeddedSerialNumber(
-                it.serialNumber
-            )))
-        } as LynxModule
+        allHubs.find { // search through all LynxModules (chub, ex hub, shub)
+            it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER // check that it's an expansion hub not a servo hub
+                    && (!it.isParent // check that it's NOT connected over usb
+                    || (it.isParent && !LynxConstants.isEmbeddedSerialNumber(it.serialNumber)))
+                    // or that it is connected over USB but isn't an integrated hub
+        } as LynxModule // ensure it's non-null
     }
     val drive by lazy { PinpointDrive(hardwareMap, PoseStorage.currentPose) }
     val motorControl by lazy { MotorControl(hardwareMap) }
@@ -75,7 +76,6 @@ class TeleopActions : ActionOpMode() {
     var showLoopTimes = true
     var showPoseTelemetry = true
     var showCameraTelemetry = false
-    var actionRunning = false
 
     val loopTimeAvg = LinkedList<Double>()
     val timeSinceDriverTurned = ElapsedTime()
@@ -114,15 +114,20 @@ class TeleopActions : ActionOpMode() {
         while (opModeIsActive() && !isStopRequested) {
             // Reset measured loop time
             loopTime.reset()
+            val packet = TelemetryPacket()
+            packet.put("118",loopTime.milliseconds())
             // Reset bulk cache
             allHubs.forEach { it.clearBulkCache() }
+            packet.put("121",loopTime.milliseconds())
 
-            // This lets us do reliable rising edge detection, even if it changes mid loop
+            // This lets us do reliable rising-edge detection, even if it changes mid-loop
             previousGamepad1.copy(currentGamepad1)
             previousGamepad2.copy(currentGamepad2)
 
             currentGamepad1.copy(gamepad1)
             currentGamepad2.copy(gamepad2)
+
+            packet.put("130",loopTime.milliseconds())
 
             padReleased = true
 
@@ -180,6 +185,8 @@ class TeleopActions : ActionOpMode() {
             // Misc
             val padForceDown = gamepad2.left_stick_button || gamepad2.right_stick_button
 
+            packet.put("188",loopTime.milliseconds())
+
 
             // Update the speed
             speed = if (padSlowMode) {
@@ -222,6 +229,7 @@ class TeleopActions : ActionOpMode() {
                 }
             }
 
+            packet.put("232",loopTime.milliseconds())
             // Field Centric
 
             // Create a vector from the gamepad x/y inputs
@@ -245,6 +253,8 @@ class TeleopActions : ActionOpMode() {
             }
             val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
 
+            packet.put("256",loopTime.milliseconds())
+
             if (drivingEnabled) {
                 var headingInput: Double
                 if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) {
@@ -253,7 +263,7 @@ class TeleopActions : ActionOpMode() {
                     timeSinceDriverTurned.reset()
                 } else {
                     // Set the target heading for the heading controller to our desired angle
-                    if (controllerHeading.norm() > 0.4) { // if the joystick is tilted more then 0.4 from center
+                    if (controllerHeading.norm() > 0.4) { // if the joystick is tilted more than 0.4 from the center,
                         // Cast the angle based on the angleCast of the joystick as a heading
                         targetHeading = if (PoseStorage.currentTeam == PoseStorage.Team.BLUE) {
                             controllerHeading.angleCast().plus(Math.toRadians(-90.0))
@@ -285,7 +295,7 @@ class TeleopActions : ActionOpMode() {
                 )
             }
 
-
+            packet.put("298",loopTime.milliseconds())
             // LIFT CONTROL/FSM
 
 
@@ -322,7 +332,7 @@ class TeleopActions : ActionOpMode() {
             }*
 
              */
-
+            packet.put("335",loopTime.milliseconds())
             if (padArmToggle) {
                 motorControl.extendoArm.toggle()
             }
@@ -342,13 +352,14 @@ class TeleopActions : ActionOpMode() {
                                 motorActions.extendoClaw.open(),
                                 ParallelAction(
                                     SequentialAction(
-                                        SleepAction(0.25), // wait for sample to fall
+                                        SleepAction(0.25), // wait for the sample to fall
                                         motorActions.depositLid.close(),
                                     ),
                                     SequentialAction(
-                                        SleepAction(0.1), // wait for claw to open
+                                        SleepAction(0.1), // wait for the claw to open
                                         motorActions.extendoArm.moveUp(),
-                                        SleepAction(0.1) // wait for extendo arm to finish moving to just above ground position
+                                        SleepAction(0.1) // wait for the extendo arm to finish
+                                    // moving to just above the ground position
                                     )
                                 )
                             )
@@ -374,11 +385,12 @@ class TeleopActions : ActionOpMode() {
                     UniqueAction(
                         SequentialAction(
                             motorActions.extendoClaw.open(), // open claw
+                            SleepAction(0.6),
                             motorActions.extendoArm.moveDown(), // move to ground
                             WaitForPadRelease(), // wait until trigger releases
                             // (goofy stuff happening here)
                             motorActions.extendoClaw.close(), // close claw
-                            //SleepAction(0.3), // TODO tune
+                            SleepAction(0.6), // TODO tune
                             motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
                         )
                     )
@@ -401,7 +413,7 @@ class TeleopActions : ActionOpMode() {
                 )
             }
 
-
+            packet.put("416",loopTime.milliseconds())
             val colorAlpha = 0.0
 
             // rumble the gunner controller based on the claw color sensor
@@ -411,27 +423,33 @@ class TeleopActions : ActionOpMode() {
                 0.0
             }
             gamepad2.rumble(pad2rumble, pad2rumble, Gamepad.RUMBLE_DURATION_CONTINUOUS)
+            packet.put("426",loopTime.milliseconds())
 
 
             // update RR, update motor controllers
 
 
             // TELEMETRY
-            val packet = TelemetryPacket()
+            //val packet = TelemetryPacket()
             Drawing.drawRobot(
                 packet.fieldOverlay(),
                 drive.pose
             )
             // why is this commented out
             // what was I even trying to do with this
-            // did I think pose was in ticks?? this would technically hve worked for that ig?????
+            // did I think pose was in ticks??
+            // this would technically have worked for that ig?????
             // or did roadrunner use this?
-            // - j5155, 2024, with no memory of what this was (which means it was probably written in 2022)
-            //new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
-
+            // - j5155, 2024,
+            // with no memory of what this was (which means it was probably written in 2022)
+            // new Pose2d(new Vector2d(IN_PER_TICK * drive.pose.trans.x,IN_PER_TICK * drive.pose.trans.y), drive.pose.rot)
+            packet.put("446",loopTime.milliseconds())
             updateAsync(packet)
+            packet.put("448",loopTime.milliseconds())
             drive.updatePoseEstimate()
+            packet.put("450",loopTime.milliseconds())
             motorControl.update()
+            packet.put("452",loopTime.milliseconds())
             FtcDashboard.getInstance().sendTelemetryPacket(packet)
 
             val loopTimeMs = loopTime.milliseconds()
@@ -464,14 +482,10 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("extendoOffset", motorControl.extendo.encoderOffset)
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
                 telemetry.addData("depositClawPosition",motorControl.depositClaw.position)
-                /*
-                telemetry.addData("dColorDistance",motorControl.dColor.readDistance())
+                telemetry.addData("digital0",motorControl.pin0.state)
+                telemetry.addData("digital1",motorControl.pin1.state)
 
-                telemetry.addData("dColorRed",motorControl.dColor.base.red())
-                telemetry.addData("dColorGreen",motorControl.dColor.base.green())
-                telemetry.addData("dColorBlue",motorControl.dColor.base.blue())
 
-                 */
 
 
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
@@ -488,14 +502,6 @@ class TeleopActions : ActionOpMode() {
     }
 
 
-    // TODO: probably not needed, just make a normal action
-    interface Input {
-        fun isPressed(): Boolean
-    }
-
-    fun waitForInput(input: Input): Action {
-        return Action { telemetryPacket: TelemetryPacket -> input.isPressed() }
-    }
     class WaitForPadRelease: Action {
         override fun run(p: TelemetryPacket): Boolean {
             return !padReleased
