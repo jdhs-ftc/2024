@@ -15,11 +15,11 @@ class FakeServo : Servo {
         return 0
     }
 
-    override fun setDirection(direction: Servo.Direction?) {
-        this.fakeDirection = direction!!
+    override fun setDirection(direction: Servo.Direction) {
+        this.fakeDirection = direction
     }
 
-    override fun getDirection(): Servo.Direction? {
+    override fun getDirection(): Servo.Direction {
         return fakeDirection
     }
     override fun setPosition(position: Double) {
@@ -34,15 +34,15 @@ class FakeServo : Servo {
         // do nothing
     }
 
-    override fun getManufacturer(): HardwareDevice.Manufacturer? {
+    override fun getManufacturer(): HardwareDevice.Manufacturer {
         return HardwareDevice.Manufacturer.Unknown
     }
 
-    override fun getDeviceName(): String? {
+    override fun getDeviceName(): String {
         return "Fake Servo"
     }
 
-    override fun getConnectionInfo(): String? {
+    override fun getConnectionInfo(): String {
         return "Fake Servo"
     }
 

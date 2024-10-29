@@ -36,6 +36,7 @@ public final class TuningOpModes {
     @OpModeRegistrar
     public static void register(OpModeManager manager) {
         if (DISABLED) return;
+        ManualFeedforwardTuner.DISTANCE = 84;
 
         DriveViewFactory dvf;
         if (DRIVE_CLASS.equals(PinpointDrive.class)) {

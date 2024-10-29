@@ -1,47 +1,61 @@
-package com.example;
+package com.example
 
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.noahbres.meepmeep.MeepMeep;
-import com.noahbres.meepmeep.roadrunner.DefaultBotBuilder;
-import com.noahbres.meepmeep.roadrunner.entity.RoadRunnerBotEntity;
+import com.acmerobotics.roadrunner.Pose2d
+import com.acmerobotics.roadrunner.SequentialAction
+import com.acmerobotics.roadrunner.SleepAction
+import com.acmerobotics.roadrunner.Vector2d
+import com.noahbres.meepmeep.MeepMeep
+import com.noahbres.meepmeep.MeepMeep.Background
+import com.noahbres.meepmeep.roadrunner.DefaultBotBuilder
+import java.lang.Math.toRadians
 
-public class MeepMeepTesting {
-    public static void main(String[] args) {
-        System.setProperty("sun.java2d.opengl", "true");
-        MeepMeep meepMeep = new MeepMeep(800,120);
+object MeepMeepTesting {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        System.setProperty("sun.java2d.opengl", "true")
+        val meepMeep = MeepMeep(800, 120)
 
-        RoadRunnerBotEntity myBot = new DefaultBotBuilder(meepMeep)
-                // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
-                .setConstraints(50, 50, Math.toRadians(180), Math.toRadians(180), 15)
-                .setDimensions(18,18)
-                .build();
+        val myBot =
+            DefaultBotBuilder(meepMeep) // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
+                .setConstraints(50.0, 50.0, Math.toRadians(180.0), Math.toRadians(180.0), 12.6)
+                .setDimensions(13.25, 18.0)
+                .build()
 
-        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(12, -63, Math.toRadians(-90)))
-                        .setReversed(true)
-                        .setTangent(Math.toRadians(90))
-                        .splineToConstantHeading(new Vector2d(11, -33), Math.toRadians(90)) // go to sub
-                        .waitSeconds(0.25)
-                        .setTangent(Math.toRadians(270))
-                        .splineToSplineHeading(new Pose2d(40,-50,Math.toRadians(90)),Math.toRadians(270)) // go to line up point
-                        // vision align should go here
-                        .splineToSplineHeading(new Pose2d(40,-62,Math.toRadians(90)),Math.toRadians(270)) // go to hp
-                        .waitSeconds(0.25)
-                        .setTangent(Math.toRadians(135))
-                        .splineToSplineHeading(new Pose2d(9,-33,Math.toRadians(-90)),Math.toRadians(90)) //back to sub
-                        .waitSeconds(0.25)
-                        .setTangent(Math.toRadians(270))
-                        .splineToSplineHeading(new Pose2d(40,-50,Math.toRadians(90)),Math.toRadians(270)) // go to line up point
-                        // vision align should go here
-                        .splineToSplineHeading(new Pose2d(40,-62,Math.toRadians(90)),Math.toRadians(270)) // go to hp
-                        .waitSeconds(0.25)
-                        .setTangent(Math.toRadians(135))
-                        .splineToSplineHeading(new Pose2d(7,-33,Math.toRadians(-90)),Math.toRadians(90)) //back to sub
-                        .waitSeconds(0.25)
-                // park in ascend zone 1
-                        .setTangent(Math.toRadians(270))
-                        .splineTo(new Vector2d(23.1, -10.2), Math.toRadians(90))
+        myBot.runAction(
+            myBot.drive.actionBuilder(Pose2d(12.0, -63.0, toRadians(90.0)))
+                //.afterTime(0.1,motorActions.deposit.setTargetPosition(1521.0))
+                .setReversed(true)
+                .setTangent(toRadians(90.0))
+                .splineToConstantHeading(Vector2d(11.0, -33.0), toRadians(90.0)) // go to sub
+                .stopAndAdd(SequentialAction( // deposit at sub
+                    //motorActions.deposit.setTargetPosition(1150.0),
+                    SleepAction(0.3),
+                    //motorActions.depositClaw.open()
+                ))
+                .setTangent(toRadians(315.0))
+                .splineToConstantHeading(
+                    Vector2d(48.3, -39.3),
+                    toRadians(90.0)
+                )
+                .waitSeconds(1.0)
+                .turnTo(toRadians(-90.0))
+                .waitSeconds(1.0)
+                .splineToSplineHeading(
+                    Pose2d(57.0, -39.3, toRadians(90.0)),
+                    toRadians(0.0)
+                )
+                .waitSeconds(1.0)
+                .turnTo(toRadians(-90.0))
+                .waitSeconds(1.0)
 
+
+                /*
+                // park in ascend zone 1 (kinda bad)
+                .setTangent(Math.toRadians(270))
+                        .splineToSplineHeading(new Pose2d(-33.3, -35.1,Math.toRadians(90)),Math.toRadians(135))
+                .splineToSplineHeading(new Pose2d(-23.1, -10.2,Math.toRadians(0)), Math.toRadians(0))
+
+                 */
                 /* get preset samples??
                         .setTangent(Math.toRadians(315))
                         .splineToSplineHeading(new Pose2d(35.3, -24.12,Math.toRadians(0)),Math.toRadians(90))
@@ -50,16 +64,29 @@ public class MeepMeepTesting {
                         .splineToSplineHeading(new Pose2d(40,-60,Math.toRadians(270.00000001)),Math.toRadians(270))
 
                  */
+                /* get preset samples attempt 2??
+                .splineToSplineHeading(new Pose2d(40, -45, Math.toRadians(75)), Math.toRadians(0))// go to midpoint between hp and preset, facing 1st preset
+                .waitSeconds(1) // extend extendo and grab
+                .turnTo(Math.toRadians(315)) // turn to hp
+                .waitSeconds(1) // give to hp
+                .turnTo(Math.toRadians(45)) // turn to second preset
+                .waitSeconds(1) // extend extendo and grab
+                .turnTo(Math.toRadians(315)) // turn to hp
+                .waitSeconds(1) // give to hp
+                .turnTo(Math.toRadians(30))
+                .waitSeconds(1) // extend extendo and grab
+                .turnTo(Math.toRadians(315)) // turn to hp
+                .waitSeconds(1) // give to hp
+                 */
 
 
+                .build()
+        )
 
-
-                .build());
-
-        meepMeep.setBackground(MeepMeep.Background.FIELD_INTO_THE_DEEP_JUICE_DARK)
-                .setDarkMode(true)
-                .setBackgroundAlpha(0.95f)
-                .addEntity(myBot)
-                .start();
+        meepMeep.setBackground(Background.FIELD_INTO_THE_DEEP_JUICE_DARK)
+            .setDarkMode(true)
+            .setBackgroundAlpha(0.95f)
+            .addEntity(myBot)
+            .start()
     }
 }

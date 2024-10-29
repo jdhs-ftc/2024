@@ -4,6 +4,8 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.InstantFunction
+import com.acmerobotics.roadrunner.SequentialAction
+import com.acmerobotics.roadrunner.SleepAction
 
 class MotorActions(val motorControl: MotorControl) {
     val extendo = Extendo()
@@ -30,6 +32,49 @@ class MotorActions(val motorControl: MotorControl) {
         return InstantAction { println(message) }
     }
 
+    // presets
+    fun extendoClawGround(): Action {
+        return SequentialAction(
+            extendoClaw.open(), // open claw
+            extendoArm.moveDown(), // move to ground
+        )
+    }
+
+    fun extendoGrabAndRaise(): Action {
+        return SequentialAction(
+            extendoClaw.close(), // close claw
+            SleepAction(0.5),
+            extendoArm.moveUp() // move claw to "clears ground bar" pos
+        )
+    }
+
+    fun extendoCycle(between: Action = SleepAction(0.5)): Action {
+        return SequentialAction(
+            extendoClawGround(),
+            between,
+            extendoGrabAndRaise()
+        )
+    }
+
+    fun depositMoveWall(): Action {
+        return SequentialAction(
+            deposit.setTargetPosition(116.0), // Tuned as of 10/24
+            extendo.moveDown(),
+            extendoArm.moveDump(),
+            depositArm.moveUp(),
+            depositClaw.open()
+        )
+    }
+
+    fun depositPickupWall(): Action {
+        return SequentialAction(
+        extendoClaw.open(),
+        depositClaw.close(),
+        SleepAction(0.5), // TODO tune
+        deposit.setTargetPosition(250.0)
+        )
+    }
+
 
     inner class Extendo {
         fun setTargetPosition(position: Double): Action {
@@ -47,7 +92,7 @@ class MotorActions(val motorControl: MotorControl) {
         }
 
         fun moveUp(): Action {
-            return setTargetPosition(1200.0)
+            return setTargetPosition(1100.0) // prev 1200
         }
 
         fun moveDown(): Action {

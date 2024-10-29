@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.motor
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.DigitalChannel
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
@@ -24,10 +25,10 @@ class MotorControl(hardwareMap: HardwareMap) {
     }
 
     @JvmField
-    val extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.7, 0.5) //0.03, 0.2) // dump pos 0.6, set in class
+    val extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.12, 0.3) //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
-    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.7, 0.3)
+    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.32, 0.5) // 0.7 0.3
 
     @JvmField
     val extendo: Slide = Slide(
@@ -47,8 +48,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     @JvmField
     val deposit: Slide
 
-    val pin0 = hardwareMap.digitalChannel.get("digital0")
-    val pin1 = hardwareMap.digitalChannel.get("digital1")
+    val dColor = BLColor(hardwareMap.digitalChannel.get("digital0"),hardwareMap.digitalChannel.get("digital1"))
 
     //public final ColorSensor color;
     init {
@@ -83,6 +83,31 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     val isOverCurrent: Boolean
         get() = motors.stream().anyMatch { it.isOverCurrent }
+
+    class BLColor(val pin0: DigitalChannel, val pin1: DigitalChannel) {
+        enum class Color(val first: Boolean, val second: Boolean) {
+            YELLOW(true, true),
+            RED(false, true),
+            BLUE(true, false),
+            NONE(false, false);
+
+            companion object {
+                fun get(first: Boolean, second: Boolean): Color {
+                    // this is somewhat goofy and inefficient
+                    // I should find a better way of doing this,
+                    // im sure there's some elegant kotlin one, but too sleepy for that
+                    return Color.entries.stream().filter { return@filter it.first == first && it.second == second }.findFirst().get()
+                }
+            }
+        }
+        val color: Color
+            get() {
+                // this could be EXTREMELY inefficient and trigger a read,
+                // but as long as you remember to use bulk reads, it's fine :)
+                return Color.get(pin0.state, pin1.state)
+            }
+
+    }
 
     /**
      * This class controls the slide motor.
@@ -192,7 +217,10 @@ class MotorControl(hardwareMap: HardwareMap) {
     }
 
     open class ServoArm(val servo: Servo) {
-        var down: Boolean = false
+        val down: Boolean
+            get() {
+                return position == downPos
+            }
         var upPos: Double = 0.2
         var downPos: Double = 0.03 // TODO TUNE
 
@@ -206,19 +234,17 @@ class MotorControl(hardwareMap: HardwareMap) {
         }
 
 
-        var position: Double
-            get() = servo.position
+        var position: Double = 0.0 // cache last sent value to read from
             set(position) {
                 servo.position = position
+                field = position
             }
 
         fun moveUp() {
-            down = false
             position = upPos
         }
 
         fun moveDown() {
-            down = true
             position = downPos
         }
 
@@ -231,15 +257,19 @@ class MotorControl(hardwareMap: HardwareMap) {
         }
     }
 
-    class ExtendoArm(servo: Servo) : ServoArm(servo) {
-        constructor(servo: Servo, downPos: Double, upPos: Double) : this(servo) {
-            this.downPos = downPos
-            this.upPos = upPos
+    class ExtendoArm(servo: Servo,
+                     downPos: Double = 0.03, //wrong
+                     upPos: Double = 0.2, // wrong
+                     val dumpPos: Double = 0.6) // tuned
+        : ServoArm(servo, downPos,upPos) {
+        val dumping: Boolean
+            get() {
+                return abs(position -  dumpPos) < 0.05
+            }
+        init {
+            moveDump()
         }
-
-        val dumpPos = 0.0 // 0.6
         fun moveDump() {
-            down = false
             position = dumpPos
         }
     }
