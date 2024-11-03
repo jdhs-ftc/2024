@@ -58,7 +58,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveWall(): Action {
         return SequentialAction(
-            deposit.setTargetPosition(116.0), // Tuned as of 10/24
+            deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
             extendo.moveDown(),
             extendoArm.moveDump(),
             depositArm.moveUp(),

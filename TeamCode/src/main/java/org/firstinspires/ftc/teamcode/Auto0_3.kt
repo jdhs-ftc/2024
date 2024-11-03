@@ -16,8 +16,11 @@ import java.lang.Math.toRadians
 @Suppress("unused")
 @Autonomous(name = "Auto 0+3", group = "Auto", preselectTeleOp = "Teleop Field Centric")
 class Auto0_3 : LinearOpMode() {
+    // todo don't slam into wall
+    // some weird stuff happens sometimes, is wall slam dcing??
     override fun runOpMode() {
         val beginPose = Pose2d(6.625, -63.0, toRadians(90.0))
+        val team = PoseStorage.Team.RED
 
         val drive = PinpointDrive(hardwareMap, beginPose)
         val motorControl = MotorControl(hardwareMap)
@@ -27,7 +30,7 @@ class Auto0_3 : LinearOpMode() {
             .afterTime(0.1,motorActions.deposit.setTargetPosition(1521.0))
             .setReversed(true)
             .setTangent(toRadians(90.0))
-            .splineToConstantHeading(Vector2d(11.0, -33.0), toRadians(90.0)) // go to sub
+            .splineToConstantHeading(Vector2d(14.0, -33.0), toRadians(90.0)) // go to sub prev 11
             .stopAndAdd(SequentialAction( // deposit at sub
                 motorActions.deposit.setTargetPosition(1150.0),
                 SleepAction(0.3),
@@ -35,7 +38,7 @@ class Auto0_3 : LinearOpMode() {
             ))
             .setTangent(toRadians(315.0))
             .splineToConstantHeading(
-                Vector2d(47.0, -42.3),
+                Vector2d(47.0, -40.3),
                 toRadians(90.0)
             )
             // grab
@@ -57,7 +60,7 @@ class Auto0_3 : LinearOpMode() {
                 )
             )
             .splineToSplineHeading(
-                Pose2d(57.0, -42.3, toRadians(90.0)),
+                Pose2d(55.0, -40.3, toRadians(90.0)), // prev 56.5 -42.3
                 toRadians(0.0)
             )
             // grab
@@ -75,13 +78,13 @@ class Auto0_3 : LinearOpMode() {
                     motorActions.extendoClaw.open(),
                     SleepAction(0.3),
                     motorActions.extendoArm.moveUp(),
-                    motorActions.extendo.moveDown()
+                    motorActions.extendo.moveDown(),
+                    motorActions.depositMoveWall()
                 )
             )
-            .stopAndAdd(motorActions.depositMoveWall())
-            .splineToSplineHeading(Pose2d(40.0, -50.0, toRadians(-90.0)), toRadians(270.0)) // go to line up point
+            .splineToSplineHeading(Pose2d(39.5, -50.0, toRadians(-90.0)), toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToSplineHeading(Pose2d(40.0, -63.0, toRadians(-90.0)), toRadians(270.0)) // go to hp
+            .splineToSplineHeading(Pose2d(39.5, -63.0, toRadians(-90.0)), toRadians(270.0)) // go to hp
             .stopAndAdd(
                 SequentialAction(
                 motorActions.depositPickupWall(),
@@ -99,9 +102,9 @@ class Auto0_3 : LinearOpMode() {
             ))
             .setTangent(toRadians(-90.0))
             .afterTime(0.5, motorActions.depositMoveWall())
-            .splineToSplineHeading(Pose2d(40.0, -50.0, toRadians(-90.0)), toRadians(270.0)) // go to line up point
+            .splineToSplineHeading(Pose2d(39.5, -50.0, toRadians(-90.0)), toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToSplineHeading(Pose2d(40.0, -63.0, toRadians(-90.0)), toRadians(270.0)) // go to hp
+            .splineToSplineHeading(Pose2d(39.5, -63.0, toRadians(-90.0)), toRadians(270.0)) // go to hp
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
@@ -133,5 +136,6 @@ class Auto0_3 : LinearOpMode() {
 
         PoseStorage.currentPose = drive.pose
         PoseStorage.poseUpdatedTime = System.currentTimeMillis()
+        PoseStorage.currentTeam = team
     }
 }
