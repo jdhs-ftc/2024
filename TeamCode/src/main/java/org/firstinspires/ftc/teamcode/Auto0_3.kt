@@ -7,8 +7,8 @@ import com.acmerobotics.roadrunner.Vector2d
 import com.acmerobotics.roadrunner.ftc.runBlocking
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
-import org.firstinspires.ftc.teamcode.helpers.ActionHelpers
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
+import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.lang.Math.toRadians
@@ -128,7 +128,7 @@ class Auto0_3 : LinearOpMode() {
         waitForStart()
 
         runBlocking(
-            ActionHelpers.RaceParallelCommand(
+            RaceParallelAction(
                 traj,
                 motorActions.update()
             )

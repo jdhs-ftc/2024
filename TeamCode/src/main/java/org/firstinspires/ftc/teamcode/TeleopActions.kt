@@ -18,17 +18,16 @@ import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
-import org.firstinspires.ftc.teamcode.helpers.ActionHelpers.RaceParallelCommand
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.BLUE
+import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
 import org.firstinspires.ftc.teamcode.motor.MotorControl.BLColor.Color
 import java.util.LinkedList
 import kotlin.math.abs
-import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.sign
 
@@ -246,7 +245,6 @@ class TeleopActions : ActionOpMode() {
                 -gamepad1.left_stick_x * speed
             )
 
-            //Pose2d poseEstimate = drive.pose;
             var rotationAmount = drive.pose.heading.inverse() // inverse it
             if (fieldCentric && !padCameraAutoAim) {
                 rotationAmount =
@@ -398,7 +396,7 @@ class TeleopActions : ActionOpMode() {
                                 motorActions.extendoClaw.open(), // open claw
                                 //SleepAction(0.6),
                                 motorActions.extendoArm.moveDown(), // move to ground
-                                WaitForPadRelease(), // wait until trigger releases
+                                waitForPadRelease(), // wait until trigger releases
                                 motorActions.extendoClaw.close(), // close claw
                                 SleepAction(0.5), // TODO tune
                                 motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
@@ -412,8 +410,8 @@ class TeleopActions : ActionOpMode() {
                     UniqueAction(
                         SequentialAction(
                             motorActions.depositMoveWall(),
-                            RaceParallelCommand(
-                                WaitForPadRelease(),
+                            RaceParallelAction(
+                                waitForPadRelease(),
                                 /*
                                 Action {
                                     return@Action motorControl.dColor.color == Color.NONE
@@ -428,22 +426,14 @@ class TeleopActions : ActionOpMode() {
             }
 
 
-            val colorAlpha = 0.0
-
-            // rumble the gunner controller based on the claw color sensor
-            var pad2rumble: Double = if (colorAlpha > 200) { // && !motorControl.extendoClaw.closed) {
-                log10(colorAlpha) / 6
-            } else {
-                0.0
-            }
 
             gamepad2.rumble(
-                if (motorControl.dColor.color != MotorControl.BLColor.Color.NONE && !motorControl.depositClaw.closed) {
+                if (motorControl.dColor.color != Color.NONE && !motorControl.depositClaw.closed) {
                     0.4
                 } else {
                     0.0
                 },
-                pad2rumble,
+                0.0,
                 Gamepad.RUMBLE_DURATION_CONTINUOUS
             )
 
@@ -452,7 +442,6 @@ class TeleopActions : ActionOpMode() {
 
 
             // TELEMETRY
-            //val packet = TelemetryPacket()
             Drawing.drawRobot(
                 packet.fieldOverlay(),
                 drive.pose
@@ -521,12 +510,10 @@ class TeleopActions : ActionOpMode() {
         }
     }
 
-
-    class WaitForPadRelease : Action {
-        override fun run(p: TelemetryPacket): Boolean {
-            return !padReleased
+    fun waitForPadRelease(): Action {
+        return Action {
+            return@Action !padReleased
         }
-
     }
 
     companion object {
