@@ -7,7 +7,6 @@ import com.acmerobotics.roadrunner.Action
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode.UniqueAction
 import java.util.ArrayList
-import java.util.function.Consumer
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -31,7 +30,7 @@ abstract class ActionOpMode : LinearOpMode() {
         }
     }
 
-    protected fun updateAsync(packet: TelemetryPacket) {
+    protected fun updateAsync(packet: TelemetryPacket = DefaultPacket()) {
         updateUniqueQueue()
         // update running actions
         val newActions = ArrayList<Action>()
@@ -42,14 +41,19 @@ abstract class ActionOpMode : LinearOpMode() {
             }
         }
         runningActions = newActions
+
+        // if no packet was specified, we have to create and send one ourselves
+        // this feels kinda jank tbh
+        if (packet is DefaultPacket) {
+            dash.sendTelemetryPacket(packet)
+        }
     }
 
     private fun updateUniqueQueue() {
         val oldActions = uniqueActionsQueue
         uniqueActionsQueue.clear()
         // running run on a UniqueAction will automatically re add it to the queue, or start running it
-        // is consumer necessary here?
-        oldActions.forEach(Consumer { a -> this.run(a) })
+        oldActions.forEach { this.run(it) }
     }
 
     protected fun run(a: Action) {
@@ -72,19 +76,14 @@ abstract class ActionOpMode : LinearOpMode() {
             // this allows the other function to add it to the uniqueActionsQueue without casting
             returns(true) implies (a is UniqueAction)
         }
-        return a is UniqueAction && runningActions.stream().anyMatch { b: Action ->
-            b is UniqueAction && b.key == a.key
+        return a is UniqueAction && runningActions.stream().anyMatch {
+            it is UniqueAction && it.key == a.key
         }
     }
 
 
-    class UniqueAction(val action: Action, val key: String = "UniqueAction") : Action {
-        override fun run(t: TelemetryPacket): Boolean {
-            return action.run(t)
-        }
+    class UniqueAction(val action: Action, val key: String = "UniqueAction") : Action by action
 
-        override fun preview(fieldOverlay: Canvas) {
-            action.preview(fieldOverlay)
-        }
-    }
+    // used to differentiate whether we just made the packet or whether it was just passed
+    private class DefaultPacket(drawDefaultField: Boolean = true): TelemetryPacket(drawDefaultField)
 }

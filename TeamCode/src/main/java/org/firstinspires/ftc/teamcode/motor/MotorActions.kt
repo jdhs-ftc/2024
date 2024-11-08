@@ -14,7 +14,6 @@ class MotorActions(val motorControl: MotorControl) {
     val extendoClaw = Claw(motorControl.extendoClaw)
     val depositArm = ServoArm(motorControl.depositArm)
     val extendoArm = ExtendoArm(motorControl.extendoArm)
-    val depositLid = Claw(motorControl.depositLid)
 
     fun waitUntilFinished(): Action {
         return Action { t: TelemetryPacket? -> motorControl.closeEnough() }
@@ -58,11 +57,12 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveWall(): Action {
         return SequentialAction(
-            deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
+            deposit.moveDown(),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
             extendo.moveDown(),
-            extendoArm.moveDump(),
-            depositArm.moveUp(),
-            depositClaw.open()
+            depositArm.moveDown(), // down to intake
+            depositClaw.open(),
+            Action {!(motorControl.extendo.position < 300) }, // wait for extendo to be retracted
+            extendoArm.moveDump()
         )
     }
 
@@ -72,6 +72,19 @@ class MotorActions(val motorControl: MotorControl) {
         depositClaw.close(),
         SleepAction(0.5), // TODO tune
         deposit.setTargetPosition(250.0)
+        )
+    }
+
+    fun depositMoveChamber(): Action {
+        return SequentialAction(
+            depositArm.moveUp(),
+            deposit.setTargetPosition(1000.0), // TODO TUNEME
+        )
+    }
+
+    fun depositScoreChamber(): Action {
+        return SequentialAction(
+            deposit.setTargetPosition(1200.0),
         )
     }
 
@@ -148,9 +161,9 @@ class MotorActions(val motorControl: MotorControl) {
         }
     }
 
-    class ExtendoArm(val extendoArm: MotorControl.ExtendoArm) : ServoArm(extendoArm) {
+    class ExtendoArm(val threeArm: MotorControl.ThreeArm) : ServoArm(threeArm) {
         fun moveDump(): Action {
-            return InstantAction { extendoArm.moveDump() }
+            return InstantAction { threeArm.moveFullUp() }
         }
     }
 }

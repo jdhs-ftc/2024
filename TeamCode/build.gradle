@@ -16,6 +16,7 @@ apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
 apply plugin: 'org.team11260.fast-load-plugin'
 apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'dev.frozenmilk.sinister.sloth.Load'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -34,9 +35,18 @@ buildscript {
         maven {
             url = "https://www.matthewo.tech/maven"
         }
+        maven {
+                url "https://repo.dairy.foundation/snapshots"
+        }
+        maven {
+            url "https://repo.dairy.foundation/releases"
+        }
     }
     dependencies {
         classpath 'org.team11260:fast-load-plugin:0.1.2'
+    }
+    dependencies {
+        classpath "dev.frozenmilk.sinister.sloth:Load:0.0.0"
     }
 }
 
@@ -50,6 +60,12 @@ repositories {
     maven {
         url = 'https://www.matthewo.tech/maven'
     }
+    maven {
+        url "https://repo.dairy.foundation/snapshots"
+    }
+    maven {
+        url "https://repo.dairy.foundation/releases"
+    }
 }
 
 dependencies {
@@ -62,5 +78,8 @@ dependencies {
     implementation "com.acmerobotics.roadrunner:actions:1.0.0"
     implementation "com.acmerobotics.dashboard:dashboard:0.4.16"
     implementation project(':RoadRunner')
+    implementation "org.jetbrains.kotlin:kotlin-reflect:2.0.21" // reflection
+
+    implementation "dev.frozenmilk.sinister:Sloth:0.0.0"
     //implementation 'androidx.core:core-ktx:1.13.1'
 }

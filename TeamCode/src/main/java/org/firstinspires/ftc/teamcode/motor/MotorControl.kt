@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.teamcode.helpers.CachingDcMotorEx
-import org.firstinspires.ftc.teamcode.helpers.FakeServo
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
 import kotlin.math.abs
@@ -25,25 +24,22 @@ class MotorControl(hardwareMap: HardwareMap) {
     }
 
     @JvmField
-    val extendoArm = ExtendoArm(hardwareMap.get(Servo::class.java, "sArm"), 0.12, 0.3) //0.03, 0.2) // dump pos 0.6, set in class
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.12, 0.3) //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
     val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.32, 0.5) // 0.7 0.3
 
     @JvmField
     val extendo: Slide = Slide(
-        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 0, encoder is  left_front
+        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 0, encoder is left_front
         PIDFController(PIDCoefficients(0.001, 0.0, 0.0))
     )
 
     @JvmField
-    val depositArm = ServoArm(FakeServo(), 0.0, 1.0) // TODO: CHANGE TO THE RIGHT ONE
+    val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.95, 0.0, 0.5) // TODO TUNE
 
     @JvmField
-    val depositLid = Claw(FakeServo(), 0.0, 1.0) // TODO CHANGE TO NOT FAKE
-
-    @JvmField
-    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.2, 0.65)
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.45, 0.1) // 0.55 0.1
 
     @JvmField
     val deposit: Slide
@@ -65,6 +61,8 @@ class MotorControl(hardwareMap: HardwareMap) {
         )
         deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
         deposit.reversed = true
+
+        depositArm.moveDown()
 
         motors.forEach { it.findZero() }
     }
@@ -257,20 +255,20 @@ class MotorControl(hardwareMap: HardwareMap) {
         }
     }
 
-    class ExtendoArm(servo: Servo,
-                     downPos: Double = 0.03, //wrong
-                     upPos: Double = 0.2, // wrong
-                     val dumpPos: Double = 0.6) // tuned
+    class ThreeArm(servo: Servo,
+                   downPos: Double = 0.03, //wrong
+                   upPos: Double = 0.2, // wrong
+                   val fullUpPos: Double = 0.6) // tuned
         : ServoArm(servo, downPos,upPos) {
-        val dumping: Boolean
+        val fullyUp: Boolean // AKA dumping
             get() {
-                return abs(position -  dumpPos) < 0.05
+                return abs(position -  fullUpPos) < 0.05
             }
         init {
-            moveDump()
+            moveFullUp()
         }
-        fun moveDump() {
-            position = dumpPos
+        fun moveFullUp() { // AKA moveDump
+            position = fullUpPos
         }
     }
 

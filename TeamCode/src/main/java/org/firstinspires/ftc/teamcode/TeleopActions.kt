@@ -5,7 +5,6 @@ import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
-import com.acmerobotics.roadrunner.ParallelAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.SequentialAction
@@ -25,7 +24,6 @@ import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
-import org.firstinspires.ftc.teamcode.motor.MotorControl.BLColor.Color
 import java.util.LinkedList
 import kotlin.math.abs
 import kotlin.math.pow
@@ -175,6 +173,10 @@ class TeleopActions : ActionOpMode() {
                 (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
             val padExtendoGrabAndArmUp = !(gamepad2.right_trigger > 0.25) // trigger falling edge
             padReleased = padReleased && padExtendoGrabAndArmUp
+
+            val padDepositChamber = (gamepad2.left_trigger > 0.25 && !(previousGamepad2.left_trigger > 0.25))
+            val padDepositChamberRelease = (gamepad2.left_trigger < 0.25)
+            padReleased = padReleased && padDepositChamberRelease
 
             //val padDepositArmDump =
 
@@ -347,23 +349,16 @@ class TeleopActions : ActionOpMode() {
                                 motorActions.deposit.moveDown(),
                                 motorActions.depositArm.moveDown(),
                                 motorActions.extendoArm.moveDump(),
-                                motorActions.depositLid.open(),
                                 // wait for extendo arm to get to target
                                 // maybe use gamepad here?
                                 SleepAction(0.5),
                                 motorActions.extendoClaw.open(),
-                                ParallelAction(
-                                    SequentialAction(
-                                        SleepAction(0.25), // wait for the sample to fall
-                                        motorActions.depositLid.close(),
-                                    ),
-                                    SequentialAction(
-                                        SleepAction(0.1), // wait for the claw to open
-                                        motorActions.extendoArm.moveUp(),
-                                        SleepAction(0.1) // wait for the extendo arm to finish
+                                SleepAction(0.1), // wait for the claw to open
+                                motorActions.extendoArm.moveUp(),
+                                SleepAction(0.1) // wait for the extendo arm to finish
                                         // moving to just above the ground position
-                                    )
-                                )
+
+
                             )
                         )
                     )
@@ -381,9 +376,9 @@ class TeleopActions : ActionOpMode() {
 
             if (padExtendoArmDown) {
                 println("12087 extendo arm down")
-                println("12087 extendo arm dumping ${motorControl.extendoArm.dumping}")
+                println("12087 extendo arm dumping ${motorControl.extendoArm.fullyUp}")
                 println("12087 extendo arm position ${motorControl.extendoArm.position}")
-                if (motorControl.extendoArm.dumping) {
+                if (motorControl.extendoArm.fullyUp) {
                     run(
                         UniqueAction(
                             motorActions.extendoArm.moveUp()
@@ -425,8 +420,20 @@ class TeleopActions : ActionOpMode() {
                 )
             }
 
+            if (padDepositChamber) {
+                run(
+                    UniqueAction(
+                        SequentialAction(
+                            motorActions.depositMoveChamber(),
+                            waitForPadRelease(),
+                            motorActions.depositScoreChamber()
+                        )
+                    )
+                )
+            }
 
 
+            /*
             gamepad2.rumble(
                 if (motorControl.dColor.color != Color.NONE && !motorControl.depositClaw.closed) {
                     0.4
@@ -436,6 +443,8 @@ class TeleopActions : ActionOpMode() {
                 0.0,
                 Gamepad.RUMBLE_DURATION_CONTINUOUS
             )
+
+             */
 
 
             // update RR, update motor controllers
@@ -494,7 +503,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
                 telemetry.addData("depositClawPosition", motorControl.depositClaw.position)
                 telemetry.addData("dColor", motorControl.dColor.color)
-                telemetry.addData("dumping",motorControl.extendoArm.dumping)
+                telemetry.addData("dumping",motorControl.extendoArm.fullyUp)
 
 
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
