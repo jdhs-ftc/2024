@@ -12,15 +12,15 @@ class MotorActions(val motorControl: MotorControl) {
     val deposit = Deposit()
     val depositClaw = Claw(motorControl.depositClaw)
     val extendoClaw = Claw(motorControl.extendoClaw)
-    val depositArm = ServoArm(motorControl.depositArm)
-    val extendoArm = ExtendoArm(motorControl.extendoArm)
+    val depositArm = ThreeArm(motorControl.depositArm)
+    val extendoArm = ThreeArm(motorControl.extendoArm)
 
     fun waitUntilFinished(): Action {
-        return Action { t: TelemetryPacket? -> motorControl.closeEnough() }
+        return Action { motorControl.closeEnough() }
     }
 
     fun update(): Action {
-        return Action { t: TelemetryPacket? ->
+        return Action {
             motorControl.update()
             true // this returns true to make it loop forever; use RaceParallelCommand
         }
@@ -50,7 +50,7 @@ class MotorActions(val motorControl: MotorControl) {
     fun extendoCycle(between: Action = SleepAction(0.5)): Action {
         return SequentialAction(
             extendoClawGround(),
-            between,
+            between, // default wait 0.5
             extendoGrabAndRaise()
         )
     }
@@ -61,8 +61,8 @@ class MotorActions(val motorControl: MotorControl) {
             extendo.moveDown(),
             depositArm.moveDown(), // down to intake
             depositClaw.open(),
-            Action {!(motorControl.extendo.position < 300) }, // wait for extendo to be retracted
-            extendoArm.moveDump()
+            Action {!(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
+            extendoArm.moveFullUp()
         )
     }
 
@@ -87,6 +87,24 @@ class MotorActions(val motorControl: MotorControl) {
             deposit.setTargetPosition(1200.0),
         )
     }
+    fun depositClawRelease(): Action {
+        return SequentialAction(depositClaw.open())
+    }
+
+
+    fun moveTransfer() =
+        SequentialAction(
+            deposit.moveDown(),
+            depositArm.moveTransfer(),
+            depositClaw.open()
+        )
+
+    fun grabTransferReturn() =
+        SequentialAction (
+            depositClaw.close(),
+            SleepAction(0.25), // todo tune
+            depositArm.moveDown()
+    )
 
 
     inner class Extendo {
@@ -161,9 +179,12 @@ class MotorActions(val motorControl: MotorControl) {
         }
     }
 
-    class ExtendoArm(val threeArm: MotorControl.ThreeArm) : ServoArm(threeArm) {
-        fun moveDump(): Action {
+    class ThreeArm(val threeArm: MotorControl.ThreeArm) : ServoArm(threeArm) {
+        fun moveFullUp(): Action {
             return InstantAction { threeArm.moveFullUp() }
         }
+        fun moveDump() = moveFullUp()
+        fun moveScore() = moveFullUp()
+        fun moveTransfer() = moveUp()
     }
 }

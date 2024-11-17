@@ -348,7 +348,7 @@ class TeleopActions : ActionOpMode() {
                                 motorActions.extendo.moveDown(),
                                 motorActions.deposit.moveDown(),
                                 motorActions.depositArm.moveDown(),
-                                motorActions.extendoArm.moveDump(),
+                                motorActions.extendoArm.moveFullUp(),
                                 // wait for extendo arm to get to target
                                 // maybe use gamepad here?
                                 SleepAction(0.5),
@@ -389,7 +389,7 @@ class TeleopActions : ActionOpMode() {
                         UniqueAction(
                             SequentialAction(
                                 motorActions.extendoClaw.open(), // open claw
-                                //SleepAction(0.6),
+                                SleepAction(0.25),
                                 motorActions.extendoArm.moveDown(), // move to ground
                                 waitForPadRelease(), // wait until trigger releases
                                 motorActions.extendoClaw.close(), // close claw
@@ -407,12 +407,6 @@ class TeleopActions : ActionOpMode() {
                             motorActions.depositMoveWall(),
                             RaceParallelAction(
                                 waitForPadRelease(),
-                                /*
-                                Action {
-                                    return@Action motorControl.dColor.color == Color.NONE
-                                }
-
-                                 */
                             ),
                             motorActions.depositPickupWall()
                         )
@@ -504,6 +498,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("depositClawPosition", motorControl.depositClaw.position)
                 telemetry.addData("dColor", motorControl.dColor.color)
                 telemetry.addData("dumping",motorControl.extendoArm.fullyUp)
+                telemetry.addData("depositArmPosition",motorControl.depositArm.position)
 
 
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
