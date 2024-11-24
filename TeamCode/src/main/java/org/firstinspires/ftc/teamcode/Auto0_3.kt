@@ -5,7 +5,6 @@ import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
 import com.acmerobotics.roadrunner.ftc.runBlocking
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
@@ -14,7 +13,8 @@ import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.lang.Math.toRadians
 
 @Suppress("unused")
-@Autonomous(name = "Auto 0+3", group = "Auto", preselectTeleOp = "Teleop Field Centric")
+//@Disabled
+//@Autonomous(name = "Auto 0+3", group = "Auto", preselectTeleOp = "Teleop Field Centric")
 class Auto0_3 : LinearOpMode() {
     // todo don't slam into wall
     // some weird stuff happens sometimes, is wall slam dcing??

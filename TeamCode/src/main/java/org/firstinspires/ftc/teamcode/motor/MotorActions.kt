@@ -77,14 +77,15 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveChamber(): Action {
         return SequentialAction(
-            depositArm.moveUp(),
-            deposit.setTargetPosition(1000.0), // TODO TUNEME
+            InstantAction { depositArm.threeArm.position = 0.35 },
+            deposit.setTargetPosition(350.0), // TODO TUNEME
         )
     }
 
     fun depositScoreChamber(): Action {
         return SequentialAction(
-            deposit.setTargetPosition(1200.0),
+            deposit.setTargetPosition(1050.0),
+
         )
     }
     fun depositClawRelease(): Action {
@@ -94,17 +95,28 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun moveTransfer() =
         SequentialAction(
-            deposit.moveDown(),
+            deposit.setTargetPosition(117.0),
+            extendo.setTargetPosition(709.0),
             depositArm.moveTransfer(),
-            depositClaw.open()
+            InstantAction { depositClaw.claw.position = 0.3 },
+            extendoArm.moveFullUp(),
         )
 
     fun grabTransferReturn() =
         SequentialAction (
             depositClaw.close(),
             SleepAction(0.25), // todo tune
+            extendoClaw.open(),
+            SleepAction(0.1),
             depositArm.moveDown()
     )
+
+    fun transferFull(between: Action = SleepAction(0.8)) =
+        SequentialAction (
+            moveTransfer(),
+            between,
+            grabTransferReturn()
+        )
 
 
     inner class Extendo {

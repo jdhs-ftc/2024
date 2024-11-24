@@ -96,13 +96,14 @@ class TeleopActions : ActionOpMode() {
     override fun runOpMode() {
         //  Initialization Period
 
-        // Enable Bulk Caching
-        allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL }
 
         //EXPANSION_HUB = allHubs.get(1);
 
         // RoadRunner Init
         drive // init with by lazy
+
+        // Enable Bulk Caching
+        allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL }
 
 
         joystickHeadingController.setInputBounds(-Math.PI, Math.PI)
@@ -191,6 +192,11 @@ class TeleopActions : ActionOpMode() {
             padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
             val padSlideControlMultiplier = 20.0
 
+            val padTransfer = gamepad2.left_bumper && !previousGamepad2.left_bumper
+            val padTransferRelease = !gamepad2.left_bumper
+
+            padReleased = padReleased && padTransferRelease
+
 
             // Misc
             val padForceDown = gamepad2.left_stick_button || gamepad2.right_stick_button
@@ -207,7 +213,7 @@ class TeleopActions : ActionOpMode() {
             // especially in driver practice, imu drifts eventually
             // this lets them reset just in case
             if (padResetPose) {
-                if (PoseStorage.currentTeam != PoseStorage.Team.BLUE) { // Team is declared and saved there for auto
+                if (PoseStorage.currentTeam != BLUE) { // Team is declared and saved there for auto
                     drive.pose = Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(90.0))
                 } else {
                     drive.pose = Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(-90.0))
@@ -244,7 +250,7 @@ class TeleopActions : ActionOpMode() {
             // Then, rotate that vector by the inverse of that heading
             var input = Vector2d(
                 -gamepad1.left_stick_y * speed,
-                -gamepad1.left_stick_x * speed
+                -gamepad1.left_stick_x * speed + -gamepad2.right_stick_x * 0.2
             )
 
             var rotationAmount = drive.pose.heading.inverse() // inverse it
@@ -389,7 +395,7 @@ class TeleopActions : ActionOpMode() {
                         UniqueAction(
                             SequentialAction(
                                 motorActions.extendoClaw.open(), // open claw
-                                SleepAction(0.25),
+                                SleepAction(0.05),
                                 motorActions.extendoArm.moveDown(), // move to ground
                                 waitForPadRelease(), // wait until trigger releases
                                 motorActions.extendoClaw.close(), // close claw
@@ -421,6 +427,18 @@ class TeleopActions : ActionOpMode() {
                             motorActions.depositMoveChamber(),
                             waitForPadRelease(),
                             motorActions.depositScoreChamber()
+                        )
+                    )
+                )
+            }
+
+            if (padTransfer) {
+                run(
+                    UniqueAction(
+                        SequentialAction(
+                            motorActions.moveTransfer(),
+                            waitForPadRelease(),
+                            motorActions.grabTransferReturn()
                         )
                     )
                 )

@@ -24,7 +24,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     }
 
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.3, 0.6, 0.85) // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.425, 0.6, 0.85) // 0.42 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
     val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.32, 0.7) // 0.32 0.5
@@ -36,7 +36,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     )
 
     @JvmField
-    val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.95, 0.05, 0.5) // TODO TUNE
+    val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.95, 0.20, 0.5) // TODO TUNE
 
     @JvmField
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.35, 0.1) // 0.55 0.1
@@ -63,8 +63,11 @@ class MotorControl(hardwareMap: HardwareMap) {
         deposit.reversed = true
 
         depositArm.moveDown()
+        extendoArm.moveUp()
 
         motors.forEach { it.findZero() }
+
+        extendoArm.moveFullUp()
     }
 
     /**
