@@ -301,7 +301,7 @@ public class MecanumDrive {
                 t = Actions.now() - beginTs;
             }
 
-            if (t >= timeTrajectory.duration) {
+            if (t >= (timeTrajectory.duration - 0.1)) { // CURSED HACK THAT FIXED EVERYTHING
                 leftFront.setPower(0);
                 leftBack.setPower(0);
                 rightBack.setPower(0);

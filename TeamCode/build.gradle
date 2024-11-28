@@ -81,5 +81,8 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:2.0.21" // reflection
 
     implementation "dev.frozenmilk.sinister:Sloth:0.0.1"
+
+    implementation "page.j5155.roadrunner:actionadditions:0.0.2"
+
     //implementation 'androidx.core:core-ktx:1.13.1'
 }

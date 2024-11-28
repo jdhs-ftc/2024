@@ -78,7 +78,7 @@ class MotorActions(val motorControl: MotorControl) {
     fun depositMoveChamber(): Action {
         return SequentialAction(
             InstantAction { depositArm.threeArm.position = 0.35 },
-            deposit.setTargetPosition(350.0), // TODO TUNEME
+            deposit.setTargetPosition(300.0), // prev 250 prev 350
         )
     }
 
@@ -96,7 +96,7 @@ class MotorActions(val motorControl: MotorControl) {
     fun moveTransfer() =
         SequentialAction(
             deposit.setTargetPosition(117.0),
-            extendo.setTargetPosition(709.0),
+            extendo.setTargetPosition(660.0),
             depositArm.moveTransfer(),
             InstantAction { depositClaw.claw.position = 0.3 },
             extendoArm.moveFullUp(),

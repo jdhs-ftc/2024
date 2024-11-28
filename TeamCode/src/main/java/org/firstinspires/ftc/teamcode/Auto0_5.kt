@@ -63,7 +63,7 @@ class Auto0_5 : LinearOpMode() {
             .afterTime(0.0,
                 SequentialAction (
                 motorActions.transferFull(),//SleepAction(0.5)),
-                SleepAction(0.7),
+                SleepAction(0.8),
                 motorActions.depositClaw.open()
                 )
             )
@@ -104,7 +104,7 @@ class Auto0_5 : LinearOpMode() {
             .stopAndAdd( // simultaneous
                 SequentialAction(
                     motorActions.transferFull(),
-                    SleepAction(0.6), // 0.8
+                    SleepAction(0.8), // 0.8
                     motorActions.depositClaw.open(),
                     motorActions.extendoArm.moveFullUp(),
                     motorActions.extendo.moveDown(),
@@ -112,20 +112,21 @@ class Auto0_5 : LinearOpMode() {
                 )
                     )
             .setTangent(toRadians(180.0))
+            .afterTime(0.5, motorActions.depositMoveWall())
             .splineToConstantHeading(Vector2d(35.0, -50.0), toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(Vector2d(35.0, -62.5), toRadians(270.0)) // go to hp -63
+            .splineToConstantHeading(Vector2d(35.0, -62.5), toRadians(270.0)) // go to hp 35.0 -62.5
             .stopAndAdd(
                 SequentialAction(
                     motorActions.extendo.moveDown(),
                     motorActions.depositPickupWall(),
                     SleepAction(0.5),
-                    motorActions.depositMoveChamber()
+                    motorActions.depositMoveChamber(),
                 )
 
             )
             .setTangent(toRadians(135.0))
-            .splineToConstantHeading(Vector2d(9.0, -33.0), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(4.0, -33.0), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
@@ -137,7 +138,7 @@ class Auto0_5 : LinearOpMode() {
             .afterTime(0.5, motorActions.depositMoveWall())
             .splineToConstantHeading(Vector2d(35.0, -50.0), toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(Vector2d(35.0, -62.5), toRadians(270.0)) // go to hp
+            .splineToConstantHeading(Vector2d(35.0, -62.0), toRadians(270.0)) // go to hp
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
@@ -147,7 +148,7 @@ class Auto0_5 : LinearOpMode() {
 
             )
             .setTangent(toRadians(135.0))
-            .splineToConstantHeading(Vector2d(3.0, -33.0), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(1.0, -33.0), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
@@ -159,7 +160,7 @@ class Auto0_5 : LinearOpMode() {
             .afterTime(0.5, motorActions.depositMoveWall())
             .splineToConstantHeading(Vector2d(35.0, -50.0), toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(Vector2d(35.0, -62.5), toRadians(270.0)) // go to hp
+            .splineToConstantHeading(Vector2d(35.0, -62.0), toRadians(270.0)) // go to hp
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
@@ -169,7 +170,7 @@ class Auto0_5 : LinearOpMode() {
 
             )
             .setTangent(toRadians(135.0))
-            .splineToConstantHeading(Vector2d(0.0, -33.0), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(-1.0, -33.0), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
