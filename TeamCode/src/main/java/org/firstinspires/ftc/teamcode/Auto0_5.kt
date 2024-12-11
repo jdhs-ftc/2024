@@ -62,7 +62,10 @@ class Auto0_5 : LinearOpMode() {
             // TODO CYCLE
             .afterTime(0.0,
                 SequentialAction (
-                motorActions.transferFull(),//SleepAction(0.5)),
+                motorActions.extendoArm.moveFullUp(),
+                SleepAction(0.1),
+                motorActions.transferFull(SleepAction(0.5
+                )),
                 SleepAction(0.8),
                 motorActions.depositClaw.open()
                 )

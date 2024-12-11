@@ -7,6 +7,7 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
+import com.acmerobotics.roadrunner.Rotation2d
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
@@ -142,9 +143,15 @@ class TeleopActions : ActionOpMode() {
 
             // Gamepad 1
             // Driving Modifiers
-            val padSlowMode = gamepad1.circle
-            val padFastMode = gamepad1.right_bumper
+            val padSlowMode = gamepad1.right_bumper
+            val padFastMode = false // NOT MAPPED
             val padResetPose = gamepad1.dpad_left && !previousGamepad1.dpad_left
+
+            val padFaceDown = gamepad1.a
+            val padFaceRight = gamepad1.b
+            val padFaceLeft = gamepad1.x
+            val padFaceUp = gamepad1.y
+
 
             // Misc/Obscure
             val padCameraAutoAim = gamepad1.right_stick_button
@@ -275,14 +282,25 @@ class TeleopActions : ActionOpMode() {
                     targetHeading = drive.pose.heading
                     timeSinceDriverTurned.reset()
                 } else {
+                    val baseHeading = if (PoseStorage.currentTeam == BLUE) {
+                        Math.toRadians(90.0)
+                    } else {
+                        Math.toRadians(-90.0)
+                    }
                     // Set the target heading for the heading controller to our desired angle
                     if (controllerHeading.norm() > 0.4) { // if the joystick is tilted more than 0.4 from the center,
                         // Cast the angle based on the angleCast of the joystick as a heading
-                        targetHeading = if (PoseStorage.currentTeam == BLUE) {
-                            controllerHeading.angleCast().plus(Math.toRadians(-90.0))
-                        } else {
-                            controllerHeading.angleCast().plus(Math.toRadians(90.0))
-                        }
+                        targetHeading = controllerHeading.angleCast() + baseHeading
+                    }
+
+                    if (padFaceDown) {
+                        targetHeading = Rotation2d.fromDouble(Math.toRadians(180.0)) + baseHeading
+                    } else if (padFaceRight) {
+                        targetHeading = Rotation2d.fromDouble(Math.toRadians(90.0)) + baseHeading
+                    } else if (padFaceLeft) {
+                        targetHeading = Rotation2d.fromDouble(Math.toRadians(270.0)) + baseHeading
+                    } else if (padFaceUp) {
+                        targetHeading = Rotation2d.fromDouble(Math.toRadians(0.0)) + baseHeading
                     }
 
                     joystickHeadingController.targetPosition = targetHeading.toDouble()
@@ -438,7 +456,8 @@ class TeleopActions : ActionOpMode() {
                         SequentialAction(
                             motorActions.moveTransfer(),
                             waitForPadRelease(),
-                            motorActions.grabTransferReturn()
+                            motorActions.grabTransferReturn(),
+                            motorActions.extendo.moveDown()
                         )
                     )
                 )

@@ -82,7 +82,8 @@ dependencies {
 
     implementation "dev.frozenmilk.sinister:Sloth:0.0.1"
 
-    implementation "page.j5155.roadrunner:actionadditions:0.0.2"
+    //implementation "page.j5155.roadrunner.expressway:core:0.2.0"
+    //implementation "page.j5155.roadrunner.expressway:ftc:0.2.0-SNAPSHOT"
 
     //implementation 'androidx.core:core-ktx:1.13.1'
 }
