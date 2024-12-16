@@ -373,6 +373,100 @@ public class MecanumDrive {
             c.strokePolyline(xPoints, yPoints);
         }
     }
+
+    // Alternate trajectory follower for roadrunner using displacement trajectories (distance instead of time)
+    // to use, put at the bottom of RR 1.0's MecanumDrive file, and change actionBuilder to use it instead of FollowTrajectoryAction
+    // Created by j5155 from team 12087 based on https://rr.brott.dev/docs/v1-0/guides/path-following/
+    // Licensed under the BSD 3-Clause Clear License
+    // If you use this, I would love to know how it goes/what issues you encounter, I'm @j5155 on discord
+    public final class FollowTrajectoryAsPathAction implements Action {
+        public final DisplacementTrajectory dt;
+        public final HolonomicController contr;
+
+        private final double[] xPoints, yPoints;
+        double disp;
+
+        public FollowTrajectoryAsPathAction(TimeTrajectory t) {
+            dt = new DisplacementTrajectory(t.path, t.profile.dispProfile);
+
+            List<Double> disps = com.acmerobotics.roadrunner.Math.range(
+                    0, dt.path.length(),
+                    Math.max(2, (int) Math.ceil(dt.path.length() / 2)));
+            xPoints = new double[disps.size()];
+            yPoints = new double[disps.size()];
+            for (int i = 0; i < disps.size(); i++) {
+                Pose2d p = t.path.get(disps.get(i), 1).value();
+                xPoints[i] = p.position.x;
+                yPoints[i] = p.position.y;
+            }
+
+            contr = new HolonomicController(PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain);
+            disp = 0;
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket p) {
+            if (disp + 1 > dt.length()) {
+                leftFront.setPower(0);
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                rightFront.setPower(0);
+
+                return false;
+            }
+            PoseVelocity2d robotVelRobot = updatePoseEstimate();
+            disp = dt.project(pose.position, disp);
+            Pose2dDual<Time> poseTarget = dt.get(disp);
+            PoseVelocity2dDual<Time> cmd = contr.compute(poseTarget, pose, robotVelRobot);
+
+            MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(cmd);
+            double voltage = voltageSensor.getVoltage();
+            final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS, PARAMS.kV / PARAMS.inPerTick, 0); // kA 0; ignore acceleration
+            leftFront.setPower(feedforward.compute(wheelVels.leftFront) / voltage);
+            leftBack.setPower(feedforward.compute(wheelVels.leftBack) / voltage);
+            rightBack.setPower(feedforward.compute(wheelVels.rightBack) / voltage);
+            rightFront.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
+
+
+            FlightRecorder.write("TARGET_POSE", new PoseMessage(poseTarget.value()));
+
+            p.put("x", pose.position.x);
+            p.put("y", pose.position.y);
+            p.put("heading (deg)", Math.toDegrees(pose.heading.log()));
+
+            Pose2d error = poseTarget.value().minusExp(pose);
+            p.put("xError", error.position.x);
+            p.put("yError", error.position.y);
+            p.put("headingError (deg)", Math.toDegrees(error.heading.log()));
+
+            // only draw when active; only one drive action should be active at a time
+            Canvas c = p.fieldOverlay();
+            drawPoseHistory(c);
+
+            c.setStroke("#4CAF50");
+            Drawing.drawRobot(c, poseTarget.value());
+
+            c.setStroke("#3F51B5");
+            Drawing.drawRobot(c, pose);
+
+            c.setStroke("#4CAF50FF");
+            c.setStrokeWidth(1);
+            c.strokePolyline(xPoints, yPoints);
+
+            return true;
+
+        }
+
+        @Override
+        public void preview(Canvas c) {
+            c.setStroke("#4CAF507A");
+            c.setStrokeWidth(1);
+            c.strokePolyline(xPoints, yPoints);
+        }
+    }
+
+
+
     /*
     Made by j5155 from Capital City Dynamics based on code from rbrott
     BSD-3-Clause License
@@ -593,6 +687,22 @@ public class MecanumDrive {
         return new TrajectoryActionBuilder(
                 TurnAction::new,
                 FollowTrajectoryAction::new,
+                new TrajectoryBuilderParams(
+                        1e-6,
+                        new ProfileParams(
+                                0.25, 0.1, 1e-2
+                        )
+                ),
+                beginPose, 0.0,
+                defaultTurnConstraints,
+                defaultVelConstraint, defaultAccelConstraint
+        );
+    }
+
+    public TrajectoryActionBuilder actionBuilderPath(Pose2d beginPose) {
+        return new TrajectoryActionBuilder(
+                TurnAction::new,
+                FollowTrajectoryAsPathAction::new,
                 new TrajectoryBuilderParams(
                         1e-6,
                         new ProfileParams(

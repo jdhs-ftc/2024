@@ -36,7 +36,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     )
 
     @JvmField
-    val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.95, 0.20, 0.5) // TODO TUNE
+    val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.97, 0.27, 0.5) // TODO TUNE
 
     @JvmField
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.35, 0.1) // 0.55 0.1
@@ -57,7 +57,7 @@ class MotorControl(hardwareMap: HardwareMap) {
             // encoder is left_back
             PIDFController(
                 PIDCoefficients(0.005, 0.0, 0.0),
-                PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.15 })
+                PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.05 })
         )
         deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
         deposit.reversed = true

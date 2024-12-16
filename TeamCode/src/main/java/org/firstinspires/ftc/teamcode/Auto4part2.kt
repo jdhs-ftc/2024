@@ -18,8 +18,8 @@ import java.lang.Math.toRadians
 // 0+4 maybe if pushed?
 // 0+5 impossible :(((
 @Suppress("unused")
-@Autonomous(name = "Auto old 0+4", group = "Auto", preselectTeleOp = "Teleop Field Centric")
-class Auto0_5 : LinearOpMode() {
+@Autonomous(name = "Auto 4 attempt 2", group = "Auto", preselectTeleOp = "Teleop Field Centric")
+class Auto4part2 : LinearOpMode() {
     // todo don't slam into wall
     // some weird stuff happens sometimes, is wall slam dcing??
     override fun runOpMode() {
@@ -29,6 +29,8 @@ class Auto0_5 : LinearOpMode() {
         val drive = PinpointDrive(hardwareMap, beginPose)
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
+        val humanPlayerLineUp = Vector2d(37.0, -50.0)
+        val humanPlayerVec = Vector2d(37.0, -63.0)
 
         val traj = drive.actionBuilder(beginPose)
             .afterTime(0.1, motorActions.deposit.setTargetPosition(300.0))
@@ -116,9 +118,9 @@ class Auto0_5 : LinearOpMode() {
                     )
             .setTangent(toRadians(180.0))
             .afterTime(0.5, motorActions.depositMoveWall())
-            .splineToConstantHeading(Vector2d(35.0, -50.0), toRadians(270.0)) // go to line up point
+            .splineToConstantHeading(humanPlayerLineUp, toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(Vector2d(35.0, -62.5), toRadians(270.0)) // go to hp 35.0 -62.5
+            .splineToConstantHeading(humanPlayerVec, toRadians(270.0)) // go to hp 35.0 -62.5
             .stopAndAdd(
                 SequentialAction(
                     motorActions.extendo.moveDown(),
@@ -139,9 +141,9 @@ class Auto0_5 : LinearOpMode() {
             )
             .setTangent(toRadians(-90.0))
             .afterTime(0.5, motorActions.depositMoveWall())
-            .splineToConstantHeading(Vector2d(35.0, -50.0), toRadians(270.0)) // go to line up point
+            .splineToConstantHeading(humanPlayerLineUp, toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(Vector2d(35.0, -62.0), toRadians(270.0)) // go to hp
+            .splineToConstantHeading(humanPlayerVec, toRadians(270.0)) // go to hp
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
@@ -161,9 +163,9 @@ class Auto0_5 : LinearOpMode() {
             )
             .setTangent(toRadians(-90.0))
             .afterTime(0.5, motorActions.depositMoveWall())
-            .splineToConstantHeading(Vector2d(35.0, -50.0), toRadians(270.0)) // go to line up point
+            .splineToConstantHeading(humanPlayerLineUp, toRadians(270.0)) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(Vector2d(35.0, -62.0), toRadians(270.0)) // go to hp
+            .splineToConstantHeading(humanPlayerVec, toRadians(270.0)) // go to hp
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
