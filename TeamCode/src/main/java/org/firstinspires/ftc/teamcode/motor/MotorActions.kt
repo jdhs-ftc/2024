@@ -77,14 +77,15 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveChamber(): Action {
         return SequentialAction(
-            InstantAction { depositArm.threeArm.position = 0.35 },
+            InstantAction { depositArm.threeArm.position = 0.40 },
             deposit.setTargetPosition(300.0), // prev 250 prev 350
         )
     }
 
     fun depositScoreChamber(): Action {
         return SequentialAction(
-            deposit.setTargetPosition(1050.0),
+            deposit.setTargetPosition(600.0), // 1050
+            InstantAction { depositArm.threeArm.position = 0.60 }
 
         )
     }

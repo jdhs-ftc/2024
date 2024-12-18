@@ -406,7 +406,10 @@ public class MecanumDrive {
 
         @Override
         public boolean run(@NonNull TelemetryPacket p) {
-            if (disp + 1 > dt.length()) {
+            PoseVelocity2d robotVelRobot = updatePoseEstimate();
+            disp = dt.project(pose.position, disp);
+            if (dt.get(dt.length()).position.value().minus(pose.position).norm() < 2
+            || (disp + 2) >= dt.length()) {
                 leftFront.setPower(0);
                 leftBack.setPower(0);
                 rightBack.setPower(0);
@@ -414,8 +417,6 @@ public class MecanumDrive {
 
                 return false;
             }
-            PoseVelocity2d robotVelRobot = updatePoseEstimate();
-            disp = dt.project(pose.position, disp);
             Pose2dDual<Time> poseTarget = dt.get(disp);
             PoseVelocity2dDual<Time> cmd = contr.compute(poseTarget, pose, robotVelRobot);
 

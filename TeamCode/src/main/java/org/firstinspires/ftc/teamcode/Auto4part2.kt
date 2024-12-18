@@ -29,25 +29,27 @@ class Auto4part2 : LinearOpMode() {
         val drive = PinpointDrive(hardwareMap, beginPose)
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
-        val humanPlayerLineUp = Vector2d(37.0, -50.0)
-        val humanPlayerVec = Vector2d(37.0, -63.0)
+        val humanPlayerLineUp = Vector2d(36.0, -50.0)
+        val humanPlayerVec = Vector2d(36.0, -64.1) // -64
 
-        val traj = drive.actionBuilder(beginPose)
+        val specimenDepositY = -32.0 // prev 33
+
+        val traj = drive.actionBuilderPath(beginPose) // TODO THIS IS CAUSE OF ANY ISSUES
             .afterTime(0.1, motorActions.deposit.setTargetPosition(300.0))
-            .afterTime(0.5, motorActions.depositMoveChamber())
+            .afterTime(0.11, motorActions.depositMoveChamber())
             .setReversed(true)
             .setTangent(toRadians(90.0))
-            .splineToConstantHeading(Vector2d(7.0, -33.0), toRadians(90.0)) // go to sub prev 14 (prev 11) TODO CHANGE EVER
+            .splineToConstantHeading(Vector2d(7.0, specimenDepositY), toRadians(90.0)) // go to sub prev 14 (prev 11) TODO CHANGE EVER
             .stopAndAdd(
                 SequentialAction(
                         motorActions.depositScoreChamber(),
-                        SleepAction(0.7), // prev 0.4
+                        SleepAction(0.4), // prev 0.4
                         motorActions.depositClaw.open(),
                     SleepAction(0.1),
-                    motorActions.depositArm.moveDown()
+                    //motorActions.depositArm.moveDown()
                 )
             )
-            .setTangent(toRadians(315.0))
+            .setTangent(toRadians(270.0))
             .afterTime(0.5, InstantAction { motorActions.depositArm.threeArm.position = 0.40 })
             .splineToConstantHeading(
                 Vector2d(47.1, -48.5), // 47.1 -45.5 with back of robot in HP zone
@@ -94,7 +96,7 @@ class Auto4part2 : LinearOpMode() {
             )
             .setTangent(0.0)
             .splineToConstantHeading(
-                Vector2d(65.0, -48.5), // 47.1 -45.5 with back of robot in HP zone
+                Vector2d(63.0, -48.5), // 47.1 -45.5 with back of robot in HP zone
                 toRadians(0.0)
             )
             // grab
@@ -125,17 +127,17 @@ class Auto4part2 : LinearOpMode() {
                 SequentialAction(
                     motorActions.extendo.moveDown(),
                     motorActions.depositPickupWall(),
-                    SleepAction(0.5),
+                    SleepAction(0.3),
                     motorActions.depositMoveChamber(),
                 )
 
             )
             .setTangent(toRadians(135.0))
-            .splineToConstantHeading(Vector2d(4.0, -33.0), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(4.0, specimenDepositY), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.7),
+                    SleepAction(0.4),
                     motorActions.depositClaw.open()
                 )
             )
@@ -147,17 +149,17 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
-                    SleepAction(0.5),
+                    SleepAction(0.3),
                     motorActions.depositMoveChamber(),
                 )
 
             )
             .setTangent(toRadians(135.0))
-            .splineToConstantHeading(Vector2d(1.0, -33.0), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(1.0, specimenDepositY), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.7),
+                    SleepAction(0.4),
                     motorActions.depositClaw.open(),
                 )
             )
@@ -169,17 +171,17 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
-                    SleepAction(0.5),
+                    SleepAction(0.3),
                     motorActions.depositMoveChamber(),
                 )
 
             )
             .setTangent(toRadians(135.0))
-            .splineToConstantHeading(Vector2d(-1.0, -33.0), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(-1.0, specimenDepositY), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.7),
+                    SleepAction(0.4),
                     motorActions.depositClaw.open(),
                     motorActions.extendoArm.moveUp()
                 )
