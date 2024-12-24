@@ -380,18 +380,42 @@ public class MecanumDrive {
     // Licensed under the BSD 3-Clause Clear License
     // If you use this, I would love to know how it goes/what issues you encounter, I'm @j5155 on discord
     public final class FollowTrajectoryAsPathAction implements Action {
-        public final DisplacementTrajectory dt;
+        public final DisplacementTrajectory dispTraj;
         public final HolonomicController contr;
 
         private final double[] xPoints, yPoints;
-        double disp;
+        double disp; // displacement; target distance traveled in path
+
+        // only used for recording what end time should be
+        // to avoid the dreaded wiggle
+        public final ElapsedTime trajectoryRunningTime = new ElapsedTime();
+        public double targetTimeSeconds;
+        boolean initialized = false;
 
         public FollowTrajectoryAsPathAction(TimeTrajectory t) {
-            dt = new DisplacementTrajectory(t.path, t.profile.dispProfile);
+            dispTraj = new DisplacementTrajectory(t.path, t.profile.dispProfile);
+            contr = new HolonomicController( // PD to point/velocity controller
+                    PARAMS.axialGain,
+                    PARAMS.lateralGain,
+                    PARAMS.headingGain,
+                    PARAMS.axialVelGain,
+                    PARAMS.lateralVelGain,
+                    PARAMS.headingVelGain);
+            disp = 0;
 
-            List<Double> disps = com.acmerobotics.roadrunner.Math.range(
-                    0, dt.path.length(),
-                    Math.max(2, (int) Math.ceil(dt.path.length() / 2)));
+            targetTimeSeconds = t.duration;
+
+
+            // ONLY USED FOR PREVIEW
+            List<Double> disps = com.acmerobotics.roadrunner.Math.range( // returns evenly spaced values
+                    0,  // between 0 and the length of the path
+                    dispTraj.path.length(),
+                    Math.max(2, // minimum 2
+                            (int) Math.ceil(dispTraj.path.length() / 2) // max total of half the length of the path
+                    ));
+            // so really make 1 sample every 2 inches (I think)
+
+            // and then convert them into lists of doubles of x and y so they can be shown on dash
             xPoints = new double[disps.size()];
             yPoints = new double[disps.size()];
             for (int i = 0; i < disps.size(); i++) {
@@ -400,37 +424,75 @@ public class MecanumDrive {
                 yPoints[i] = p.position.y;
             }
 
-            contr = new HolonomicController(PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain);
-            disp = 0;
+
         }
 
         @Override
         public boolean run(@NonNull TelemetryPacket p) {
+            // needs to only run once
+            // idk if this is the most elegant solution
+            if (!initialized) {
+                trajectoryRunningTime.reset();
+                initialized = true;
+            }
+
+
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
-            disp = dt.project(pose.position, disp);
-            if (dt.get(dt.length()).position.value().minus(pose.position).norm() < 2
-            || (disp + 2) >= dt.length()) {
+
+            // find the closest position on the path to the robot's current position
+            // (using binary search? I think? project function is hard to understand)
+            // where "position on the path" is represent as disp or distance into the path
+            // so like for a 10 inch long path, if disp was 5 it would be halfway along the path
+            disp = dispTraj.project(pose.position, disp);
+
+            // check if the trajectory should end
+            // this logic is pretty much made up and doesnt really make sense
+            // and it wiggles occasionally
+            // but it does usually work
+
+            // if robot within 2 in of end pose
+            if (dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 2
+            // or the closest position on the path is less then 2 inches away from the end of the path
+            || (disp + 2) >= dispTraj.length()
+            // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
+            || trajectoryRunningTime.seconds() >= targetTimeSeconds + 1) {
+
+                // stop all the motors
                 leftFront.setPower(0);
                 leftBack.setPower(0);
                 rightBack.setPower(0);
                 rightFront.setPower(0);
 
+                // end the action
                 return false;
             }
-            Pose2dDual<Time> poseTarget = dt.get(disp);
+
+            // ok so the trajectory shouldn't end yet
+
+            // find the target pose and vel of the closest point on the path
+            Pose2dDual<Time> poseTarget = dispTraj.get(disp);
+
+            // calculate the command based on PD on the target pose and vel
             PoseVelocity2dDual<Time> cmd = contr.compute(poseTarget, pose, robotVelRobot);
 
+            // convert it into wheel velocities with inverse kinematics
             MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(cmd);
-            double voltage = voltageSensor.getVoltage();
+            // find voltage for voltage compensation
+            double voltage = readVoltage();
+
             final MotorFeedforward feedforward = new MotorFeedforward(PARAMS.kS, PARAMS.kV / PARAMS.inPerTick, 0); // kA 0; ignore acceleration
+
+            // calculate the volts to send to each wheel based on the target velocity for the wheel
+            // divide it by the current voltage to get the power from 0-1
             leftFront.setPower(feedforward.compute(wheelVels.leftFront) / voltage);
             leftBack.setPower(feedforward.compute(wheelVels.leftBack) / voltage);
             rightBack.setPower(feedforward.compute(wheelVels.rightBack) / voltage);
             rightFront.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
 
-
+            // log target to rr logs
             FlightRecorder.write("TARGET_POSE", new PoseMessage(poseTarget.value()));
 
+            // show dash data
             p.put("x", pose.position.x);
             p.put("y", pose.position.y);
             p.put("heading (deg)", Math.toDegrees(pose.heading.log()));
@@ -454,6 +516,7 @@ public class MecanumDrive {
             c.setStrokeWidth(1);
             c.strokePolyline(xPoints, yPoints);
 
+            // continue running the action
             return true;
 
         }
@@ -471,6 +534,8 @@ public class MecanumDrive {
     /*
     Made by j5155 from Capital City Dynamics based on code from rbrott
     BSD-3-Clause License
+    TODO dont use pidfcontroller for this
+     use holonomic controller instead
      */
     public final class PIDToPointAction implements Action {
         public final Pose2d target;

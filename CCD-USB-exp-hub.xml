@@ -1,27 +1,25 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <Robot type="FirstInspires-FTC">
-    <LynxUsbDevice name="Expansion Hub Portal 1" serialNumber="DQ15R4LV" parentModuleAddress="1">
+    <LynxUsbDevice name="Expansion Hub Portal 1" serialNumber="DQ15R4LV" parentModuleAddress="2">
         <LynxModule name="Expansion Hub 2" port="2">
             <goBILDA5202SeriesMotor name="deposit" port="0" />
             <goBILDA5202SeriesMotor name="extendo" port="1" />
-            <Servo name="seperator" port="0" />
-            <Servo name="hookArm" port="1" />
-            <ContinuousRotationServo name="shooter" port="2" />
-            <Servo name="autoPlacer" port="3" />
-            <Servo name="claw" port="5" />
+            <Servo name="dArm" port="4" />
             <RevTouchSensor name="touch" port="5" />
             <RevTouchSensor name="magnet" port="7" />
-            <RevColorSensorV3 name="color" port="0" bus="0" />
         </LynxModule>
     </LynxUsbDevice>
     <LynxUsbDevice name="Control Hub Portal" serialNumber="(embedded)" parentModuleAddress="173">
         <LynxModule name="Control Hub" port="173">
             <goBILDA5202SeriesMotor name="left_back" port="0" />
             <goBILDA5202SeriesMotor name="left_front" port="1" />
-            <goBILDA5202SeriesMotor name="right_front" port="2" />
-            <goBILDA5202SeriesMotor name="right_back" port="3" />
+            <goBILDA5202SeriesMotor name="right_back" port="2" />
+            <goBILDA5202SeriesMotor name="right_front" port="3" />
             <Servo name="sArm" port="0" />
-            <Servo name="extendoClaw" port="1" />
+            <Servo name="extendoClaw" port="2" />
+            <Servo name="depositClaw" port="3" />
+            <DigitalDevice name="digital0" port="0" />
+            <DigitalDevice name="digital1" port="1" />
             <LynxEmbeddedIMU name="imu" port="0" bus="0" />
             <SparkFunOTOS2 name="sensor_otos" port="1" bus="0" />
             <goBILDAPinpointRR name="pinpoint" port="0" bus="1" />

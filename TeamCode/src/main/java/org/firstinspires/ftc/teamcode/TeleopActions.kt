@@ -39,7 +39,7 @@ class TeleopActions : ActionOpMode() {
     private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
     private val joystickHeadingController = PIDFController(headingPIDJoystick)
 
-    val allHubs by lazy { hardwareMap.getAll<LynxModule>(LynxModule::class.java) }
+    val allHubs: List<LynxModule> by lazy { hardwareMap.getAll<LynxModule>(LynxModule::class.java) }
     val controlHub by lazy {
         allHubs.find { // search through all LynxModules (chub, ex hub, shub)
             it.revProductNumber == EXPANSION_HUB_PRODUCT_NUMBER // check that it's an expansion hub not a servo hub
@@ -56,7 +56,7 @@ class TeleopActions : ActionOpMode() {
         } as LynxModule // ensure it's non-null
     }
 
-    val startPose = if ((System.currentTimeMillis() - PoseStorage.poseUpdatedTime) / 1000 < 40) { // if auto ended less than 40 seconds ago
+    val startPose: Pose2d = if ((System.currentTimeMillis() - PoseStorage.poseUpdatedTime) / 1000 < 40) { // if auto ended less than 40 seconds ago
         PoseStorage.currentPose // use pose from end of auto
     }  else {
         if (PoseStorage.currentTeam == BLUE) {
