@@ -29,8 +29,8 @@ class Auto4part2 : LinearOpMode() {
         val drive = PinpointDrive(hardwareMap, beginPose)
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
-        val humanPlayerLineUp = Vector2d(36.0, -50.0)
-        val humanPlayerVec = Vector2d(36.0, -63.5) // -64.1
+        val humanPlayerLineUp = Vector2d(35.0, -62.0) // 36 -50
+        val humanPlayerVec = Vector2d(35.0, -63.5) // -64.1
 
         val specimenDepositY = -32.0 // prev 33
 
@@ -46,9 +46,8 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.4), // prev 0.4
-                    motorActions.depositClaw.open(),
-                    SleepAction(0.1),
+                    SleepAction(0.1), // prev 0.4
+                    motorActions.depositClaw.open()
                     //motorActions.depositArm.moveDown()
                 )
             )
@@ -61,7 +60,7 @@ class Auto4part2 : LinearOpMode() {
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(600.0),
+                    motorActions.extendo.setTargetPosition(750.0),
                     SleepAction(0.1), // 0.2
                     motorActions.extendoCycle(),
                 )
@@ -83,21 +82,21 @@ class Auto4part2 : LinearOpMode() {
             )
             .setTangent(0.0)
             .splineToConstantHeading(
-                Vector2d(54.0, -48.5), // prev 55 -48.5 // prev 56.5 -42.3
+                Vector2d(56.5, -48.5), // prev 55 -48.5 // prev 56.5 -42.3
                 toRadians(0.0)
             )
             // grab
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2),
-                    motorActions.extendo.setTargetPosition(670.0), // 650
+                    motorActions.extendo.setTargetPosition(625.0), // 650
                     motorActions.extendoCycle()
                 )
             )
             .afterTime(
                 0.0,
                 SequentialAction(
-                    motorActions.transferFull(),
+                    motorActions.transferFull(SleepAction(0.65)),
                     SleepAction(0.8),
                     motorActions.depositClaw.open(),
                 )
@@ -107,8 +106,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2), // wait for pass to finish
-                    motorActions.extendo.setTargetPosition(900.0), // 950
-                    SleepAction(0.2),
+                    motorActions.extendo.setTargetPosition(850.0), // 900
                     motorActions.extendoCycle()
                 )
             )
@@ -126,11 +124,11 @@ class Auto4part2 : LinearOpMode() {
             .setTangent(toRadians(180.0))
             .afterTime(0.5, motorActions.depositMoveWall())
             .splineToSplineHeading(
-                Pose2d(humanPlayerLineUp, toRadians(90.0)),
+                Pose2d(humanPlayerLineUp + Vector2d(1.0, 0.0), toRadians(90.0)),
                 toRadians(270.0)
             ) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(humanPlayerVec, toRadians(270.0))//, TranslationalVelConstraint(10.0)) // go to hp 35.0 -62.5
+            .splineToConstantHeading(humanPlayerVec + Vector2d(1.0, 0.0), toRadians(270.0))//, TranslationalVelConstraint(10.0)) // go to hp 35.0 -62.5
             .stopAndAdd(
                 SequentialAction(
                     motorActions.extendo.moveDown(),
@@ -145,7 +143,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.4),
+                    SleepAction(0.1),
                     motorActions.depositClaw.open()
                 )
             )
@@ -167,7 +165,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.4),
+                    SleepAction(0.1),
                     motorActions.depositClaw.open(),
                 )
             )
@@ -192,7 +190,32 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
-                    SleepAction(0.4),
+                    SleepAction(0.1),
+                    motorActions.depositClaw.open(),
+                )
+            )
+            .setTangent(toRadians(-90.0))
+            .afterTime(0.5, motorActions.depositMoveWall())
+            .splineToConstantHeading(humanPlayerLineUp, toRadians(270.0)) // go to line up point
+            // vision align should go here
+            .splineToConstantHeading(humanPlayerVec, toRadians(270.0)) // go to hp
+            .stopAndAdd(
+                SequentialAction(
+                    motorActions.depositPickupWall(),
+                    SleepAction(0.3),
+                    motorActions.depositMoveChamber(),
+                )
+
+            )
+            .setTangent(toRadians(90.0)) // 135
+            .splineToConstantHeading(
+                Vector2d(-3.0, specimenDepositY),
+                toRadians(90.0)
+            ) //back to sub
+            .stopAndAdd(
+                SequentialAction(
+                    motorActions.depositScoreChamber(),
+                    SleepAction(0.1),
                     motorActions.depositClaw.open(),
                 )
             )
