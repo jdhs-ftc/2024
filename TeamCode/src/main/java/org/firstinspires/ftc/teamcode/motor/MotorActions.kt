@@ -42,12 +42,12 @@ class MotorActions(val motorControl: MotorControl) {
     fun extendoGrabAndRaise(): Action {
         return SequentialAction(
             extendoClaw.close(), // close claw
-            SleepAction(0.5),
+            SleepAction(0.3),
             extendoArm.moveUp() // move claw to "clears ground bar" pos
         )
     }
 
-    fun extendoCycle(between: Action = SleepAction(0.5)): Action {
+    fun extendoCycle(between: Action = SleepAction(0.8)): Action {
         return SequentialAction(
             extendoClawGround(),
             between, // default wait 0.5
@@ -66,12 +66,32 @@ class MotorActions(val motorControl: MotorControl) {
         )
     }
 
+    fun depositMoveWallTeleop() = SequentialAction(
+        deposit.moveDown(),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
+        extendo.setTargetPosition(170.0),
+        depositArm.moveDown(), // down to intake
+        depositClaw.open(),
+        Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
+        extendoArm.moveFullUp()
+    )
+
     fun depositPickupWall(): Action {
         return SequentialAction(
         extendoClaw.open(),
         depositClaw.close(),
-        SleepAction(0.5), // TODO tune
-        deposit.setTargetPosition(250.0)
+        SleepAction(0.20), // TODO tune
+        depositMoveChamber(),
+        //deposit.setTargetPosition(250.0)
+        )
+    }
+
+    fun depositPickupWallTeleop() : Action {
+        return SequentialAction(
+            extendoClaw.open(),
+            depositClaw.close(),
+            SleepAction(0.4), // TODO tune
+            depositMoveChamber(),
+            //deposit.setTargetPosition(250.0)
         )
     }
 
@@ -85,7 +105,9 @@ class MotorActions(val motorControl: MotorControl) {
     fun depositScoreChamber(): Action {
         return SequentialAction(
             deposit.setTargetPosition(600.0), // 1050
-            InstantAction { depositArm.threeArm.position = 0.60 }
+            InstantAction { depositArm.threeArm.position = 0.60 },
+            SleepAction(0.1),
+            depositClawRelease()
 
         )
     }

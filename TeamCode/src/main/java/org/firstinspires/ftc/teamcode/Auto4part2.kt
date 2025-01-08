@@ -62,7 +62,7 @@ class Auto4part2 : LinearOpMode() {
                 SequentialAction(
                     motorActions.extendo.setTargetPosition(750.0),
                     SleepAction(0.1), // 0.2
-                    motorActions.extendoCycle(),
+                    motorActions.extendoCycle(SleepAction(0.4)),
                 )
             )
             // TODO CYCLE
@@ -76,7 +76,7 @@ class Auto4part2 : LinearOpMode() {
                             0.5
                         )
                     ),
-                    SleepAction(0.8),
+                    SleepAction(0.9),
                     motorActions.depositClaw.open()
                 )
             )
@@ -97,7 +97,7 @@ class Auto4part2 : LinearOpMode() {
                 0.0,
                 SequentialAction(
                     motorActions.transferFull(SleepAction(0.65)),
-                    SleepAction(0.8),
+                    SleepAction(0.9),
                     motorActions.depositClaw.open(),
                 )
             )
@@ -106,15 +106,21 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2), // wait for pass to finish
-                    motorActions.extendo.setTargetPosition(850.0), // 900
-                    motorActions.extendoCycle()
+                    motorActions.extendo.setTargetPosition(850.0), // 800 // 850 // 900
+                    SleepAction(0.2),
+                    motorActions.extendoClaw.close(),
+                    motorActions.extendoArm.moveDown(),
+                    SleepAction(0.1),
+                    motorActions.extendoClaw.open(),
+                    SleepAction(0.3),
+                    motorActions.extendoGrabAndRaise()
                 )
             )
             // TODO CYCLE
             .stopAndAdd( // simultaneous
                 SequentialAction(
                     motorActions.transferFull(),
-                    SleepAction(0.8), // 0.8
+                    SleepAction(0.9), // 0.8
                     motorActions.depositClaw.open(),
                     motorActions.extendoArm.moveFullUp(),
                     motorActions.extendo.moveDown(),

@@ -77,9 +77,9 @@ public class MecanumDrive {
         public double kA = 0.01;
 
         // path profile parameters (in inches)
-        public double maxWheelVel = 60; // 50
+        public double maxWheelVel = 65; //65 // 50
         public double minProfileAccel = -30;
-        public double maxProfileAccel = 50;
+        public double maxProfileAccel = 60;
 
         // turn profile parameters (in radians)
         public double maxAngVel = Math.PI; // shared with path
@@ -450,13 +450,15 @@ public class MecanumDrive {
             // this logic is pretty much made up and doesnt really make sense
             // and it wiggles occasionally
             // but it does usually work
+            p.addLine("dispTraj position minus current " + dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm());
+            p.addLine("disp " + disp + " dispTraj length" + dispTraj.length());
 
             // if robot within 2 in of end pose
             if (dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 2
             // or the closest position on the path is less then 2 inches away from the end of the path
             || (disp + 2) >= dispTraj.length()
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
-            || trajectoryRunningTime.seconds() >= targetTimeSeconds + 1) {
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1 && Math.abs(robotVelRobot.linearVel.norm() - dispTraj.get(disp).velocity().value().linearVel.norm()) > 10.0)) {
 
                 // stop all the motors
                 leftFront.setPower(0);

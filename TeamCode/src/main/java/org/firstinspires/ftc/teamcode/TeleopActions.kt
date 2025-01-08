@@ -257,7 +257,7 @@ class TeleopActions : ActionOpMode() {
             // Then, rotate that vector by the inverse of that heading
             var input = Vector2d(
                 -gamepad1.left_stick_y * speed,
-                -gamepad1.left_stick_x * speed + -gamepad2.right_stick_x * 0.2
+                -gamepad1.left_stick_x * speed
             )
 
             var rotationAmount = drive.pose.heading.inverse() // inverse it
@@ -273,6 +273,7 @@ class TeleopActions : ActionOpMode() {
             }
             val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
 
+            input += Vector2d(0.0, -gamepad2.right_stick_x * 0.2)
 
 
             if (drivingEnabled) {
@@ -428,11 +429,15 @@ class TeleopActions : ActionOpMode() {
                 run(
                     UniqueAction(
                         SequentialAction(
-                            motorActions.depositMoveWall(),
+                            motorActions.depositMoveWallTeleop(),
                             RaceParallelAction(
                                 waitForPadRelease(),
                             ),
-                            motorActions.depositPickupWall()
+                            motorActions.extendoClaw.open(),
+                            SleepAction(0.8),
+                            motorActions.extendo.moveDown(),
+                            Action { !(motorControl.extendo.position < 50) },
+                            motorActions.depositPickupWallTeleop()
                         )
                     )
                 )

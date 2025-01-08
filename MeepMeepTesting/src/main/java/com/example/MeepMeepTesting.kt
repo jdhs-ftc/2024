@@ -17,7 +17,7 @@ object MeepMeepTesting {
 
         val myBot =
             DefaultBotBuilder(meepMeep) // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
-                .setConstraints(50.0, 50.0, Math.toRadians(180.0), Math.toRadians(180.0), 12.6)
+                .setConstraints(60.0, 60.0, Math.toRadians(180.0), Math.toRadians(180.0), 12.6)
                 .setDimensions(13.25, 18.0)
                 .build()
 

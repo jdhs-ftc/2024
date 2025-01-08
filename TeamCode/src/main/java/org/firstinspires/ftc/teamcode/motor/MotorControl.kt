@@ -24,10 +24,10 @@ class MotorControl(hardwareMap: HardwareMap) {
     }
 
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.425, 0.6, 0.85) // 0.42 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.45, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
-    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.32, 0.7) // 0.32 0.5
+    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.45, 0.55) // 0.32 0.5
 
     @JvmField
     val extendo: Slide = Slide(
@@ -39,7 +39,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.97, 0.27, 0.5) // TODO TUNE
 
     @JvmField
-    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.35, 0.1) // 0.55 0.1
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
 
     @JvmField
     val deposit: Slide
