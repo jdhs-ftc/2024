@@ -16,7 +16,7 @@ import java.lang.Math.toRadians
 
 // 0+3 plus one in sub working? Kinda dubious
 // 0+4 maybe if pushed?
-// 0+5 impossible :(((
+// 0+5 DONE!!!!!
 @Suppress("unused")
 @Autonomous(name = "Auto 4 attempt 2", group = "Auto", preselectTeleOp = "Teleop Field Centric")
 class Auto4part2 : LinearOpMode() {
@@ -33,6 +33,16 @@ class Auto4part2 : LinearOpMode() {
         val humanPlayerVec = Vector2d(35.0, -63.5) // -64.1
 
         val specimenDepositY = -32.0 // prev 33
+
+        val openingTransferDelay = SleepAction(0.7)
+            /*
+            SequentialAction( Action {
+            println("ENCODER RUNNING")
+
+            return@Action !(motorControl.depositArmEncoder.posDegrees < 35)}, // 55 // 60 //SleepAction(0.7)
+        SleepAction(0.2))
+
+             */
 
         val traj = drive.actionBuilderPath(beginPose) // TODO THIS IS CAUSE OF ANY ISSUES
             .afterTime(0.1, motorActions.deposit.setTargetPosition(300.0))
@@ -60,7 +70,7 @@ class Auto4part2 : LinearOpMode() {
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(750.0),
+                    motorActions.extendo.setTargetPosition(625.0),
                     SleepAction(0.1), // 0.2
                     motorActions.extendoCycle(SleepAction(0.4)),
                 )
@@ -76,7 +86,7 @@ class Auto4part2 : LinearOpMode() {
                             0.5
                         )
                     ),
-                    SleepAction(0.9),
+                    openingTransferDelay,
                     motorActions.depositClaw.open()
                 )
             )
@@ -97,7 +107,7 @@ class Auto4part2 : LinearOpMode() {
                 0.0,
                 SequentialAction(
                     motorActions.transferFull(SleepAction(0.65)),
-                    SleepAction(0.9),
+                    openingTransferDelay,
                     motorActions.depositClaw.open(),
                 )
             )
@@ -120,7 +130,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd( // simultaneous
                 SequentialAction(
                     motorActions.transferFull(),
-                    SleepAction(0.9), // 0.8
+                    openingTransferDelay,
                     motorActions.depositClaw.open(),
                     motorActions.extendoArm.moveFullUp(),
                     motorActions.extendo.moveDown(),

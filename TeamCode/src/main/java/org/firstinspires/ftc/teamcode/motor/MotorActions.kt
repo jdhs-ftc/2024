@@ -22,6 +22,7 @@ class MotorActions(val motorControl: MotorControl) {
     fun update(): Action {
         return Action {
             motorControl.update()
+            it.put("depositArmPosDegrees", motorControl.depositArmEncoder.posDegrees)
             true // this returns true to make it loop forever; use RaceParallelCommand
         }
     }
@@ -68,7 +69,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveWallTeleop() = SequentialAction(
         deposit.moveDown(),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
-        extendo.setTargetPosition(170.0),
+        extendo.setTargetPosition(207.0),
         depositArm.moveDown(), // down to intake
         depositClaw.open(),
         Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune

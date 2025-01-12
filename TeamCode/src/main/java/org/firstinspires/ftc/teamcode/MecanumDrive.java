@@ -458,7 +458,7 @@ public class MecanumDrive {
             // or the closest position on the path is less then 2 inches away from the end of the path
             || (disp + 2) >= dispTraj.length()
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
-            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1 && Math.abs(robotVelRobot.linearVel.norm() - dispTraj.get(disp).velocity().value().linearVel.norm()) > 10.0)) {
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) {
 
                 // stop all the motors
                 leftFront.setPower(0);

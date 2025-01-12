@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.motor
 
+import com.qualcomm.robotcore.hardware.AnalogInput
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
@@ -27,7 +28,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.45, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
-    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.45, 0.55) // 0.32 0.5
+    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.4, 0.55) // might need to be 0.45 0.7???? // 0.32 0.5
 
     @JvmField
     val extendo: Slide = Slide(
@@ -45,6 +46,8 @@ class MotorControl(hardwareMap: HardwareMap) {
     val deposit: Slide
 
     val dColor = BLColor(hardwareMap.digitalChannel["digital0"],hardwareMap.digitalChannel["digital1"])
+
+    val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
 
     //public final ColorSensor color;
     init {
@@ -84,6 +87,14 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     val isOverCurrent: Boolean
         get() = motors.stream().anyMatch { it.isOverCurrent }
+
+    class AxonEncoder(val pin: AnalogInput) {
+        val position
+            get() = pin.voltage / pin.maxVoltage
+
+        val posDegrees
+            get() = pin.voltage / pin.maxVoltage * 360
+    }
 
     class BLColor(val pin0: DigitalChannel, val pin1: DigitalChannel) {
         enum class Color(val first: Boolean, val second: Boolean) {
@@ -153,6 +164,7 @@ class MotorControl(hardwareMap: HardwareMap) {
                 if (!motor.isOverCurrent) {
                     val output = pid.update(position)
                     motor.power = sign(output) * sqrt(abs(output))
+                    //motor.power = output
                 } else {
                     motor.power = 0.0
                 }

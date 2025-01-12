@@ -434,9 +434,6 @@ class TeleopActions : ActionOpMode() {
                                 waitForPadRelease(),
                             ),
                             motorActions.extendoClaw.open(),
-                            SleepAction(0.8),
-                            motorActions.extendo.moveDown(),
-                            Action { !(motorControl.extendo.position < 50) },
                             motorActions.depositPickupWallTeleop()
                         )
                     )
@@ -540,7 +537,9 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("depositClawPosition", motorControl.depositClaw.position)
                 telemetry.addData("dColor", motorControl.dColor.color)
                 telemetry.addData("dumping",motorControl.extendoArm.fullyUp)
-                telemetry.addData("depositArmPosition",motorControl.depositArm.position)
+                telemetry.addData("depositArmTargetPosition",motorControl.depositArm.position)
+                telemetry.addData("depositArmEncoderPos", motorControl.depositArmEncoder.position)
+                telemetry.addData("depositArmEncoderPosDeg", motorControl.depositArmEncoder.posDegrees)
 
 
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());
