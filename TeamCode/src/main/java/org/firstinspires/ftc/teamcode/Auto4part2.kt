@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode
 
+import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
+import com.acmerobotics.roadrunner.TurnConstraints
 import com.acmerobotics.roadrunner.Vector2d
 import com.acmerobotics.roadrunner.ftc.runBlocking
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
@@ -20,29 +22,26 @@ import java.lang.Math.toRadians
 @Suppress("unused")
 @Autonomous(name = "Auto 4 attempt 2", group = "Auto", preselectTeleOp = "Teleop Field Centric")
 class Auto4part2 : LinearOpMode() {
+    lateinit var motorControl: MotorControl
     // todo don't slam into wall
     // some weird stuff happens sometimes, is wall slam dcing??
+    val openingTransferDelay: Action
+        get() = Action { return@Action !(motorControl.depositArmEncoder.posDegrees < 45)}
+
+
     override fun runOpMode() {
         val beginPose = Pose2d(6.625, -63.0, toRadians(90.0))
         val team = PoseStorage.Team.RED
 
         val drive = PinpointDrive(hardwareMap, beginPose)
-        val motorControl = MotorControl(hardwareMap)
+        motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
         val humanPlayerLineUp = Vector2d(35.0, -62.0) // 36 -50
         val humanPlayerVec = Vector2d(35.0, -63.5) // -64.1
 
         val specimenDepositY = -32.0 // prev 33
 
-        val openingTransferDelay = SleepAction(0.7)
-            /*
-            SequentialAction( Action {
-            println("ENCODER RUNNING")
 
-            return@Action !(motorControl.depositArmEncoder.posDegrees < 35)}, // 55 // 60 //SleepAction(0.7)
-        SleepAction(0.2))
-
-             */
 
         val traj = drive.actionBuilderPath(beginPose) // TODO THIS IS CAUSE OF ANY ISSUES
             .afterTime(0.1, motorActions.deposit.setTargetPosition(300.0))
@@ -100,24 +99,20 @@ class Auto4part2 : LinearOpMode() {
                 SequentialAction(
                     SleepAction(0.2),
                     motorActions.extendo.setTargetPosition(625.0), // 650
-                    motorActions.extendoCycle()
-                )
-            )
-            .afterTime(
-                0.0,
-                SequentialAction(
-                    motorActions.transferFull(SleepAction(0.65)),
+                    motorActions.extendoCycle(),
+                    motorActions.transferFull(SleepAction(0.60)), // 0.65
                     openingTransferDelay,
                     motorActions.depositClaw.open(),
                 )
             )
-            .turnTo(toRadians(65.0))
+
+            .turnTo(toRadians(65.0), TurnConstraints(Math.toRadians(200.0),Math.toRadians(-200.0),Math.toRadians(200.0)))
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    SleepAction(0.2), // wait for pass to finish
+                    //SleepAction(0.2), // wait for pass to finish
                     motorActions.extendo.setTargetPosition(850.0), // 800 // 850 // 900
-                    SleepAction(0.2),
+                    SleepAction(0.1), // 0.2
                     motorActions.extendoClaw.close(),
                     motorActions.extendoArm.moveDown(),
                     SleepAction(0.1),
