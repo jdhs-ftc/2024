@@ -14,6 +14,7 @@ class MotorActions(val motorControl: MotorControl) {
     val extendoClaw = Claw(motorControl.extendoClaw)
     val depositArm = ThreeArm(motorControl.depositArm)
     val extendoArm = ThreeArm(motorControl.extendoArm)
+    val depositEncoder = DepositEncoder(motorControl.depositArmEncoder)
 
     fun waitUntilFinished(): Action {
         return Action { motorControl.closeEnough() }
@@ -120,9 +121,9 @@ class MotorActions(val motorControl: MotorControl) {
     fun moveTransfer() =
         SequentialAction(
             deposit.setTargetPosition(117.0),
-            extendo.setTargetPosition(660.0),
+            extendo.setTargetPosition(634.0),
             depositArm.moveTransfer(),
-            InstantAction { depositClaw.claw.position = 0.3 },
+            InstantAction { depositClaw.claw.position = 0.25 },
             extendoArm.moveFullUp(),
         )
 
@@ -135,7 +136,7 @@ class MotorActions(val motorControl: MotorControl) {
             depositArm.moveDown()
     )
 
-    fun transferFull(between: Action = SleepAction(0.8)) =
+    fun transferFull(between: Action = depositEncoder.waitForTransferGrab()) =
         SequentialAction (
             moveTransfer(),
             between,
@@ -187,6 +188,13 @@ class MotorActions(val motorControl: MotorControl) {
         fun moveDown(): Action {
             return setTargetPosition(20.0)
         }
+    }
+
+    class DepositEncoder(val encoder: MotorControl.AxonEncoder) {
+        fun waitForTransferRelease() =
+            Action { return@Action !(encoder.posDegrees < 45) }
+        fun waitForTransferGrab() =
+            Action { return@Action !(encoder.posDegrees > 255) }
     }
 
     class Claw internal constructor(val claw: MotorControl.Claw) {

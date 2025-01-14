@@ -23,10 +23,11 @@ import java.lang.Math.toRadians
 @Autonomous(name = "Auto 4 attempt 2", group = "Auto", preselectTeleOp = "Teleop Field Centric")
 class Auto4part2 : LinearOpMode() {
     lateinit var motorControl: MotorControl
+    lateinit var motorActions: MotorActions
     // todo don't slam into wall
     // some weird stuff happens sometimes, is wall slam dcing??
     val openingTransferDelay: Action
-        get() = Action { return@Action !(motorControl.depositArmEncoder.posDegrees < 45)}
+        get() = motorActions.depositEncoder.waitForTransferRelease()
 
 
     override fun runOpMode() {
@@ -35,7 +36,7 @@ class Auto4part2 : LinearOpMode() {
 
         val drive = PinpointDrive(hardwareMap, beginPose)
         motorControl = MotorControl(hardwareMap)
-        val motorActions = MotorActions(motorControl)
+        motorActions = MotorActions(motorControl)
         val humanPlayerLineUp = Vector2d(35.0, -62.0) // 36 -50
         val humanPlayerVec = Vector2d(35.0, -63.5) // -64.1
 
@@ -79,12 +80,8 @@ class Auto4part2 : LinearOpMode() {
                 0.0,
                 SequentialAction(
                     motorActions.extendoArm.moveFullUp(),
-                    SleepAction(0.1),
-                    motorActions.transferFull(
-                        SleepAction(
-                            0.5
-                        )
-                    ),
+                    SleepAction(0.2),
+                    motorActions.transferFull(),
                     openingTransferDelay,
                     motorActions.depositClaw.open()
                 )
@@ -100,7 +97,7 @@ class Auto4part2 : LinearOpMode() {
                     SleepAction(0.2),
                     motorActions.extendo.setTargetPosition(625.0), // 650
                     motorActions.extendoCycle(),
-                    motorActions.transferFull(SleepAction(0.60)), // 0.65
+                    motorActions.transferFull(), // 0.65
                     openingTransferDelay,
                     motorActions.depositClaw.open(),
                 )
@@ -144,7 +141,7 @@ class Auto4part2 : LinearOpMode() {
                 SequentialAction(
                     motorActions.extendo.moveDown(),
                     motorActions.depositPickupWall(),
-                    SleepAction(0.3),
+                    SleepAction(0.2),
                     motorActions.depositMoveChamber(),
                 )
 
@@ -166,7 +163,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
-                    SleepAction(0.3),
+                    SleepAction(0.2),
                     motorActions.depositMoveChamber(),
                 )
 
@@ -188,7 +185,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
-                    SleepAction(0.3),
+                    SleepAction(0.2),
                     motorActions.depositMoveChamber(),
                 )
 
@@ -213,7 +210,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositPickupWall(),
-                    SleepAction(0.3),
+                    SleepAction(0.2),
                     motorActions.depositMoveChamber(),
                 )
 
