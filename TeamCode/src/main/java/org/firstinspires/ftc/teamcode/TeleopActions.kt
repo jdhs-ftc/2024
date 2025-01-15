@@ -344,8 +344,8 @@ class TeleopActions : ActionOpMode() {
                 motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
             }
 
-            if (motorControl.extendo.targetPosition > 1430 && padExtendoControl > 0) { // previously 1530
-                motorControl.extendo.targetPosition = 1430.0
+            if (motorControl.extendo.targetPosition > 1240 && padExtendoControl > 0) { // previously 1530
+                motorControl.extendo.targetPosition = 1240.0
             } else if (motorControl.extendo.targetPosition <= 5 && padExtendoControl < 0) {
                 if (padForceDown) {
                     motorControl.extendo.findZero()
@@ -434,7 +434,9 @@ class TeleopActions : ActionOpMode() {
                                 waitForPadRelease(),
                             ),
                             motorActions.extendoClaw.open(),
-                            motorActions.depositPickupWallTeleop()
+                            motorActions.depositPickupWallTeleop(),
+                            SleepAction(0.5),
+                            motorActions.extendo.moveDown()
                         )
                     )
                 )

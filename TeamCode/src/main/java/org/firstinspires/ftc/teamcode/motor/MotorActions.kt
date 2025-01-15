@@ -109,7 +109,7 @@ class MotorActions(val motorControl: MotorControl) {
             deposit.setTargetPosition(600.0), // 1050
             InstantAction { depositArm.threeArm.position = 0.60 },
             SleepAction(0.1),
-            depositClawRelease()
+            //depositClawRelease() // TODO USE ENCODER
 
         )
     }
@@ -166,6 +166,7 @@ class MotorActions(val motorControl: MotorControl) {
         fun moveDown(): Action {
             return setTargetPosition(40.0)
         }
+        fun moveTransfer() = setTargetPosition(634.0)
     }
 
     inner class Deposit {

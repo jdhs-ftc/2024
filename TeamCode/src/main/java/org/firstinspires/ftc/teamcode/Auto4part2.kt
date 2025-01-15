@@ -80,6 +80,7 @@ class Auto4part2 : LinearOpMode() {
                 0.0,
                 SequentialAction(
                     motorActions.extendoArm.moveFullUp(),
+                    motorActions.extendo.moveTransfer(),
                     SleepAction(0.2),
                     motorActions.transferFull(),
                     openingTransferDelay,
