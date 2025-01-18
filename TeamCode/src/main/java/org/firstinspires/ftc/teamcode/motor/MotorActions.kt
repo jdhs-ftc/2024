@@ -201,7 +201,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     class DepositEncoder(val encoder: MotorControl.AxonEncoder) {
         fun waitForTransferRelease() =
-            Action { return@Action !(encoder.posDegrees < 65) }
+            Action { return@Action !(encoder.posDegrees < 55) }
         fun waitForTransferGrab() =
             Action { return@Action !(encoder.posDegrees > 255) }
     }

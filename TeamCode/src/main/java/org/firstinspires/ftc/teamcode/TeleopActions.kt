@@ -57,7 +57,7 @@ class TeleopActions : ActionOpMode() {
         } as LynxModule // ensure it's non-null
     }
 
-    val startPose: Pose2d = if ((System.currentTimeMillis() - PoseStorage.poseUpdatedTime) / 1000 < 40) { // if auto ended less than 40 seconds ago
+    val startPose: Pose2d = if ((System.currentTimeMillis() - PoseStorage.poseUpdatedTime) / 1000 < 400000) {  // DISABLED // if auto ended less than 40 seconds ago
         PoseStorage.currentPose // use pose from end of auto
     }  else {
         if (PoseStorage.currentTeam == BLUE) {
@@ -144,7 +144,7 @@ class TeleopActions : ActionOpMode() {
 
             // Gamepad 1
             // Driving Modifiers
-            val padSlowMode = gamepad1.right_bumper
+            val padSlowMode = false // NOT MAPPED //gamepad1.right_bumper
             val padFastMode = false // NOT MAPPED
             val padResetPose = gamepad1.dpad_left && !previousGamepad1.dpad_left
 
@@ -279,8 +279,15 @@ class TeleopActions : ActionOpMode() {
 
             if (drivingEnabled) {
                 var headingInput: Double
-                if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1) {
+                if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1 || gamepad1.left_bumper || gamepad1.right_bumper) {
                     headingInput = (gamepad1.left_trigger - gamepad1.right_trigger) * speed * 0.50
+
+                    if (gamepad1.left_bumper) {
+                        headingInput += 0.1
+                    }
+                    if (gamepad1.right_bumper) {
+                        headingInput -= 0.1
+                    }
                     targetHeading = drive.pose.heading
                     timeSinceDriverTurned.reset()
                 } else {
@@ -519,6 +526,10 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("x", drive.pose.position.x)
                 telemetry.addData("y", drive.pose.position.y)
                 telemetry.addData("heading", drive.pose.heading.log())
+                telemetry.addData("targetHeading",targetHeading.toDouble())
+                telemetry.addData("headingDeg", Math.toDegrees(drive.pose.heading.log()))
+                telemetry.addData("targetHeading", Math.toDegrees(targetHeading.toDouble()))
+                telemetry.addData("poseStorageHeading", Math.toDegrees(PoseStorage.currentPose.heading.toDouble()))
             }
             if (showLoopTimes) {
                 telemetry.addLine("--- Loop Times ---")
