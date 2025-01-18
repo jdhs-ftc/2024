@@ -69,7 +69,7 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun depositMoveWallTeleop() = SequentialAction(
-        deposit.moveDown(),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
+        deposit.setTargetPosition(60.0),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
         extendo.setTargetPosition(207.0),
         depositArm.moveDown(), // down to intake
         depositClaw.open(),
@@ -109,10 +109,18 @@ class MotorActions(val motorControl: MotorControl) {
             deposit.setTargetPosition(600.0), // 1050
             InstantAction { depositArm.threeArm.position = 0.60 },
             SleepAction(0.1),
-            //depositClawRelease() // TODO USE ENCODER
+            depositClawRelease() // TODO USE ENCODER
 
         )
     }
+
+    fun depositScoreChamberTeleop() = SequentialAction (
+        deposit.setTargetPosition(900.0), // 1050
+        //SleepAction(0.5),
+        depositArm.moveDown(),
+        SleepAction(0.3),
+        depositClawRelease() // TODO USE ENCODER
+    )
     fun depositClawRelease(): Action {
         return SequentialAction(depositClaw.open())
     }
@@ -193,7 +201,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     class DepositEncoder(val encoder: MotorControl.AxonEncoder) {
         fun waitForTransferRelease() =
-            Action { return@Action !(encoder.posDegrees < 45) }
+            Action { return@Action !(encoder.posDegrees < 65) }
         fun waitForTransferGrab() =
             Action { return@Action !(encoder.posDegrees > 255) }
     }

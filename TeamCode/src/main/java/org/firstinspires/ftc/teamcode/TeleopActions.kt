@@ -21,6 +21,7 @@ import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.BLUE
+import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.RED
 import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
@@ -283,7 +284,7 @@ class TeleopActions : ActionOpMode() {
                     targetHeading = drive.pose.heading
                     timeSinceDriverTurned.reset()
                 } else {
-                    val baseHeading = if (PoseStorage.currentTeam == BLUE) {
+                    val baseHeading = if (PoseStorage.currentTeam == RED) {
                         Math.toRadians(90.0)
                     } else {
                         Math.toRadians(-90.0)
@@ -297,9 +298,9 @@ class TeleopActions : ActionOpMode() {
                     if (padFaceDown) {
                         targetHeading = Rotation2d.fromDouble(Math.toRadians(180.0)) + baseHeading
                     } else if (padFaceRight) {
-                        targetHeading = Rotation2d.fromDouble(Math.toRadians(90.0)) + baseHeading
+                        targetHeading = Rotation2d.fromDouble(Math.toRadians(-90.0)) + baseHeading
                     } else if (padFaceLeft) {
-                        targetHeading = Rotation2d.fromDouble(Math.toRadians(270.0)) + baseHeading
+                        targetHeading = Rotation2d.fromDouble(Math.toRadians(90.0)) + baseHeading
                     } else if (padFaceUp) {
                         targetHeading = Rotation2d.fromDouble(Math.toRadians(0.0)) + baseHeading
                     }
@@ -344,8 +345,8 @@ class TeleopActions : ActionOpMode() {
                 motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
             }
 
-            if (motorControl.extendo.targetPosition > 1240 && padExtendoControl > 0) { // previously 1530
-                motorControl.extendo.targetPosition = 1240.0
+            if (motorControl.extendo.targetPosition > 1200 && padExtendoControl > 0) { // previously 1530
+                motorControl.extendo.targetPosition = 1200.0
             } else if (motorControl.extendo.targetPosition <= 5 && padExtendoControl < 0) {
                 if (padForceDown) {
                     motorControl.extendo.findZero()
@@ -448,7 +449,7 @@ class TeleopActions : ActionOpMode() {
                         SequentialAction(
                             motorActions.depositMoveChamber(),
                             waitForPadRelease(),
-                            motorActions.depositScoreChamber()
+                            motorActions.depositScoreChamberTeleop()
                         )
                     )
                 )
