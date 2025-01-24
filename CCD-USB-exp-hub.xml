@@ -4,7 +4,7 @@
         <LynxModule name="Expansion Hub 2" port="2">
             <goBILDA5202SeriesMotor name="deposit" port="0" />
             <goBILDA5202SeriesMotor name="extendo" port="1" />
-            <Servo name="dArm" port="4" />
+            <Servo name="dArm" port="0" />
             <RevTouchSensor name="touch" port="5" />
             <RevTouchSensor name="magnet" port="7" />
         </LynxModule>
