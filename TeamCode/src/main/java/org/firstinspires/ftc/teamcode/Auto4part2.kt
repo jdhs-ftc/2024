@@ -37,8 +37,8 @@ class Auto4part2 : LinearOpMode() {
         val drive = PinpointDrive(hardwareMap, beginPose)
         motorControl = MotorControl(hardwareMap)
         motorActions = MotorActions(motorControl)
-        val humanPlayerLineUp = Vector2d(35.0, -62.0) // 36 -50
-        val humanPlayerVec = Vector2d(35.0, -63.5) // -64.1
+        val humanPlayerLineUp = Vector2d(34.0, -62.0) // 36 -50
+        val humanPlayerVec = Vector2d(34.0, -63.5) // -64.1
 
         val specimenDepositY = -32.0 // prev 33
 
@@ -70,7 +70,7 @@ class Auto4part2 : LinearOpMode() {
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(625.0),
+                    motorActions.extendo.setTargetPosition(575.0),
                     SleepAction(0.1), // 0.2
                     motorActions.extendoCycle(SleepAction(0.4)),
                 )
@@ -96,7 +96,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2),
-                    motorActions.extendo.setTargetPosition(625.0), // 650
+                    motorActions.extendo.setTargetPosition(575.0), // 650
                     motorActions.extendoCycle(),
                     motorActions.transferFull(), // 0.65
                     openingTransferDelay,
@@ -109,7 +109,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     //SleepAction(0.2), // wait for pass to finish
-                    motorActions.extendo.setTargetPosition(850.0), // 800 // 850 // 900
+                    motorActions.extendo.setTargetPosition(800.0), // 800 // 850 // 900
                     SleepAction(0.1), // 0.2
                     motorActions.extendoClaw.close(),
                     motorActions.extendoArm.moveDown(),

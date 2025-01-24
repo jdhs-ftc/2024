@@ -40,7 +40,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.97, 0.265, 0.5) // TODO TUNE
 
     @JvmField
-    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.35, 0.1) // 0.35 0.1 // 0.55 0.1
 
     @JvmField
     val deposit: Slide

@@ -70,7 +70,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveWallTeleop() = SequentialAction(
         deposit.setTargetPosition(60.0),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
-        extendo.setTargetPosition(207.0),
+        extendo.setTargetPosition(275.0),
         depositArm.moveDown(), // down to intake
         depositClaw.open(),
         Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
@@ -151,6 +151,37 @@ class MotorActions(val motorControl: MotorControl) {
             grabTransferReturn()
         )
 
+    fun moveVerticalTransfer() = SequentialAction(
+        depositClaw.open(),
+        deposit.setTargetPosition(625.0),
+        extendo.setTargetPosition(150.0),
+        depositArm.setPosition(0.15),
+        extendoArm.setPosition(0.8),
+    )
+    fun grabVerticalTransferReturn() =
+        SequentialAction(
+            depositClaw.close(),
+            SleepAction(0.25), // todo tune
+            extendoClaw.open(),
+            SleepAction(0.1),
+            depositArm.setPosition(0.55),
+            deposit.moveUp()
+        )
+
+    fun verticalTransferFull(between: Action = SleepAction(0.5)) =
+        SequentialAction (
+            moveVerticalTransfer(),
+            between,
+            grabVerticalTransferReturn()
+        )
+
+    fun sampleToHighBasketBack() =
+        SequentialAction (
+            depositArm.setPosition(0.6),
+            //SleepAction(0.1),
+            depositClaw.open()
+        )
+
 
     inner class Extendo {
         fun setTargetPosition(position: Double): Action {
@@ -201,7 +232,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     class DepositEncoder(val encoder: MotorControl.AxonEncoder) {
         fun waitForTransferRelease() =
-            Action { return@Action !(encoder.posDegrees < 55) }
+            Action { return@Action !(encoder.posDegrees < 75) }
         fun waitForTransferGrab() =
             Action { return@Action !(encoder.posDegrees > 255) }
     }
