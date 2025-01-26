@@ -165,6 +165,7 @@ class MotorActions(val motorControl: MotorControl) {
             extendoClaw.open(),
             SleepAction(0.1),
             depositArm.setPosition(0.55),
+            SleepAction(0.2),
             deposit.moveUp()
         )
 

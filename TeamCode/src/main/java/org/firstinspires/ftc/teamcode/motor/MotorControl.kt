@@ -191,7 +191,7 @@ class MotorControl(hardwareMap: HardwareMap) {
 
 
         override fun closeEnough(): Boolean {
-            return abs(position - targetPosition) < 20
+            return abs(position - targetPosition) < 50
         }
     }
 
