@@ -50,7 +50,7 @@ class Auto4part2 : LinearOpMode() {
             .setReversed(true)
             .setTangent(toRadians(90.0))
             .splineToConstantHeading(
-                Vector2d(7.0, specimenDepositY),
+                Vector2d(10.0, specimenDepositY),
                 toRadians(90.0)
             ) // go to sub prev 14 (prev 11) TODO CHANGE EVER
             .stopAndAdd(
@@ -96,7 +96,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2),
-                    motorActions.extendo.setTargetPosition(575.0), // 650
+                    motorActions.extendo.setTargetPosition(585.0), // 650
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(),
                     motorActions.transferFull(), // 0.65
@@ -110,7 +110,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     //SleepAction(0.2), // wait for pass to finish
-                    motorActions.extendo.setTargetPosition(800.0), // 800 // 850 // 900
+                    motorActions.extendo.setTargetPosition(825.0), // 800 // 850 // 900
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoClaw.close(),
                     motorActions.extendoArm.moveDown(),
@@ -149,7 +149,7 @@ class Auto4part2 : LinearOpMode() {
 
             )
             .setTangent(toRadians(90.0)) // 135
-            .splineToConstantHeading(Vector2d(4.0, specimenDepositY), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(8.5, specimenDepositY), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
@@ -171,7 +171,7 @@ class Auto4part2 : LinearOpMode() {
 
             )
             .setTangent(toRadians(90.0)) // 135
-            .splineToConstantHeading(Vector2d(1.0, specimenDepositY), toRadians(90.0)) //back to sub
+            .splineToConstantHeading(Vector2d(7.0, specimenDepositY), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
                     motorActions.depositScoreChamber(),
@@ -194,7 +194,7 @@ class Auto4part2 : LinearOpMode() {
             )
             .setTangent(toRadians(90.0)) // 135
             .splineToConstantHeading(
-                Vector2d(-1.0, specimenDepositY),
+                Vector2d(5.0, specimenDepositY),
                 toRadians(90.0)
             ) //back to sub
             .stopAndAdd(
@@ -219,13 +219,23 @@ class Auto4part2 : LinearOpMode() {
             )
             .setTangent(toRadians(90.0)) // 135
             .splineToConstantHeading(
-                Vector2d(-3.0, specimenDepositY),
+                Vector2d(3.0, specimenDepositY),
                 toRadians(90.0)
             ) //back to sub
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.depositScoreChamber(),
-                    SleepAction(0.1),
+                    motorActions.deposit.setTargetPosition(600.0), // 1050
+                    InstantAction { motorControl.depositArm.position = 0.60 },
+                    SleepAction(0.1)
+                )
+            )
+            .setTangent(0.0)
+            .splineToConstantHeading(
+            Vector2d(11.0, specimenDepositY),
+            toRadians(0.0)
+            )
+            .stopAndAdd(
+                SequentialAction(
                     motorActions.depositClaw.open(),
                 )
             )

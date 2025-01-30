@@ -291,9 +291,8 @@ class TeleopActions : ActionOpMode() {
 
             input += Vector2d(0.0, padExtendoAndStrafeVector.x * 0.2)
 
-
+            var headingInput = 0.0
             if (drivingEnabled) {
-                var headingInput: Double
                 if (gamepad1.left_trigger > 0.1 || gamepad1.right_trigger > 0.1 || gamepad1.left_bumper || gamepad1.right_bumper) {
                     headingInput = (gamepad1.left_trigger - gamepad1.right_trigger) * speed * 0.50
 
@@ -478,27 +477,26 @@ class TeleopActions : ActionOpMode() {
 
             if (padExtendoOutIn) {
                 run(
-                    UniqueAction(
                         SequentialAction(
                             motorActions.depositMoveWallTeleop(),
                             RaceParallelAction(
                                 waitForPadRelease(),
                             ),
-                            motorActions.extendo.moveUp()
+                            motorActions.extendo.moveUp(),
+                            motorActions.extendoArm.moveUp()
                         )
-                    )
+
                 )
             }
 
             if (padDepositChamber) {
                 run(
-                    UniqueAction(
                         SequentialAction(
                             motorActions.depositMoveChamber(),
                             waitForPadRelease(),
                             motorActions.depositScoreChamberTeleop()
                         )
-                    )
+
                 )
             }
 
@@ -579,6 +577,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("headingDeg", Math.toDegrees(drive.pose.heading.log()))
                 telemetry.addData("targetHeading", Math.toDegrees(targetHeading.toDouble()))
                 telemetry.addData("poseStorageHeading", Math.toDegrees(PoseStorage.currentPose.heading.toDouble()))
+                telemetry.addData("headingInput",headingInput)
             }
             if (showLoopTimes) {
                 telemetry.addLine("--- Loop Times ---")
@@ -593,6 +592,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addLine("--- Motors ---")
                 telemetry.addData("extendoTarget", motorControl.extendo.targetPosition)
                 telemetry.addData("extendoPosition", motorControl.extendo.position)
+                telemetry.addData("extendoPower",motorControl.extendo.motor.power)
                 telemetry.addData("depositTarget", motorControl.deposit.targetPosition)
                 telemetry.addData("depositPosition", motorControl.deposit.position)
                 telemetry.addData("extendoOffset", motorControl.extendo.encoderOffset)

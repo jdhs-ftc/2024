@@ -446,6 +446,7 @@ public class MecanumDrive {
             // so like for a 10 inch long path, if disp was 5 it would be halfway along the path
             disp = dispTraj.project(pose.position, disp);
 
+
             // check if the trajectory should end
             // this logic is pretty much made up and doesnt really make sense
             // and it wiggles occasionally
@@ -471,6 +472,13 @@ public class MecanumDrive {
             }
 
             // ok so the trajectory shouldn't end yet
+
+            // at the start of the trajectory the mped velocity is probably 0
+            // so...never target the start of the path
+            // this should also hopefully boost accel a little bit
+            if (disp < 2) {
+                disp = 2;
+            }
 
             // find the target pose and vel of the closest point on the path
             Pose2dDual<Time> poseTarget = dispTraj.get(disp);
