@@ -71,7 +71,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     motorActions.extendo.setTargetPosition(575.0),
-                    SleepAction(0.1), // 0.2
+                    motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(SleepAction(0.4)),
                 )
             )
@@ -97,6 +97,7 @@ class Auto4part2 : LinearOpMode() {
                 SequentialAction(
                     SleepAction(0.2),
                     motorActions.extendo.setTargetPosition(575.0), // 650
+                    motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(),
                     motorActions.transferFull(), // 0.65
                     openingTransferDelay,
@@ -110,7 +111,7 @@ class Auto4part2 : LinearOpMode() {
                 SequentialAction(
                     //SleepAction(0.2), // wait for pass to finish
                     motorActions.extendo.setTargetPosition(800.0), // 800 // 850 // 900
-                    SleepAction(0.1), // 0.2
+                    motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoClaw.close(),
                     motorActions.extendoArm.moveDown(),
                     SleepAction(0.1),

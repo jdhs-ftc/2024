@@ -29,6 +29,7 @@ import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.util.LinkedList
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlin.math.round
 import kotlin.math.sign
 
 
@@ -174,8 +175,11 @@ class TeleopActions : ActionOpMode() {
             val padWallPresetRelease = !gamepad2.x
             padReleased = padReleased && padWallPresetRelease
             val padHighPreset = gamepad2.y
-            val padMidPreset = gamepad2.b
+            val padExtendoOutIn = gamepad2.circle && !previousGamepad2.circle
+            padReleased = padReleased && !gamepad2.circle
             val padLowPreset = gamepad2.a
+
+
 
             val padDepositClawToggle =
                 (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
@@ -198,11 +202,16 @@ class TeleopActions : ActionOpMode() {
             // grip tape?
             // use triggers?
 
+            var padExtendoAndStrafeVector = Vector2d (
+                -gamepad2.right_stick_x.toDouble(),
+                -gamepad2.right_stick_y.toDouble()
+            )
+
             // Manual Control
             var padDepositControl = -gamepad2.left_stick_y.toDouble()
             padDepositControl = sign(padDepositControl) * abs(padDepositControl).pow(2)
-            var padExtendoControl = -gamepad2.right_stick_y.toDouble()
-            padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
+            // EXTENDO CONTROL HAPPENS AFTER DRIVING
+
             val padSlideControlMultiplier = 20.0
 
             val padTransfer = gamepad2.left_bumper && !previousGamepad2.left_bumper
@@ -276,10 +285,11 @@ class TeleopActions : ActionOpMode() {
                     }
                 input = rotationAmount * input // rotate the input by the rotationamount
                 // (rotationAmount MUST go first here)
+                padExtendoAndStrafeVector = (Rotation2d.fromDouble(round(rotationAmount.toDouble() / Math.toRadians(90.0)) * Math.toRadians(90.0)).inverse()) * padExtendoAndStrafeVector // TODO: round???
             }
             val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
 
-            input += Vector2d(0.0, -gamepad2.right_stick_x * 0.2)
+            input += Vector2d(0.0, padExtendoAndStrafeVector.x * 0.2)
 
 
             if (drivingEnabled) {
@@ -339,6 +349,9 @@ class TeleopActions : ActionOpMode() {
                     )
                 )
             }
+
+            var padExtendoControl = padExtendoAndStrafeVector.y
+            padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
 
 
             // LIFT CONTROL/FSM
@@ -426,9 +439,9 @@ class TeleopActions : ActionOpMode() {
                 println("12087 extendo arm position ${motorControl.extendoArm.position}")
                 if (motorControl.extendoArm.fullyUp) {
                     run(
-                        UniqueAction(
+
                             motorActions.extendoArm.moveUp()
-                        )
+
                     )
                 } else {
                     run(
@@ -463,6 +476,20 @@ class TeleopActions : ActionOpMode() {
                 )
             }
 
+            if (padExtendoOutIn) {
+                run(
+                    UniqueAction(
+                        SequentialAction(
+                            motorActions.depositMoveWallTeleop(),
+                            RaceParallelAction(
+                                waitForPadRelease(),
+                            ),
+                            motorActions.extendo.moveUp()
+                        )
+                    )
+                )
+            }
+
             if (padDepositChamber) {
                 run(
                     UniqueAction(
@@ -491,7 +518,7 @@ class TeleopActions : ActionOpMode() {
             if (padSampleInHighBasket) {
                 run(
                     UniqueAction (
-                    motorActions.sampleToHighBasketBack()
+                        motorActions.sampleToHighBasketBack()
                     )
                 )
 

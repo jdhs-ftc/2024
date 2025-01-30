@@ -28,7 +28,7 @@ class MotorControl(hardwareMap: HardwareMap) {
     val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.45, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
-    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.4, 0.57) // might need to be 0.45 0.7???? // 0.32 0.5
+    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.50, 0.38) // might need to be 0.45 0.7???? // 0.32 0.5
 
     @JvmField
     val extendo: Slide = Slide(
@@ -121,9 +121,6 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     }
 
-    /**
-     * This class controls the slide motor.
-     */
     class Slide(motor: DcMotorEx, val pid: PIDFController) :
         ControlledMotor(motor) {
         var reversed = true // EVERYTHING REVERSED, this working is a coincidence

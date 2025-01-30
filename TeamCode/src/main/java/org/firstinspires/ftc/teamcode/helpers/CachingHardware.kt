@@ -4,6 +4,8 @@ import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.VoltageSensor
+import com.qualcomm.robotcore.util.ElapsedTime
 import kotlin.math.abs
 
 const val cachingThreshold = 0.005
@@ -34,5 +36,16 @@ class CachingCRServo(servo: CRServo) : CachingDcMotorSimple(servo), CRServo by s
     }
 }
 
+class CachingVoltageSensor(val voltageSensor: VoltageSensor) : VoltageSensor by voltageSensor {
+    private val timeSinceVoltUpdate = ElapsedTime()
+    private var lastVoltage = 12.0
+    override fun getVoltage(): Double {
+        if (timeSinceVoltUpdate.milliseconds() > 500) {
+            lastVoltage = voltageSensor.voltage;
+            timeSinceVoltUpdate.reset();
+        }
+        return lastVoltage;
+    }
+}
 
 

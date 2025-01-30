@@ -200,7 +200,7 @@ class MotorActions(val motorControl: MotorControl) {
         }
 
         fun moveUp(): Action {
-            return setTargetPosition(1100.0) // prev 1200
+            return setTargetPosition(1200.0) // prev 1200
         }
 
         fun moveDown(): Action {
