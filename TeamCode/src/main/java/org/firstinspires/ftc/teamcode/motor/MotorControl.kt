@@ -20,9 +20,6 @@ import kotlin.math.sqrt
  * This class is used to control the motor systems on the robot.
  */
 class MotorControl(hardwareMap: HardwareMap) {
-    init { // empty the motor list, it's static so remains between op modes by default :skull:
-        motors = ArrayList()
-    }
 
     @JvmField
     val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.46, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
@@ -33,7 +30,9 @@ class MotorControl(hardwareMap: HardwareMap) {
     @JvmField
     val extendo: Slide = Slide(
         CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 0, encoder is left_front
-        PIDFController(PIDCoefficients(0.001, 0.0, 0.0))
+        PIDFController(PIDCoefficients(0.001, 0.0, 0.0)),
+        encoder=hardwareMap.get(DcMotorEx::class.java, "left_front"),
+        reversed=true
     )
 
     @JvmField
@@ -43,28 +42,25 @@ class MotorControl(hardwareMap: HardwareMap) {
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.35, 0.1) // 0.35 0.1 // 0.55 0.1
 
     @JvmField
-    val deposit: Slide
+    val deposit: Slide = Slide(
+        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "deposit")),
+        // port 1 of exp hub and chub,
+        // encoder is left_back
+        PIDFController(
+            PIDCoefficients(0.005, 0.0, 0.0),
+            PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.05 }),
+        encoder=hardwareMap.get(DcMotorEx::class.java, "left_back"),
+        reversed=true
+    )
 
     val dColor = BLColor(hardwareMap.digitalChannel["digital0"],hardwareMap.digitalChannel["digital1"])
 
     val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
 
+    val motors = listOf(extendo, deposit)
+
     //public final ColorSensor color;
     init {
-        extendo.encoder = hardwareMap.get(DcMotorEx::class.java, "left_front")
-        extendo.reversed = true
-
-        deposit = Slide(
-            CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "deposit")),
-            // port 1 of exp hub and chub,
-            // encoder is left_back
-            PIDFController(
-                PIDCoefficients(0.005, 0.0, 0.0),
-                PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.05 })
-        )
-        deposit.encoder = hardwareMap.get(DcMotorEx::class.java, "left_back")
-        deposit.reversed = true
-
         depositArm.moveDown()
         extendoArm.moveUp()
 
@@ -121,11 +117,10 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     }
 
-    class Slide(motor: DcMotorEx, val pid: PIDFController) :
+    class Slide(motor: DcMotorEx, val pid: PIDFController, val encoder: DcMotorEx = motor, val reversed: Boolean = true) :
         ControlledMotor(motor) {
-        var reversed = true // EVERYTHING REVERSED, this working is a coincidence
         var resetting = false
-        var encoder: DcMotorEx = motor
+
         var encoderOffset: Double = 0.0
 
         init {
@@ -300,12 +295,5 @@ class MotorControl(hardwareMap: HardwareMap) {
 
         abstract fun findZero()
 
-        init {
-            motors.add(this)
-        }
-    }
-
-    companion object {
-        var motors: ArrayList<ControlledMotor> = ArrayList()
     }
 }

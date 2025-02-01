@@ -578,6 +578,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("targetHeading", Math.toDegrees(targetHeading.toDouble()))
                 telemetry.addData("poseStorageHeading", Math.toDegrees(PoseStorage.currentPose.heading.toDouble()))
                 telemetry.addData("headingInput",headingInput)
+                telemetry.addData("timeSinceDriverTurned",timeSinceDriverTurned.milliseconds())
             }
             if (showLoopTimes) {
                 telemetry.addLine("--- Loop Times ---")
