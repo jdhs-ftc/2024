@@ -47,13 +47,13 @@ class AutoSample : LinearOpMode() {
                 motorActions.sampleToHighBasketBack()))
             .setTangent(toRadians(45.0))
             .splineToLinearHeading(
-                Pose2d(-52.0, -48.5, toRadians(90.0)), // 47.1 -45.5 with back of robot in HP zone
+                Pose2d(-52.5, -48.5, toRadians(90.0)),
                 toRadians(90.0)
             )
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(575.0),
+                    motorActions.extendo.setTargetPosition(615.0),
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(SleepAction(0.4)),
                     SequentialAction(
@@ -79,7 +79,7 @@ class AutoSample : LinearOpMode() {
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(575.0),
+                    motorActions.extendo.setTargetPosition(615.0),
                     motorActions.extendo.waitUntilFinished(),
                     //SleepAction(0.1), // 0.2
                     motorActions.extendoCycle(SleepAction(0.4)),
@@ -107,7 +107,7 @@ class AutoSample : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     //SleepAction(0.2), // wait for pass to finish
-                    motorActions.extendo.setTargetPosition(700.0), // 800 // 850 // 900
+                    motorActions.extendo.setTargetPosition(675.0), // 800 // 850 // 900
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoClaw.close(),
                     motorActions.extendoArm.moveDown(),

@@ -266,6 +266,8 @@ class TeleopActions : ActionOpMode() {
             }
 
 
+
+
             // Field Centric
 
             // Create a vector from the gamepad x/y inputs
@@ -288,6 +290,22 @@ class TeleopActions : ActionOpMode() {
                 padExtendoAndStrafeVector = (Rotation2d.fromDouble(round(rotationAmount.toDouble() / Math.toRadians(90.0)) * Math.toRadians(90.0)).inverse()) * padExtendoAndStrafeVector // TODO: round???
             }
             val controllerHeading = Vector2d(-gamepad1.right_stick_y.toDouble(), -gamepad1.right_stick_x.toDouble())
+
+            var padExtendoControl = padExtendoAndStrafeVector.y
+            padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
+
+            if (motorControl.extendo.targetPosition >= 1200 && padExtendoControl > 0) { // previously 1530
+                motorControl.extendo.targetPosition = 1200.0
+                input += Vector2d(padExtendoControl * 0.2,0.0)
+            } else if (motorControl.extendo.targetPosition <= 5 && padExtendoControl < 0) {
+                if (padForceDown) {
+                    motorControl.extendo.findZero()
+                }
+                motorControl.extendo.targetPosition = 5.0
+                input += Vector2d(padExtendoControl * 0.2, 0.0)
+            } else {
+                motorControl.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
+            }
 
             input += Vector2d(0.0, padExtendoAndStrafeVector.x * 0.2)
 
@@ -349,8 +367,7 @@ class TeleopActions : ActionOpMode() {
                 )
             }
 
-            var padExtendoControl = padExtendoAndStrafeVector.y
-            padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
+
 
 
             // LIFT CONTROL/FSM
@@ -358,7 +375,7 @@ class TeleopActions : ActionOpMode() {
 
             // Slide (Manual)
             // TODO: abstract this?
-            if (motorControl.deposit.targetPosition > 1600 && padDepositControl > 0) {
+            if (motorControl.deposit.targetPosition >= 1600 && padDepositControl > 0) {
                 motorControl.deposit.targetPosition = 1600.0
             } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0) {
                 if (padForceDown) {
@@ -369,16 +386,7 @@ class TeleopActions : ActionOpMode() {
                 motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
             }
 
-            if (motorControl.extendo.targetPosition > 1200 && padExtendoControl > 0) { // previously 1530
-                motorControl.extendo.targetPosition = 1200.0
-            } else if (motorControl.extendo.targetPosition <= 5 && padExtendoControl < 0) {
-                if (padForceDown) {
-                    motorControl.extendo.findZero()
-                }
-                motorControl.extendo.targetPosition = 5.0
-            } else {
-                motorControl.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
-            }
+
 
             if (padDepositClawToggle) {
                 motorControl.depositClaw.toggle()

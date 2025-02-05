@@ -22,10 +22,10 @@ import kotlin.math.sqrt
 class MotorControl(hardwareMap: HardwareMap) {
 
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.46, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.445, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
 
     @JvmField
-    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.50, 0.38) // might need to be 0.45 0.7???? // 0.32 0.5
+    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.55, 0.387) // might need to be 0.45 0.7???? // 0.32 0.5
 
     @JvmField
     val extendo: Slide = Slide(
