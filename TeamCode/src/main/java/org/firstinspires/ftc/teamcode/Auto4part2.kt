@@ -96,7 +96,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2),
-                    motorActions.extendo.setTargetPosition(585.0), // 650
+                    motorActions.extendo.setTargetPosition(595.0), // 650
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(),
                     motorActions.transferFull(), // 0.65

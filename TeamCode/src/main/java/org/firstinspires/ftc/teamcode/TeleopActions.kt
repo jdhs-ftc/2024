@@ -612,6 +612,11 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("depositArmTargetPosition",motorControl.depositArm.position)
                 telemetry.addData("depositArmEncoderPos", motorControl.depositArmEncoder.position)
                 telemetry.addData("depositArmEncoderPosDeg", motorControl.depositArmEncoder.posDegrees)
+                telemetry.addData(
+                    "extendoArmEncoderPosDeg",
+                    motorControl.extendoArmEncoder.posDegrees
+                )
+
 
 
                 //telemetry.addData("extendoClawPos", motorControl.extendoClaw.getPosition());

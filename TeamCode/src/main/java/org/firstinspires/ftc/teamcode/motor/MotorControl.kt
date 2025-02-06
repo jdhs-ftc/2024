@@ -57,6 +57,8 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
 
+    val extendoArmEncoder = AxonEncoder(hardwareMap.analogInput["extendoArmEncoder"])
+
     val motors = listOf(extendo, deposit)
 
     //public final ColorSensor color;
