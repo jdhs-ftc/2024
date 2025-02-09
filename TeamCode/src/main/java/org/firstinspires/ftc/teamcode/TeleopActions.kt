@@ -23,6 +23,7 @@ import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.BLUE
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.RED
 import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
+import org.firstinspires.ftc.teamcode.helpers.UniqueActionQueue
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
@@ -626,7 +627,7 @@ class TeleopActions : ActionOpMode() {
 
             if (showStateTelemetry) {
                 telemetry.addLine("--- State Machine ---")
-                telemetry.addData("actions", runningActions)
+                telemetry.addData("actions", UniqueActionQueue.runningUniqueActions)
             }
             telemetry.update()
         }

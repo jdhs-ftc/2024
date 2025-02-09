@@ -119,7 +119,11 @@ class MotorActions(val motorControl: MotorControl) {
         //SleepAction(0.5),
         depositArm.moveDown(),
         SleepAction(0.3),
-        depositClawRelease() // TODO USE ENCODER
+        depositClawRelease(), // TODO USE ENCODER
+        SleepAction(0.1),
+        depositClaw.close(),
+        SleepAction(0.3),
+        depositClawRelease()
     )
     fun depositClawRelease(): Action {
         return SequentialAction(depositClaw.open())
@@ -233,7 +237,10 @@ class MotorActions(val motorControl: MotorControl) {
 
     class DepositEncoder(val encoder: MotorControl.AxonEncoder) {
         fun waitForTransferRelease() =
-            Action { return@Action !(encoder.posDegrees < 75) }
+            SequentialAction (
+            Action { return@Action !(encoder.posDegrees < 70) },
+                SleepAction(0.1)
+            )
         fun waitForTransferGrab() =
             Action { return@Action !(encoder.posDegrees > 255) }
     }

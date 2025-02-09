@@ -5,9 +5,9 @@ import com.acmerobotics.roadrunner.Action
 import com.qualcomm.robotcore.eventloop.opmode.OpMode
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier
 
-class BetterUniqueAction(val action: Action, val key: String = "UniqueAction") : Action by action {
+open class BetterUniqueAction(val action: Action, val key: String = "UniqueAction") : Action by action {
     override fun run(p: TelemetryPacket): Boolean {
-        if (UniqueActionQueue.runningUniqueActions.any { it.key == key }) (
+        if (!UniqueActionQueue.runningUniqueActions.contains(this) && UniqueActionQueue.runningUniqueActions.any { it.key == key }) (
             // this action is duplicated
             // wait for the other one to finish
             return true

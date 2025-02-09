@@ -5,8 +5,6 @@ import com.acmerobotics.dashboard.canvas.Canvas
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
-import org.firstinspires.ftc.teamcode.helpers.ActionOpMode.UniqueAction
-import java.util.ArrayList
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -14,6 +12,10 @@ abstract class ActionOpMode : LinearOpMode() {
     private val dash: FtcDashboard = FtcDashboard.getInstance()
     var runningActions = ArrayList<Action>()
     private val uniqueActionsQueue = ArrayList<UniqueAction>()
+
+    init {
+        UniqueActionQueue.runningUniqueActions.clear()
+    }
 
     protected fun runBlocking(action: Action) {
         val canvas = Canvas()
@@ -31,7 +33,7 @@ abstract class ActionOpMode : LinearOpMode() {
     }
 
     protected fun updateAsync(packet: TelemetryPacket = DefaultPacket()) {
-        updateUniqueQueue()
+        //updateUniqueQueue()
         // update running actions
         val newActions = ArrayList<Action>()
         for (action in runningActions) {
@@ -57,11 +59,11 @@ abstract class ActionOpMode : LinearOpMode() {
     }
 
     protected fun run(a: Action) {
-        if (duplicated(a)) {
-            uniqueActionsQueue.add(a)
-        } else {
+        //if (duplicated(a)) {
+        //   uniqueActionsQueue.add(a)
+        //} else {
             runningActions.add(a)
-        }
+        //}
     }
 
     protected fun runNoQueue(a: Action) {
@@ -82,7 +84,7 @@ abstract class ActionOpMode : LinearOpMode() {
     }
 
 
-    class UniqueAction(val action: Action, val key: String = "UniqueAction") : Action by action
+    class UniqueAction(action: Action, key: String = "UniqueAction") : BetterUniqueAction(action, key)
 
     // used to differentiate whether we just made the packet or whether it was just passed
     private class DefaultPacket(drawDefaultField: Boolean = true): TelemetryPacket(drawDefaultField)

@@ -64,13 +64,13 @@ class Auto4part2 : LinearOpMode() {
             .setTangent(toRadians(270.0))
             .afterTime(0.5, InstantAction { motorActions.depositArm.threeArm.position = 0.40 })
             .splineToConstantHeading(
-                Vector2d(46.5, -48.5), // 47.1 -45.5 with back of robot in HP zone
+                Vector2d(46.0, -48.5), // 47.1 -45.5 with back of robot in HP zone
                 toRadians(0.0)
             )
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(575.0),
+                    motorActions.extendo.setTargetPosition(650.0),
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(SleepAction(0.4)),
                 )
@@ -96,7 +96,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2),
-                    motorActions.extendo.setTargetPosition(595.0), // 650
+                    motorActions.extendo.setTargetPosition(650.0), // 650
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(),
                     motorActions.transferFull(), // 0.65
