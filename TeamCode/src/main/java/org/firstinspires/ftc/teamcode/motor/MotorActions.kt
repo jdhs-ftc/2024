@@ -109,7 +109,8 @@ class MotorActions(val motorControl: MotorControl) {
             deposit.setTargetPosition(600.0), // 1050
             InstantAction { depositArm.threeArm.position = 0.60 },
             SleepAction(0.1),
-            depositClawRelease() // TODO USE ENCODER
+            depositClawRelease(), // TODO USE ENCODER
+            SleepAction(0.3)
 
         )
     }

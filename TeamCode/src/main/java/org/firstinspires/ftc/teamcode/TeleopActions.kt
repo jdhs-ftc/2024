@@ -5,6 +5,7 @@ import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.Rotation2d
@@ -59,7 +60,9 @@ class TeleopActions : ActionOpMode() {
         } as LynxModule // ensure it's non-null
     }
 
-    val startPose: Pose2d = if ((System.currentTimeMillis() - PoseStorage.poseUpdatedTime) / 1000 < 400000) {  // DISABLED // if auto ended less than 40 seconds ago
+    val startPose: Pose2d = PoseStorage.currentPose
+        /*
+        if ((System.currentTimeMillis() - PoseStorage.poseUpdatedTime) / 1000 < 400000) {  // DISABLED // if auto ended less than 40 seconds ago
         PoseStorage.currentPose // use pose from end of auto
     }  else {
         if (PoseStorage.currentTeam == BLUE) {
@@ -68,6 +71,8 @@ class TeleopActions : ActionOpMode() {
             Pose2d(0.0, 0.0, Math.toRadians(90.0))
         }
     }
+
+         */
 
     val drive by lazy { PinpointDrive(hardwareMap, startPose) }
     val motorControl by lazy { MotorControl(hardwareMap) }
@@ -96,6 +101,12 @@ class TeleopActions : ActionOpMode() {
 
     val sampleMode = false
 
+    val specimenDeposit by lazy { SpecimenDeposit(motorControl, motorActions,5,10) }
+
+    lateinit var specimenDepositTraj: Action
+
+    var specimenDepositTrajUsed = false
+
 
     override fun runOpMode() {
         //  Initialization Period
@@ -115,6 +126,10 @@ class TeleopActions : ActionOpMode() {
         // Telemetry Init
         telemetry.msTransmissionInterval = 50
         telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
+
+        specimenDeposit // init with by lazy
+
+        specimenDepositTraj = specimenDeposit.genTrajectory(drive)
 
 
         waitForStart()
@@ -175,7 +190,7 @@ class TeleopActions : ActionOpMode() {
             val padWallPreset = (gamepad2.x && !previousGamepad2.x)
             val padWallPresetRelease = !gamepad2.x
             padReleased = padReleased && padWallPresetRelease
-            val padHighPreset = gamepad2.y
+            val padHighPreset = false // prev triangle
             val padExtendoOutIn = gamepad2.circle && !previousGamepad2.circle
             padReleased = padReleased && !gamepad2.circle
             val padLowPreset = gamepad2.a
@@ -223,6 +238,10 @@ class TeleopActions : ActionOpMode() {
 
             // Misc
             val padForceDown = gamepad2.left_stick_button || gamepad2.right_stick_button
+
+            val padAutoDrive = gamepad2.triangle && !previousGamepad2.triangle
+            val padAutoDriveRelease = !gamepad2.triangle
+            padReleased = padReleased && padAutoDriveRelease
 
 
             // Update the speed
@@ -366,126 +385,123 @@ class TeleopActions : ActionOpMode() {
                         headingInput
                     )
                 )
-            }
 
 
+                // LIFT CONTROL/FSM
 
 
-            // LIFT CONTROL/FSM
-
-
-            // Slide (Manual)
-            // TODO: abstract this?
-            if (motorControl.deposit.targetPosition >= 1600 && padDepositControl > 0) {
-                motorControl.deposit.targetPosition = 1600.0
-            } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0) {
-                if (padForceDown) {
-                    motorControl.deposit.findZero()
+                // Slide (Manual)
+                // TODO: abstract this?
+                if (motorControl.deposit.targetPosition >= 1600 && padDepositControl > 0) {
+                    motorControl.deposit.targetPosition = 1600.0
+                } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0) {
+                    if (padForceDown) {
+                        motorControl.deposit.findZero()
+                    }
+                    motorControl.deposit.targetPosition = 20.0
+                } else {
+                    motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
                 }
-                motorControl.deposit.targetPosition = 20.0
-            } else {
-                motorControl.deposit.targetPosition += (padDepositControl * padSlideControlMultiplier)
-            }
 
 
 
-            if (padDepositClawToggle) {
-                motorControl.depositClaw.toggle()
-            }
-            /*
+                if (padDepositClawToggle) {
+                    motorControl.depositClaw.toggle()
+                }
+                /*
             if (padExtendoClawToggle) {
                 motorControl.extendoClaw.toggle()
             }*
 
              */
 
-            if (padVerticalTransfer) {
-                run(
-                    UniqueAction(
-                        motorActions.verticalTransferFull(waitForPadRelease())
-                    )
-                )
-            }
-
-            if (sampleMode) {
-                if (padArmUpFull) {
+                if (padVerticalTransfer) {
                     run(
                         UniqueAction(
-                            SequentialAction(
-                                motorActions.extendo.moveDown(),
-                                motorActions.deposit.moveDown(),
-                                motorActions.depositArm.moveDown(),
-                                motorActions.extendoArm.moveFullUp(),
-                                // wait for extendo arm to get to target
-                                // maybe use gamepad here?
-                                SleepAction(0.5),
-                                motorActions.extendoClaw.open(),
-                                SleepAction(0.1), // wait for the claw to open
-                                motorActions.extendoArm.moveUp(),
-                                SleepAction(0.1) // wait for the extendo arm to finish
-                                        // moving to just above the ground position
-
-
-                            )
+                            motorActions.verticalTransferFull(waitForPadRelease())
                         )
                     )
                 }
-            }
+
+                if (sampleMode) {
+                    if (padArmUpFull) {
+                        run(
+                            UniqueAction(
+                                SequentialAction(
+                                    motorActions.extendo.moveDown(),
+                                    motorActions.deposit.moveDown(),
+                                    motorActions.depositArm.moveDown(),
+                                    motorActions.extendoArm.moveFullUp(),
+                                    // wait for extendo arm to get to target
+                                    // maybe use gamepad here?
+                                    SleepAction(0.5),
+                                    motorActions.extendoClaw.open(),
+                                    SleepAction(0.1), // wait for the claw to open
+                                    motorActions.extendoArm.moveUp(),
+                                    SleepAction(0.1) // wait for the extendo arm to finish
+                                    // moving to just above the ground position
 
 
-            if (padHighPreset) {
-                motorControl.deposit.targetPosition = 1600.0
-            }
-            if (padLowPreset) {
-                motorControl.deposit.targetPosition = 20.0
-                motorControl.extendo.targetPosition = 20.0
-            }
+                                )
+                            )
+                        )
+                    }
+                }
 
-            if (padExtendoArmDown) {
-                println("12087 extendo arm down")
-                println("12087 extendo arm dumping ${motorControl.extendoArm.fullyUp}")
-                println("12087 extendo arm position ${motorControl.extendoArm.position}")
-                if (motorControl.extendoArm.fullyUp) {
-                    run(
+
+                if (padHighPreset) {
+                    motorControl.deposit.targetPosition = 1600.0
+                }
+                if (padLowPreset) {
+                    motorControl.deposit.targetPosition = 20.0
+                    motorControl.extendo.targetPosition = 20.0
+                }
+
+                if (padExtendoArmDown) {
+                    println("12087 extendo arm down")
+                    println("12087 extendo arm dumping ${motorControl.extendoArm.fullyUp}")
+                    println("12087 extendo arm position ${motorControl.extendoArm.position}")
+                    if (motorControl.extendoArm.fullyUp) {
+                        run(
 
                             motorActions.extendoArm.moveUp()
 
-                    )
-                } else {
+                        )
+                    } else {
+                        run(
+                            UniqueAction(
+                                SequentialAction(
+                                    motorActions.extendoClaw.open(), // open claw
+                                    SleepAction(0.05),
+                                    motorActions.extendoArm.moveDown(), // move to ground
+                                    waitForPadRelease(), // wait until trigger releases
+                                    motorActions.extendoClaw.close(), // close claw
+                                    SleepAction(0.5), // TODO tune
+                                    motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
+                                )
+                            )
+                        )
+                    }
+                }
+                if (padWallPreset) {
                     run(
                         UniqueAction(
                             SequentialAction(
-                                motorActions.extendoClaw.open(), // open claw
-                                SleepAction(0.05),
-                                motorActions.extendoArm.moveDown(), // move to ground
-                                waitForPadRelease(), // wait until trigger releases
-                                motorActions.extendoClaw.close(), // close claw
-                                SleepAction(0.5), // TODO tune
-                                motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
+                                motorActions.depositMoveWallTeleop(),
+                                RaceParallelAction(
+                                    waitForPadRelease(),
+                                ),
+                                motorActions.extendoClaw.open(),
+                                motorActions.depositPickupWallTeleop(),
+                                SleepAction(0.5),
+                                motorActions.extendo.moveDown()
                             )
                         )
                     )
                 }
-            }
-            if (padWallPreset) {
-                run(
-                    UniqueAction(
-                        SequentialAction(
-                            motorActions.depositMoveWallTeleop(),
-                            RaceParallelAction(
-                                waitForPadRelease(),
-                            ),
-                            motorActions.extendoClaw.open(),
-                            motorActions.depositPickupWallTeleop(),
-                            SleepAction(0.5),
-                            motorActions.extendo.moveDown()
-                        )
-                    )
-                )
-            }
 
-            if (padExtendoOutIn) {
-                run(
+                if (padExtendoOutIn) {
+                    run(
                         SequentialAction(
                             motorActions.depositMoveWallTeleop(),
                             RaceParallelAction(
@@ -495,40 +511,82 @@ class TeleopActions : ActionOpMode() {
                             motorActions.extendoArm.moveUp()
                         )
 
-                )
-            }
+                    )
+                }
 
-            if (padDepositChamber) {
-                run(
+                if (padDepositChamber) {
+                    run(
                         SequentialAction(
                             motorActions.depositMoveChamber(),
                             waitForPadRelease(),
                             motorActions.depositScoreChamberTeleop()
                         )
 
-                )
-            }
+                    )
+                }
 
-            if (padTransfer) {
-                run(
-                    UniqueAction(
-                        SequentialAction(
-                            motorActions.moveTransfer(),
-                            waitForPadRelease(),
-                            motorActions.grabTransferReturn(),
-                            motorActions.extendo.moveDown()
+                if (padTransfer) {
+                    run(
+                        UniqueAction(
+                            SequentialAction(
+                                motorActions.moveTransfer(),
+                                waitForPadRelease(),
+                                motorActions.grabTransferReturn(),
+                                motorActions.extendo.moveDown()
+                            )
                         )
                     )
-                )
-            }
+                }
 
-            if (padSampleInHighBasket) {
-                run(
-                    UniqueAction (
-                        motorActions.sampleToHighBasketBack()
+                if (padSampleInHighBasket) {
+                    run(
+                        UniqueAction(
+                            motorActions.sampleToHighBasketBack()
+                        )
                     )
-                )
 
+                }
+
+
+                if (padAutoDrive) {
+                    if (specimenDepositTrajUsed) {
+                        specimenDeposit.genTrajectory(drive) // sketchy!!
+                        specimenDepositTrajUsed = false
+                    }
+                    run(
+                        UniqueAction(
+                            SequentialAction(
+                                InstantAction {
+                                    UniqueActionQueue.shouldQueueUniqueActions = false
+                                },
+                                motorActions.depositMoveWallTeleop(),
+                                RaceParallelAction(
+                                    waitForPadRelease(),
+                                ),
+                                InstantAction {
+                                    drivingEnabled = false
+                                    specimenDepositTrajUsed = true
+                                    drive.pose = Pose2d(Vector2d(34.0, -63.5),Math.toRadians(90.0));
+                                },
+                                RaceParallelAction(
+                                    specimenDepositTraj,
+                                    Action {
+                                        return@Action !((currentGamepad2.triangle && !previousGamepad2.triangle) || (currentGamepad1.share && !previousGamepad1.share)) // cancel
+                                    }
+                                ),
+                                InstantAction {
+                                    drivingEnabled = true
+                                    UniqueActionQueue.shouldQueueUniqueActions = true
+                                    targetHeading = drive.pose.heading
+
+
+                                }
+                            )
+                        )
+                    )
+
+
+                }
             }
 
 
@@ -565,7 +623,9 @@ class TeleopActions : ActionOpMode() {
 
             updateAsync(packet)
             packet.put("448", loopTime.milliseconds())
-            drive.updatePoseEstimate()
+            if (drivingEnabled) { // if driving's disabled, the trajectory is already updating it
+                drive.updatePoseEstimate()
+            }
             packet.put("450", loopTime.milliseconds())
             motorControl.update()
             packet.put("452", loopTime.milliseconds())
@@ -629,6 +689,11 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addLine("--- State Machine ---")
                 telemetry.addData("actions", UniqueActionQueue.runningUniqueActions)
             }
+            telemetry.addLine("--- Specimen Deposit Automation --")
+            telemetry.addData("cyclesScored (generated)", specimenDeposit.cyclesScored)
+            telemetry.addData("cyclesToScore", specimenDeposit.cyclesToScore)
+            telemetry.addData("cyclesRuntimeScored (actual)", specimenDeposit.cyclesRuntimeScored)
+            telemetry.addData("drivingEnabled",drivingEnabled)
             telemetry.update()
         }
     }

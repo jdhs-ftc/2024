@@ -9,8 +9,13 @@ open class BetterUniqueAction(val action: Action, val key: String = "UniqueActio
     override fun run(p: TelemetryPacket): Boolean {
         if (!UniqueActionQueue.runningUniqueActions.contains(this) && UniqueActionQueue.runningUniqueActions.any { it.key == key }) (
             // this action is duplicated
-            // wait for the other one to finish
-            return true
+            if (UniqueActionQueue.shouldQueueUniqueActions) {
+                // wait for the other one to finish
+                return true
+            } else {
+                // end immediately
+                return false
+            }
         ) else ( // not duplicated
             // run the real action
             if (action.run(p)) { // if the real action wants to run again
@@ -36,10 +41,13 @@ open class BetterUniqueAction(val action: Action, val key: String = "UniqueActio
 object UniqueActionQueue : OpModeManagerNotifier.Notifications {
 
     val runningUniqueActions = ArrayList<BetterUniqueAction>()
+    var shouldQueueUniqueActions = true // can be changed at runtime
+    // (not sure whether this is good; allows me to make super ultra unique actions)
 
 
     override fun onOpModePreInit(p0: OpMode) {
         runningUniqueActions.clear()
+        shouldQueueUniqueActions = true
     }
 
     override fun onOpModePreStart(p0: OpMode) {
