@@ -105,7 +105,7 @@ class Auto4part2 : LinearOpMode() {
                 )
             )
 
-            .turnTo(toRadians(65.0), TurnConstraints(Math.toRadians(200.0),Math.toRadians(-200.0),Math.toRadians(200.0)))
+            .turnTo(toRadians(65.0), TurnConstraints(Math.toRadians(360.0),Math.toRadians(-360.0),Math.toRadians(360.0)))
             // grab
             .stopAndAdd(
                 SequentialAction(
@@ -134,11 +134,11 @@ class Auto4part2 : LinearOpMode() {
             .setTangent(toRadians(180.0))
             .afterTime(0.5, motorActions.depositMoveWall())
             .splineToSplineHeading(
-                Pose2d(humanPlayerLineUp + Vector2d(1.0, 0.0), toRadians(90.0)),
+                Pose2d(humanPlayerLineUp + Vector2d(0.5,0.0), toRadians(90.0)),
                 toRadians(270.0)
             ) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(humanPlayerVec + Vector2d(1.0, 0.0), toRadians(270.0))//, TranslationalVelConstraint(10.0)) // go to hp 35.0 -62.5
+            .splineToConstantHeading(humanPlayerVec + Vector2d(0.5,0.0), toRadians(270.0))//, TranslationalVelConstraint(10.0)) // go to hp 35.0 -62.5
             .stopAndAdd(
                 SequentialAction(
                     motorActions.extendo.moveDown(),

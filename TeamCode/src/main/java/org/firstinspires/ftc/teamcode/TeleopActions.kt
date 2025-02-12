@@ -127,9 +127,7 @@ class TeleopActions : ActionOpMode() {
         telemetry.msTransmissionInterval = 50
         telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
 
-        specimenDeposit // init with by lazy
 
-        specimenDepositTraj = specimenDeposit.genTrajectory(drive)
 
 
         waitForStart()
@@ -138,6 +136,10 @@ class TeleopActions : ActionOpMode() {
         // Motor Init
         motorControl // init with by lazy
         motorActions
+
+        specimenDeposit // init with by lazy
+
+        specimenDepositTraj = specimenDeposit.genTrajectory(drive)
 
 
         // Run Period
