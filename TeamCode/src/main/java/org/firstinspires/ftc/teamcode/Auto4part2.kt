@@ -5,7 +5,6 @@ import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
-import com.acmerobotics.roadrunner.TurnConstraints
 import com.acmerobotics.roadrunner.Vector2d
 import com.acmerobotics.roadrunner.ftc.runBlocking
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
@@ -37,8 +36,8 @@ class Auto4part2 : LinearOpMode() {
         val drive = PinpointDrive(hardwareMap, beginPose)
         motorControl = MotorControl(hardwareMap)
         motorActions = MotorActions(motorControl)
-        val humanPlayerLineUp = Vector2d(34.0, -62.0) // 36 -50
-        val humanPlayerVec = Vector2d(34.0, -63.5) // -64.1
+        val humanPlayerLineUp = Vector2d(33.0, -62.0) // 36 -50
+        val humanPlayerVec = Vector2d(33.0, -63.5) // -64.1
 
         val specimenDepositY = -32.0 // prev 33
 
@@ -105,7 +104,7 @@ class Auto4part2 : LinearOpMode() {
                 )
             )
 
-            .turnTo(toRadians(65.0), TurnConstraints(Math.toRadians(360.0),Math.toRadians(-360.0),Math.toRadians(360.0)))
+            .turnTo(toRadians(65.0))
             // grab
             .stopAndAdd(
                 SequentialAction(
@@ -117,13 +116,15 @@ class Auto4part2 : LinearOpMode() {
                     SleepAction(0.1),
                     motorActions.extendoClaw.open(),
                     SleepAction(0.3),
-                    motorActions.extendoGrabAndRaise()
+                    motorActions.extendoGrabAndRaise(),
+                    motorActions.transferFull(),
                 )
             )
+            .turnTo(toRadians(90.0))
             // TODO CYCLE
             .stopAndAdd( // simultaneous
                 SequentialAction(
-                    motorActions.transferFull(),
+
                     openingTransferDelay,
                     motorActions.depositClaw.open(),
                     motorActions.extendoArm.moveFullUp(),
@@ -134,11 +135,11 @@ class Auto4part2 : LinearOpMode() {
             .setTangent(toRadians(180.0))
             .afterTime(0.5, motorActions.depositMoveWall())
             .splineToSplineHeading(
-                Pose2d(humanPlayerLineUp + Vector2d(0.5,0.0), toRadians(90.0)),
+                Pose2d(humanPlayerLineUp + Vector2d(2.5,0.0), toRadians(90.0)),
                 toRadians(270.0)
             ) // go to line up point
             // vision align should go here
-            .splineToConstantHeading(humanPlayerVec + Vector2d(0.5,0.0), toRadians(270.0))//, TranslationalVelConstraint(10.0)) // go to hp 35.0 -62.5
+            .splineToConstantHeading(humanPlayerVec + Vector2d(2.5,0.0), toRadians(270.0))//, TranslationalVelConstraint(10.0)) // go to hp 35.0 -62.5
             .stopAndAdd(
                 SequentialAction(
                     motorActions.extendo.moveDown(),
