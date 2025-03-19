@@ -138,7 +138,12 @@ class AutoSample : LinearOpMode() {
         motorControl.depositClaw.open()
         motorControl.extendoClaw.close()
 
-        waitForStart()
+        // replaces waitforstart
+        while (opModeInInit() && !isStopRequested) {
+            telemetry.addData("Status", "Ready, Waiting for start")
+            telemetry.update()
+            motorControl.update()
+        }
 
         runBlocking(
             RaceParallelAction(

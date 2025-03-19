@@ -29,6 +29,7 @@ import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.util.LinkedList
+import java.util.function.UnaryOperator
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.round
@@ -39,6 +40,8 @@ import kotlin.math.sign
 @Config
 //@Photon
 class TeleopActions : ActionOpMode() {
+    val eq = UnaryOperator { x: Double -> x + 1 }
+
     // Declare a PIDF Controller to regulate heading
     private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
     private val joystickHeadingController = PIDFController(headingPIDJoystick)
@@ -75,7 +78,7 @@ class TeleopActions : ActionOpMode() {
          */
 
     val drive by lazy { PinpointDrive(hardwareMap, startPose) }
-    val motorControl by lazy { MotorControl(hardwareMap) }
+    val motorControl by lazy { MotorControl(hardwareMap, lateinit=true) }
     val motorActions by lazy { MotorActions(motorControl) }
 
 
@@ -101,7 +104,7 @@ class TeleopActions : ActionOpMode() {
 
     val sampleMode = false
 
-    val specimenDeposit by lazy { SpecimenDeposit(motorControl, motorActions,5,10) }
+    val specimenDeposit by lazy { SpecimenDeposit(motorControl, motorActions,6,10) } // prev 5,10
 
     lateinit var specimenDepositTraj: Action
 
@@ -132,14 +135,19 @@ class TeleopActions : ActionOpMode() {
 
         waitForStart()
 
-        if (isStopRequested) return
-        // Motor Init
-        motorControl // init with by lazy
+        motorControl // init with by lazy, NOTE THIS DOESN'T ACTUALLY INIT IT, BECAUSE LATEINIT
         motorActions
 
         specimenDeposit // init with by lazy
 
         specimenDepositTraj = specimenDeposit.genTrajectory(drive)
+
+        if (isStopRequested) return
+
+        // Motor Init
+        motorControl.init()
+
+
 
 
         // Run Period
@@ -196,6 +204,9 @@ class TeleopActions : ActionOpMode() {
             val padExtendoOutIn = gamepad2.circle && !previousGamepad2.circle
             padReleased = padReleased && !gamepad2.circle
             val padLowPreset = gamepad2.a
+
+
+            val padClearUnique = gamepad2.square && !previousGamepad2.square
 
 
 
@@ -277,12 +288,12 @@ class TeleopActions : ActionOpMode() {
                 }
 
                 if (pad1ExTeamSwitch) {
-                    if (PoseStorage.currentTeam == PoseStorage.Team.RED) {
+                    if (PoseStorage.currentTeam == RED) {
                         gamepad1.rumbleBlips(1)
-                        PoseStorage.currentTeam = PoseStorage.Team.BLUE
+                        PoseStorage.currentTeam = BLUE
                     } else {
                         gamepad1.rumbleBlips(2)
-                        PoseStorage.currentTeam = PoseStorage.Team.RED
+                        PoseStorage.currentTeam = RED
                     }
                 }
             }
@@ -551,6 +562,8 @@ class TeleopActions : ActionOpMode() {
 
 
                 if (padAutoDrive) {
+                    UniqueActionQueue.runningUniqueActions.clear()
+                    runningActions.clear()
                     if (specimenDepositTrajUsed) {
                         specimenDeposit.genTrajectory(drive) // sketchy!!
                         specimenDepositTrajUsed = false
@@ -589,6 +602,11 @@ class TeleopActions : ActionOpMode() {
 
 
                 }
+            }
+
+            if (padClearUnique) {
+                UniqueActionQueue.runningUniqueActions.clear()
+                runningActions.clear()
             }
 
 

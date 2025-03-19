@@ -69,7 +69,7 @@ class Auto4part2 : LinearOpMode() {
             // grab
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.extendo.setTargetPosition(650.0),
+                    motorActions.extendo.setTargetPosition(600.0),
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(SleepAction(0.4)),
                 )
@@ -95,7 +95,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     SleepAction(0.2),
-                    motorActions.extendo.setTargetPosition(650.0), // 650
+                    motorActions.extendo.setTargetPosition(600.0), // 650
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoCycle(),
                     motorActions.transferFull(), // 0.65
@@ -109,7 +109,7 @@ class Auto4part2 : LinearOpMode() {
             .stopAndAdd(
                 SequentialAction(
                     //SleepAction(0.2), // wait for pass to finish
-                    motorActions.extendo.setTargetPosition(825.0), // 800 // 850 // 900
+                    motorActions.extendo.setTargetPosition(775.0), // 800 // 850 // 900
                     motorActions.extendo.waitUntilFinished(),
                     motorActions.extendoClaw.close(),
                     motorActions.extendoArm.moveDown(),
@@ -257,8 +257,12 @@ class Auto4part2 : LinearOpMode() {
             .build()
 
         motorControl.depositClaw.close()
-
-        waitForStart()
+        // replaces waitforstart
+        while (opModeInInit() && !isStopRequested) {
+            telemetry.addData("Status", "Ready, Waiting for start")
+            telemetry.update()
+            motorControl.update()
+        }
 
         runBlocking(
             RaceParallelAction(

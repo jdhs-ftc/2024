@@ -19,7 +19,7 @@ import kotlin.math.sqrt
 /**
  * This class is used to control the motor systems on the robot.
  */
-class MotorControl(hardwareMap: HardwareMap) {
+class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     @JvmField
     val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.445, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
@@ -47,8 +47,8 @@ class MotorControl(hardwareMap: HardwareMap) {
         // port 1 of exp hub and chub,
         // encoder is left_back
         PIDFController(
-            PIDCoefficients(0.005, 0.0, 0.0),
-            PIDFController.FeedforwardFun { a, b -> return@FeedforwardFun 0.05 }),
+            PIDCoefficients(0.005, 0.0, 0.0)
+        ) { a, b -> 0.05 }, // Static feedforward
         encoder=hardwareMap.get(DcMotorEx::class.java, "left_back"),
         reversed=true
     )
@@ -61,14 +61,23 @@ class MotorControl(hardwareMap: HardwareMap) {
 
     val motors = listOf(extendo, deposit)
 
-    //public final ColorSensor color;
     init {
+        if (!lateinit) {
+            init()
+        }
+    }
+
+    fun init() {
         depositArm.moveDown()
         extendoArm.moveUp()
 
-        motors.forEach { it.findZero() }
+        extendoClaw.open()
+        depositClaw.open()
 
         extendoArm.moveFullUp()
+
+        motors.forEach { it.findZero() }
+
     }
 
     /**
@@ -80,11 +89,11 @@ class MotorControl(hardwareMap: HardwareMap) {
 
 
     fun closeEnough(): Boolean {
-        return motors.stream().allMatch { it.closeEnough() }
+        return motors.all { it.closeEnough() }
     }
 
     val isOverCurrent: Boolean
-        get() = motors.stream().anyMatch { it.isOverCurrent }
+        get() = motors.any { it.isOverCurrent }
 
     class AxonEncoder(val pin: AnalogInput) {
         val position
@@ -103,10 +112,7 @@ class MotorControl(hardwareMap: HardwareMap) {
 
             companion object {
                 fun get(first: Boolean, second: Boolean): Color {
-                    // this is somewhat goofy and inefficient
-                    // I should find a better way of doing this,
-                    // im sure there's some elegant kotlin one, but too sleepy for that
-                    return Color.entries.stream().filter { return@filter it.first == first && it.second == second }.findFirst().get()
+                    return Color.entries.first { it.first == first && it.second == second }
                 }
             }
         }
@@ -193,11 +199,6 @@ class MotorControl(hardwareMap: HardwareMap) {
     class Claw(val servo: Servo, val openPos: Double, val closedPos: Double) {
         var closed: Boolean = false
 
-        init {
-            open()
-        }
-
-
         var position: Double
             get() = servo.position
             set(position) {
@@ -230,10 +231,6 @@ class MotorControl(hardwareMap: HardwareMap) {
             }
         var upPos: Double = 0.2
         var downPos: Double = 0.03 // TODO TUNE
-
-        init {
-            moveDown()
-        }
 
         constructor(servo: Servo, downPos: Double, upPos: Double) : this(servo) {
             this.downPos = downPos
@@ -273,9 +270,7 @@ class MotorControl(hardwareMap: HardwareMap) {
             get() {
                 return abs(position -  fullUpPos) < 0.05
             }
-        init {
-            moveFullUp()
-        }
+
         fun moveFullUp() { // AKA moveDump
             position = fullUpPos
         }
