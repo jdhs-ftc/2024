@@ -78,14 +78,9 @@ dependencies {
     implementation "com.acmerobotics.roadrunner:core:1.0.0"
     implementation "com.acmerobotics.roadrunner:actions:1.0.0"
     implementation "com.acmerobotics.dashboard:dashboard:0.4.16"
-    //implementation project(':RoadRunner')
-    implementation "page.j5155.roadrunner:ftc-otos:0.1.14+0.2.0.13-SNAPSHOT"
+    implementation "page.j5155.roadrunner:ftc-otos:0.1.14+0.3.0"
+
     implementation "org.jetbrains.kotlin:kotlin-reflect:2.0.21" // reflection
 
     implementation "dev.frozenmilk.sinister:Sloth:0.0.1"
-
-    //implementation "page.j5155.roadrunner.expressway:core:0.2.0"
-    //implementation "page.j5155.roadrunner.expressway:ftc:0.2.0-SNAPSHOT"
-
-    //implementation 'androidx.core:core-ktx:1.13.1'
 }

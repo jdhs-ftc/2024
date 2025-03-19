@@ -12,6 +12,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
 
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
 import org.firstinspires.ftc.teamcode.*;
+import org.firstinspires.ftc.teamcode.tuning.otos.OTOSHeadingOffsetTuner;
+import org.firstinspires.ftc.teamcode.tuning.otos.OTOSPositionOffsetTuner;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +41,43 @@ public final class TuningOpModes {
         ManualFeedforwardTuner.DISTANCE = 84;
 
         DriveViewFactory dvf;
-        if (DRIVE_CLASS.equals(PinpointDrive.class)) {
+        if (DRIVE_CLASS.equals(OctoQuadDrive.class)) {
+            dvf = hardwareMap -> {
+                OctoQuadDrive drive = new OctoQuadDrive(hardwareMap, new Pose2d(0, 0, 0));
+
+                List<Encoder> leftEncs = new ArrayList<>(), rightEncs = new ArrayList<>();
+                List<Encoder> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
+                parEncs.add(new LocalizationSensorEncoder(drive.localSensor, false, drive.leftBack));
+                perpEncs.add(new LocalizationSensorEncoder(drive.localSensor, true, drive.leftBack));
+
+                return new DriveView(
+                        DriveType.MECANUM,
+                        MecanumDrive.PARAMS.inPerTick,
+                        MecanumDrive.PARAMS.maxWheelVel,
+                        MecanumDrive.PARAMS.minProfileAccel,
+                        MecanumDrive.PARAMS.maxProfileAccel,
+                        hardwareMap.getAll(LynxModule.class),
+                        Arrays.asList(
+                                drive.leftFront,
+                                drive.leftBack
+                        ),
+                        Arrays.asList(
+                                drive.rightFront,
+                                drive.rightBack
+                        ),
+                        leftEncs,
+                        rightEncs,
+                        parEncs,
+                        perpEncs,
+                        drive.lazyImu,
+                        drive.voltageSensor,
+                        () -> new MotorFeedforward(MecanumDrive.PARAMS.kS,
+                                MecanumDrive.PARAMS.kV / MecanumDrive.PARAMS.inPerTick,
+                                MecanumDrive.PARAMS.kA / MecanumDrive.PARAMS.inPerTick)
+                );
+            };
+
+        } else if (DRIVE_CLASS.equals(PinpointDrive.class)) {
                 dvf = hardwareMap -> {
                     PinpointDrive pd = new PinpointDrive(hardwareMap, new Pose2d(0, 0, 0));
 
@@ -109,6 +147,10 @@ public final class TuningOpModes {
                                 MecanumDrive.PARAMS.kA / MecanumDrive.PARAMS.inPerTick)
                 );
             };
+
+            // register OTOS-specific tuning opmodes
+            manager.register(metaForClass(OTOSHeadingOffsetTuner.class), OTOSHeadingOffsetTuner.class);
+            manager.register(metaForClass(OTOSPositionOffsetTuner.class), OTOSPositionOffsetTuner.class);
         } else if (DRIVE_CLASS.equals(MecanumDrive.class)) {
             dvf = hardwareMap -> {
                 MecanumDrive md = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
@@ -219,6 +261,8 @@ public final class TuningOpModes {
         manager.register(metaForClass(ManualFeedbackTuner.class), ManualFeedbackTuner.class);
         manager.register(metaForClass(SplineTest.class), SplineTest.class);
         manager.register(metaForClass(LocalizationTest.class), LocalizationTest.class);
+
+        manager.register(metaForClass(AngularScalarTuner.class), AngularScalarTuner.class);
 
         FtcDashboard.getInstance().withConfigRoot(configRoot -> {
             for (Class<?> c : Arrays.asList(

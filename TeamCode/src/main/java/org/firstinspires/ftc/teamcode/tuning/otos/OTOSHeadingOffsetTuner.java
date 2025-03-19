@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.SparkFunOTOSDrive;
-@TeleOp
+
 public class OTOSHeadingOffsetTuner extends LinearOpMode {
 
     @Override
