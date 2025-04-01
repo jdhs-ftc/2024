@@ -1,9 +1,14 @@
 package org.firstinspires.ftc.teamcode.helpers
 
+import android.content.Context
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.qualcomm.robotcore.eventloop.opmode.OpMode
+import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier
+import com.qualcomm.robotcore.util.WebHandlerManager
+import org.firstinspires.ftc.ftccommon.external.WebHandlerRegistrar
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil
 
 open class BetterUniqueAction(val action: Action, val key: String = "UniqueAction") : Action by action {
     override fun run(p: TelemetryPacket): Boolean {
@@ -43,6 +48,16 @@ object UniqueActionQueue : OpModeManagerNotifier.Notifications {
     val runningUniqueActions = ArrayList<BetterUniqueAction>()
     var shouldQueueUniqueActions = true // can be changed at runtime
     // (not sure whether this is good; allows me to make super ultra unique actions)
+
+    // stolen from rr ftc, note from rrbrott
+    // I'm tempted to use @OnCreate, but some of the hooks are unreliable and @WebHandlerRegistrar
+    // seems to just work.
+    @WebHandlerRegistrar
+    @JvmStatic
+    fun registerRoutes(context: Context, manager: WebHandlerManager) {
+        OpModeManagerImpl.getOpModeManagerOfActivity(AppUtil.getInstance().activity)
+            .registerListener(this)
+    }
 
 
     override fun onOpModePreInit(p0: OpMode) {

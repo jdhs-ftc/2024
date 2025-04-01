@@ -685,7 +685,6 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("extendoPower",motorControl.extendo.motor.power)
                 telemetry.addData("depositTarget", motorControl.deposit.targetPosition)
                 telemetry.addData("depositPosition", motorControl.deposit.position)
-                telemetry.addData("extendoOffset", motorControl.extendo.encoderOffset)
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
                 telemetry.addData("depositClawPosition", motorControl.depositClaw.position)
                 telemetry.addData("dColor", motorControl.dColor.color)

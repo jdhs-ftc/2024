@@ -31,7 +31,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     val extendo: Slide = Slide(
         CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 0, encoder is left_front
         PIDFController(PIDCoefficients(0.001, 0.0, 0.0)),
-        encoder=hardwareMap.get(DcMotorEx::class.java, "left_front"),
+        encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "left_front"), true),
         reversed=true
     )
 
@@ -49,7 +49,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         PIDFController(
             PIDCoefficients(0.005, 0.0, 0.0)
         ) { a, b -> 0.05 }, // Static feedforward
-        encoder=hardwareMap.get(DcMotorEx::class.java, "left_back"),
+        encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "left_back"), true),
         reversed=true
     )
 
@@ -105,17 +105,28 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     class BLColor(val pin0: DigitalChannel, val pin1: DigitalChannel) {
         enum class Color(val first: Boolean, val second: Boolean) {
-            YELLOW(true, true),
+            NONE(false, false),
             RED(false, true),
             BLUE(true, false),
-            NONE(false, false);
+            YELLOW(true, true);
+
 
             companion object {
                 fun get(first: Boolean, second: Boolean): Color {
-                    return Color.entries.first { it.first == first && it.second == second }
+                    return if (first) {
+                        if (second) {
+                            YELLOW
+                        } else {
+                            BLUE
+                        }
+                    } else if (second) {
+                        RED
+                    } else {
+                        NONE
+                    }
+                    }
                 }
             }
-        }
         val color: Color
             get() {
                 // this could be EXTREMELY inefficient and trigger a read,
@@ -125,11 +136,30 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     }
 
-    class Slide(motor: DcMotorEx, val pid: PIDFController, val encoder: DcMotorEx = motor, val reversed: Boolean = true) :
+    class Encoder(val motor: DcMotor, val reversed: Boolean = false) {
+        private var offset = 0.0
+
+        var position: Double
+            get() = if (!reversed) {
+                (motor.currentPosition * -1) - offset
+            } else {
+                motor.currentPosition - offset
+            }
+            set(newPosition) {
+                // some weird math happening here
+                // this *should* work because we minus in getPosition but unsure
+                // TODO: prob causing problems
+                offset = motor.currentPosition - newPosition
+            }
+
+        fun reset() {
+            position = 0.0
+        }
+    }
+
+    class Slide(motor: DcMotorEx, val pid: PIDFController, val encoder: Encoder, val reversed: Boolean = false) :
         ControlledMotor(motor) {
         var resetting = false
-
-        var encoderOffset: Double = 0.0
 
         init {
             motor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
@@ -177,17 +207,8 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         }
 
         var position: Double
-            get() = if (!reversed) {
-                (encoder.currentPosition * -1) - encoderOffset
-            } else {
-                encoder.currentPosition - encoderOffset
-            }
-            set(newPosition) {
-                // some weird math happening here
-                // this *should* work because we minus in getPosition but unsure
-                // TODO: prob causing problems
-                encoderOffset = encoder.currentPosition - newPosition
-            }
+            get() = encoder.position
+            set(position) { encoder.position = position }
 
 
         override fun closeEnough(): Boolean {

@@ -29,6 +29,9 @@ class CachingDcMotorEx(motor: DcMotorEx) : CachingDcMotorSimple(motor), DcMotorE
     override fun setPower(power: Double) {
         super<CachingDcMotorSimple>.setPower(power)
     }
+
+    val currentCache = Caching(motor::isOverCurrent, 100.0)
+    override fun isOverCurrent() = currentCache.get()
 }
 class CachingCRServo(servo: CRServo) : CachingDcMotorSimple(servo), CRServo by servo {
     override fun setPower(power: Double) {
@@ -37,15 +40,20 @@ class CachingCRServo(servo: CRServo) : CachingDcMotorSimple(servo), CRServo by s
 }
 
 class CachingVoltageSensor(val voltageSensor: VoltageSensor) : VoltageSensor by voltageSensor {
-    private val timeSinceVoltUpdate = ElapsedTime()
-    private var lastVoltage = 12.0
+    val cache = Caching(voltageSensor::getVoltage)
     override fun getVoltage(): Double {
-        if (timeSinceVoltUpdate.milliseconds() > 500) {
-            lastVoltage = voltageSensor.voltage;
-            timeSinceVoltUpdate.reset();
-        }
-        return lastVoltage;
+        return cache.get()
     }
 }
 
-
+open class Caching<T>(val getter: () -> T, val timeoutMS: Double = 500.0) {
+    private val timeSinceUpdate = ElapsedTime()
+    private var last = getter.invoke()
+    fun get(): T {
+        if (timeSinceUpdate.milliseconds() > timeoutMS) {
+            last = getter.invoke();
+            timeSinceUpdate.reset();
+        }
+        return last;
+    }
+}

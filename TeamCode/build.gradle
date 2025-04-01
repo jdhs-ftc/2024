@@ -27,6 +27,12 @@ android {
     packagingOptions {
         jniLibs.useLegacyPackaging true
     }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 
 buildscript {
@@ -81,6 +87,9 @@ dependencies {
     implementation "page.j5155.roadrunner:ftc-otos:0.1.14+0.3.1"
 
     implementation "org.jetbrains.kotlin:kotlin-reflect:2.0.21" // reflection
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'junit:junit:4.13.2'
 
     implementation "dev.frozenmilk.sinister:Sloth:0.0.1"
 }
