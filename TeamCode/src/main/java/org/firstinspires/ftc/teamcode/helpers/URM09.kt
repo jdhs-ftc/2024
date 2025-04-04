@@ -6,9 +6,11 @@ import com.acmerobotics.roadrunner.Vector2d
 import com.qualcomm.robotcore.hardware.AnalogInput
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import java.lang.Math.toRadians
+import kotlin.math.abs
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.round
+import kotlin.math.sign
 import kotlin.math.sin
 
 private const val MAX_RANGE = 520 // cm
@@ -32,15 +34,30 @@ class SonicHeading(val leftSonic: URM09, val rightSonic: URM09,
     }
 }
 
-class SonicDistance {
+class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,0.0)) {
 
     fun getPosition(distance: Double, pose: Pose2d): Vector2d {
-        val heading = pose.heading.toDouble()
+        val heading = (pose.heading + sensorOffset.heading.toDouble()).toDouble()
+        val wall = Wall.getWall(heading)
 
-        TODO()
+        val rotatedSensorOffset = pose.heading * sensorOffset.position
+
+        val wallOffset = getOffset(distance, heading)
+        // good chance this math is wrong
+        return when (wall.direction) {
+            WallDirection.X -> Vector2d(
+                rotatedSensorOffset.x + sign(wall.distance) * (abs(wall.distance) - wallOffset.y),
+                pose.position.y
+            )
+            WallDirection.Y -> Vector2d(
+                pose.position.x,
+                rotatedSensorOffset.y + sign(wall.distance) *  (abs(wall.distance) - wallOffset.x)
+            )
+        }
     }
 
     // distance and heading OF A SENSOR (possibly 180 from bot heading)
+    // y is distance from wall
     fun getOffset(distance: Double, heading: Double): Vector2d {
         var x = distance * sin(heading)
         val y = distance * cos(heading)
@@ -61,13 +78,27 @@ enum class WallDirection {
 }
 // direction is the line that the wall is on (PERPENDICULAR TO)
 // dist is the distance in incehs along the direction
-class Wall(val direction: WallDirection, val distance: Double)
+enum class Wall(val direction: WallDirection, val distance: Double) {
+    RED(WallDirection.Y, -72.0), // negative y, 270 deg
+    BLUE(WallDirection.Y, 72.0), // positive y, 90 deg
+    AUDIENCE(WallDirection.X, 72.0), // positive x, 0 deg
+    REF(WallDirection.X, -72.0); // negative x ,180 deg
 
-enum class Walls(val wall: Wall) {
-    RED(Wall(WallDirection.Y, -72.0)), // negative y
-    BLUE(Wall(WallDirection.Y, 72.0)), // positive y
-    AUDIENCE(Wall(WallDirection.X, 72.0)), // positive x
-    REF(Wall(WallDirection.X, -72.0)) // negative x
+    companion object {
+        // not correct around edges/corners
+        // but idk that I really care
+        fun getWall(heading: Double): Wall {
+            val closest90 = (round(heading / toRadians(90.0)) * toRadians(90.0)) % toRadians(360.0)
+
+            return when (closest90) {
+                toRadians(0.0) -> AUDIENCE
+                toRadians(90.0) -> BLUE
+                toRadians(180.0) -> REF
+                toRadians(270.0) -> RED
+                else -> throw RuntimeException("Rounding didn't work??")
+            }
+        }
+    }
 }
 
 
