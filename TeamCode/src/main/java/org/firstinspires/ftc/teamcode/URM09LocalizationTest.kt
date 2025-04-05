@@ -10,6 +10,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.helpers.SonicDistance
 import org.firstinspires.ftc.teamcode.helpers.URM09
+import org.firstinspires.ftc.teamcode.helpers.Wall
+import kotlin.math.abs
+
 @TeleOp
 class URM09LocalizationTest : LinearOpMode() {
     override fun runOpMode() {
@@ -43,6 +46,14 @@ class URM09LocalizationTest : LinearOpMode() {
                 drive.pose = Pose2d(sonicPos, drive.pose.heading)
             }
 
+            val positions = ArrayList<Vector2d>()
+            for (wall in Wall.entries) {
+                val pos = sonicDist.getPosition(dist, drive.pose, wall)
+                if (abs(pos.x) <= 72.0 && abs(pos.y) <= 72.0) {
+                    positions.add(pos)
+                }
+            }
+
             telemetry.addData("x", drive.pose.position.x)
             telemetry.addData("y", drive.pose.position.y)
             telemetry.addData("heading (deg)", Math.toDegrees(drive.pose.heading.toDouble()))
@@ -58,6 +69,10 @@ class URM09LocalizationTest : LinearOpMode() {
 
             packet.fieldOverlay().setStroke("#2b00ff")
             Drawing.drawRobot(packet.fieldOverlay(), Pose2d(sonicPos,drive.pose.heading))
+
+            packet.fieldOverlay().setStroke("#2BFF00")
+
+            positions.forEach { Drawing.drawRobot(packet.fieldOverlay(), Pose2d(it, drive.pose.heading)) }
             FtcDashboard.getInstance().sendTelemetryPacket(packet)
         }
     }

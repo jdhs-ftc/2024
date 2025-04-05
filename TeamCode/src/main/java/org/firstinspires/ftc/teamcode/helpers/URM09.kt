@@ -10,7 +10,6 @@ import kotlin.math.abs
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.round
-import kotlin.math.sign
 import kotlin.math.sin
 
 private const val MAX_RANGE = 520 // cm
@@ -36,39 +35,51 @@ class SonicHeading(val leftSonic: URM09, val rightSonic: URM09,
 
 class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,0.0)) {
     // does this defaulting even make any sense?
-    fun getPosition(distance: Double = sonic.distanceIn, pose: Pose2d): Vector2d {
+    fun getPosition(distance: Double = sonic.distanceCm, pose: Pose2d): Vector2d {
         val heading = (pose.heading + sensorOffset.heading.toDouble()).toDouble()
-        val wall = Wall.getWall(heading)
+        if (abs(heading % toRadians(90.0)) < toRadians(5.0)) {
+            val wall = Wall.getWall(heading)
+            return getPosition(distance, pose, wall)
+        }
+        val positions = ArrayList<Vector2d>()
+        for (wall in Wall.entries) {
+            val pos = getPosition(distance, pose, wall)
+            if (abs(pos.x) <= 72.0 && abs(pos.y) <= 72.0) {
+                positions.add(pos)
+            }
+        }
+        return if (positions.isNotEmpty()) {
+            positions.minBy { it.minus(pose.position).norm() }
+        } else {
+            pose.position
+        }
+    }
+
+    fun getPosition(distance: Double, pose: Pose2d, wall: Wall): Vector2d {
+        val heading = (pose.heading + sensorOffset.heading.toDouble()).toDouble()
 
         val rotatedSensorOffset = pose.heading * sensorOffset.position
 
         val wallOffset = getOffset(distance, heading)
+
         // good chance this math is wrong
         return when (wall.direction) {
             WallDirection.X -> Vector2d(
-                rotatedSensorOffset.x + sign(wall.distance) * (abs(wall.distance) - wallOffset.y),
+                rotatedSensorOffset.x + wall.distance - wallOffset.y,
                 pose.position.y
             )
             WallDirection.Y -> Vector2d(
                 pose.position.x,
-                rotatedSensorOffset.y + sign(wall.distance) *  (abs(wall.distance) - wallOffset.y)
+                rotatedSensorOffset.y + wall.distance - wallOffset.x
             )
         }
     }
 
     // distance and heading OF A SENSOR (possibly 180 from bot heading)
-    // y is distance from wall
+    // output field centric
     fun getOffset(distance: Double, heading: Double): Vector2d {
-        var x = distance * (sin(heading)/2 + 1)
-        val y = distance * (cos(heading)/2 + 1)
-
-        val wrappedHeading = (heading + toRadians(45.0)) % toRadians(90.0) - toRadians(45.0) // wraps heading to -45, 45
-
-
-
-        // check if triangle is toward the left or the right
-        if (wrappedHeading < 0) { x = -x }
-
+        var x = distance * sin(heading)
+        val y = distance * cos(heading)
         return Vector2d(x, y)
     }
 }
