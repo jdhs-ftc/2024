@@ -37,21 +37,11 @@ class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,
     // does this defaulting even make any sense?
     fun getPosition(distance: Double = sonic.distanceCm, pose: Pose2d): Vector2d {
         val heading = (pose.heading + sensorOffset.heading.toDouble()).toDouble()
-        if (abs(heading % toRadians(90.0)) < toRadians(5.0)) {
+        if (abs(heading % toRadians(90.0)) < toRadians(10.0)) { // screw working while heading is off
             val wall = Wall.getWall(heading)
             return getPosition(distance, pose, wall)
-        }
-        val positions = ArrayList<Vector2d>()
-        for (wall in Wall.entries) {
-            val pos = getPosition(distance, pose, wall)
-            if (abs(pos.x) <= 72.0 && abs(pos.y) <= 72.0) {
-                positions.add(pos)
-            }
-        }
-        return if (positions.isNotEmpty()) {
-            positions.minBy { it.minus(pose.position).norm() }
         } else {
-            pose.position
+            return pose.position
         }
     }
 
