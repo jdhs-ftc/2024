@@ -35,8 +35,8 @@ class SonicHeading(val leftSonic: URM09, val rightSonic: URM09,
 }
 
 class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,0.0)) {
-
-    fun getPosition(distance: Double, pose: Pose2d): Vector2d {
+    // does this defaulting even make any sense?
+    fun getPosition(distance: Double = sonic.distanceIn, pose: Pose2d): Vector2d {
         val heading = (pose.heading + sensorOffset.heading.toDouble()).toDouble()
         val wall = Wall.getWall(heading)
 
@@ -51,7 +51,7 @@ class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,
             )
             WallDirection.Y -> Vector2d(
                 pose.position.x,
-                rotatedSensorOffset.y + sign(wall.distance) *  (abs(wall.distance) - wallOffset.x)
+                rotatedSensorOffset.y + sign(wall.distance) *  (abs(wall.distance) - wallOffset.y)
             )
         }
     }
@@ -59,10 +59,12 @@ class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,
     // distance and heading OF A SENSOR (possibly 180 from bot heading)
     // y is distance from wall
     fun getOffset(distance: Double, heading: Double): Vector2d {
-        var x = distance * sin(heading)
-        val y = distance * cos(heading)
+        var x = distance * (sin(heading)/2 + 1)
+        val y = distance * (cos(heading)/2 + 1)
 
         val wrappedHeading = (heading + toRadians(45.0)) % toRadians(90.0) - toRadians(45.0) // wraps heading to -45, 45
+
+
 
         // check if triangle is toward the left or the right
         if (wrappedHeading < 0) { x = -x }
@@ -94,8 +96,9 @@ enum class Wall(val direction: WallDirection, val distance: Double) {
                 toRadians(0.0) -> AUDIENCE
                 toRadians(90.0) -> BLUE
                 toRadians(180.0) -> REF
-                toRadians(270.0) -> RED
-                else -> throw RuntimeException("Rounding didn't work??")
+                toRadians(-180.0) -> REF
+                toRadians(-90.0) -> RED
+                else -> throw RuntimeException("Rounding didn't work?? Closest90 is $closest90")
             }
         }
     }
