@@ -40,7 +40,7 @@ public class OctoQuadDrive extends AbsoluteLocalizerDrive {
         The OctoQuad IMU needs to be tuned before use to ensure the output heading is accurate.
         Run AngularScalarTuner and follow the instructions to get this value.
          */
-        public double angularScalar = 1.0415;
+        public double angularScalar = 1.0408;
 
         /*
         Set the odometry pod positions relative to the center of the robot.

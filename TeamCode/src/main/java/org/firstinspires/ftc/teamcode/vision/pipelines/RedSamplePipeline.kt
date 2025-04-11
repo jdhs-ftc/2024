@@ -1,99 +1,112 @@
-package org.firstinspires.ftc.teamcode.vision.pipelines;
+package org.firstinspires.ftc.teamcode.vision.pipelines
 
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
-import org.opencv.core.RotatedRect;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvPipeline;
+import org.opencv.core.Core
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.MatOfPoint
+import org.opencv.core.MatOfPoint2f
+import org.opencv.core.Point
+import org.opencv.core.RotatedRect
+import org.opencv.core.Scalar
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
+import org.openftc.easyopencv.OpenCvPipeline
 
-import java.util.ArrayList;
-import java.util.Collections;
+class RedSamplePipeline : OpenCvPipeline() {
+    var lowerYCrCb: Scalar = Scalar(0.0, 173.0, 0.0, 0.0)
+    var upperYCrCb: Scalar = Scalar(255.0, 255.0, 110.0, 0.0)
+    private val ycrcbMat = Mat()
+    private val ycrcbBinaryMat = Mat()
 
-public class RedSamplePipeline extends OpenCvPipeline {
+    var erodeValue: Int = 0
+    var dilateValue: Int = 0
+    private var element: Mat? = null
+    private val ycrcbBinaryMatErodedDilated = Mat()
 
-	public Scalar lowerYCrCb = new Scalar(0.0, 173.0, 0.0, 0.0);
-	public Scalar upperYCrCb = new Scalar(255.0, 255.0, 110.0, 0.0);
-	private Mat ycrcbMat = new Mat();
-	private Mat ycrcbBinaryMat = new Mat();
+    private val contours = ArrayList<MatOfPoint>()
+    private val hierarchy = Mat()
 
-	public int erodeValue = 0;
-	public int dilateValue = 0;
-	private Mat element = null;
-	private Mat ycrcbBinaryMatErodedDilated = new Mat();
+    private val contours2f = MatOfPoint2f()
+    private val contoursRotRects = ArrayList<RotatedRect?>()
 
-	private ArrayList<MatOfPoint> contours = new ArrayList<>();
-	private Mat hierarchy = new Mat();
+    var lineColor: Scalar = Scalar(0.0, 255.0, 0.0, 0.0)
+    var lineThickness: Int = 3
 
-	private MatOfPoint2f contours2f = new MatOfPoint2f();
-	private ArrayList<RotatedRect> contoursRotRects = new ArrayList<>();
+    private val inputRotRects = Mat()
 
-	public Scalar lineColor = new Scalar(0.0, 255.0, 0.0, 0.0);
-	public int lineThickness = 3;
+    var lineColor1: Scalar = Scalar(0.0, 255.0, 0.0, 0.0)
+    var lineThickness1: Int = 3
 
-	private Mat inputRotRects = new Mat();
+    private val inputMask = Mat()
 
-	public Scalar lineColor1 = new Scalar(0.0, 255.0, 0.0, 0.0);
-	public int lineThickness1 = 3;
+    private val inputMaskContours = Mat()
 
-	private Mat inputMask = new Mat();
+    override fun processFrame(input: Mat): Mat {
+        Imgproc.cvtColor(input, ycrcbMat, Imgproc.COLOR_RGB2YCrCb)
+        Core.inRange(ycrcbMat, lowerYCrCb, upperYCrCb, ycrcbBinaryMat)
 
-	private Mat inputMaskContours = new Mat();
+        ycrcbBinaryMat.copyTo(ycrcbBinaryMatErodedDilated)
+        if (erodeValue > 0) {
+            this.element = Imgproc.getStructuringElement(
+                Imgproc.MORPH_RECT,
+                Size(erodeValue.toDouble(), erodeValue.toDouble())
+            )
+            Imgproc.erode(ycrcbBinaryMatErodedDilated, ycrcbBinaryMatErodedDilated, element)
 
-	@Override
-	public Mat processFrame(Mat input) {
-		Imgproc.cvtColor(input, ycrcbMat, Imgproc.COLOR_RGB2YCrCb);
-		Core.inRange(ycrcbMat, lowerYCrCb, upperYCrCb, ycrcbBinaryMat);
+            element!!.release()
+        }
 
-		ycrcbBinaryMat.copyTo(ycrcbBinaryMatErodedDilated);
-		if(erodeValue > 0) {
-			this.element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(erodeValue, erodeValue));
-			Imgproc.erode(ycrcbBinaryMatErodedDilated, ycrcbBinaryMatErodedDilated, element);
+        if (dilateValue > 0) {
+            this.element = Imgproc.getStructuringElement(
+                Imgproc.MORPH_RECT,
+                Size(dilateValue.toDouble(), dilateValue.toDouble())
+            )
+            Imgproc.dilate(ycrcbBinaryMatErodedDilated, ycrcbBinaryMatErodedDilated, element)
 
-			element.release();
-		}
+            element!!.release()
+        }
 
-		if(dilateValue > 0) {
-			this.element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(dilateValue, dilateValue));
-			Imgproc.dilate(ycrcbBinaryMatErodedDilated, ycrcbBinaryMatErodedDilated, element);
+        contours.clear()
+        hierarchy.release()
+        Imgproc.findContours(
+            ycrcbBinaryMatErodedDilated,
+            contours,
+            hierarchy,
+            Imgproc.RETR_EXTERNAL,
+            Imgproc.CHAIN_APPROX_SIMPLE
+        )
 
-			element.release();
-		}
+        contoursRotRects.clear()
+        for (points in contours) {
+            contours2f.release()
+            points.convertTo(contours2f, CvType.CV_32F)
 
-		contours.clear();
-		hierarchy.release();
-		Imgproc.findContours(ycrcbBinaryMatErodedDilated, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            contoursRotRects.add(Imgproc.minAreaRect(contours2f))
+        }
 
-		contoursRotRects.clear();
-		for(MatOfPoint points : contours) {
-			contours2f.release();
-			points.convertTo(contours2f, CvType.CV_32F);
+        input.copyTo(inputRotRects)
+        for (rect in contoursRotRects) {
+            if (rect != null) {
+                val rectPoints = arrayOfNulls<Point>(4)
+                rect.points(rectPoints)
+                val matOfPoint = MatOfPoint(*rectPoints)
 
-			contoursRotRects.add(Imgproc.minAreaRect(contours2f));
-		}
+                Imgproc.polylines(
+                    inputRotRects,
+                    mutableListOf<MatOfPoint?>(matOfPoint),
+                    true,
+                    lineColor,
+                    lineThickness
+                )
+            }
+        }
 
-		input.copyTo(inputRotRects);
-		for(RotatedRect rect : contoursRotRects) {
-			if(rect != null) {
-				Point[] rectPoints = new Point[4];
-				rect.points(rectPoints);
-				MatOfPoint matOfPoint = new MatOfPoint(rectPoints);
+        inputMask.release()
+        Core.bitwise_and(input, input, inputMask, ycrcbBinaryMatErodedDilated)
 
-				Imgproc.polylines(inputRotRects, Collections.singletonList(matOfPoint), true, lineColor, lineThickness);
-			}
-		}
+        inputMask.copyTo(inputMaskContours)
+        Imgproc.drawContours(inputMaskContours, contours, -1, lineColor1, lineThickness1)
 
-		inputMask.release();
-		Core.bitwise_and(input, input, inputMask, ycrcbBinaryMatErodedDilated);
-
-		inputMask.copyTo(inputMaskContours);
-		Imgproc.drawContours(inputMaskContours, contours, -1, lineColor1, lineThickness1);
-
-		return inputRotRects;
-	}
+        return inputRotRects
+    }
 }

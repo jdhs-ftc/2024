@@ -28,8 +28,9 @@ abstract public class AbsoluteLocalizerDrive extends MecanumDrive {
             // The only alternative is to add getter and setters, but that breaks compat.
             // Potential alternate solution: timestamp the pose set and backtrack it based on speed?
             localSensor.writePose(pose);
+        } else {
+            localSensor.updatePoseVel();
         }
-        localSensor.updatePoseVel();
         pose = localSensor.getCachedPose();
         lastPose = pose;
 

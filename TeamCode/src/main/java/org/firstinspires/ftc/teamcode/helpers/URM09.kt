@@ -5,6 +5,7 @@ import com.acmerobotics.roadrunner.Rotation2d
 import com.acmerobotics.roadrunner.Vector2d
 import com.qualcomm.robotcore.hardware.AnalogInput
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
+import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
 import kotlin.math.abs
 import kotlin.math.atan
@@ -37,7 +38,7 @@ class SonicDistance(val sonic: URM09, val sensorOffset: Pose2d = Pose2d(0.0,0.0,
     // does this defaulting even make any sense?
     fun getPosition(distance: Double = sonic.distanceCm, pose: Pose2d): Vector2d {
         val heading = (pose.heading + sensorOffset.heading.toDouble()).toDouble()
-        if (abs(heading % toRadians(90.0)) < toRadians(10.0)) { // screw working while heading is off
+        if (abs(toDegrees(heading) % 90.0) < 10.0) { // screw working while heading is off
             val wall = Wall.getWall(heading)
             return getPosition(distance, pose, wall)
         } else {

@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.helpers.SonicDistance
 import org.firstinspires.ftc.teamcode.helpers.URM09
-import org.firstinspires.ftc.teamcode.helpers.Wall
+import java.lang.Math.toDegrees
 import kotlin.math.abs
 
 @TeleOp
@@ -20,8 +20,11 @@ class URM09LocalizationTest : LinearOpMode() {
 
         val drive = OctoQuadDrive(hardwareMap, Pose2d(0.0, 0.0, 0.0))
 
-        val sonic = URM09(hardwareMap.analogInput.get("depositArmEncoder"))
-        val sonicDist = SonicDistance(sonic, Pose2d(0.0, 0.0, 0.0))
+        val leftSonic = URM09(hardwareMap.analogInput.get("leftSonic"))
+        val leftSonicDist = SonicDistance(leftSonic, Pose2d(-4.5, -8.5, Math.toRadians(180.0)))
+
+        val rightSonic = URM09(hardwareMap.analogInput.get("depositArmEncoder"))
+        val rightSonicDist = SonicDistance(rightSonic, Pose2d(7.0, -3.0, Math.toRadians(-90.0)))
 
         waitForStart()
 
@@ -35,44 +38,61 @@ class URM09LocalizationTest : LinearOpMode() {
                     -gamepad1.right_stick_x.toDouble()
                 )
             )
+            val leftDist = leftSonic.distanceIn
+            val rightDist = rightSonic.distanceIn
+            val speed = drive.updatePoseEstimate()
 
-            drive.updatePoseEstimate()
-            val dist = sonic.distanceIn
+            var pose = drive.pose
+            val leftSonicOffset = leftSonicDist.getOffset(leftDist, pose.heading.toDouble())
 
-            val sonicOffset = sonicDist.getOffset(dist, drive.pose.heading.toDouble())
+            val leftSonicPos = leftSonicDist.getPosition(leftDist, pose)
 
-            val sonicPos = sonicDist.getPosition(dist, drive.pose)
-            if (sonicPos.minus(drive.pose.position).norm() < 24) {
-                drive.pose = Pose2d(sonicPos, drive.pose.heading)
+
+            //if (leftSonicPos.minus(drive.pose.position).norm() < 24) {
+            pose = Pose2d(leftSonicPos, drive.pose.heading)
+
+            val rightSonicOffset =
+                rightSonicDist.getOffset(rightDist, pose.heading.toDouble())
+            val rightSonicPos = rightSonicDist.getPosition(rightDist, pose)
+            //}
+            //if (rightSonicPos.minus(drive.pose.position).norm() < 24) {
+                pose = Pose2d(rightSonicPos, drive.pose.heading)
+            //}
+
+            if (speed.linearVel.norm() < 1.0 && toDegrees(speed.angVel.toDouble()) < 1.0) {
+                drive.pose = pose
+                drive.updatePoseEstimate()
             }
 
-            val positions = ArrayList<Vector2d>()
-            for (wall in Wall.entries) {
-                val pos = sonicDist.getPosition(dist, drive.pose, wall)
-                if (abs(pos.x) <= 72.0 && abs(pos.y) <= 72.0) {
-                    positions.add(pos)
-                }
-            }
 
             telemetry.addData("x", drive.pose.position.x)
             telemetry.addData("y", drive.pose.position.y)
             telemetry.addData("heading (deg)", Math.toDegrees(drive.pose.heading.toDouble()))
-            telemetry.addData("sonic x", sonicPos.x)
-            telemetry.addData("sonic y", sonicPos.y)
-            telemetry.addData("offset x", sonicOffset.x)
-            telemetry.addData("offset y", sonicOffset.y)
+            telemetry.addData(
+                "rounded 90",
+                abs(toDegrees(drive.pose.heading.toDouble()) % 90.0)
+            )
+            telemetry.addData("rounded 90 bool", abs(toDegrees(drive.pose.heading.toDouble()) % 90.0) < 10.0)
+            telemetry.addData("left sonic x", leftSonicPos.x)
+            telemetry.addData("left sonic y", leftSonicPos.y)
+            telemetry.addData("left offset x", leftSonicOffset.x)
+            telemetry.addData("left offset y", leftSonicOffset.y)
+            telemetry.addData("right sonic x", rightSonicPos.x)
+            telemetry.addData("right sonic y", rightSonicPos.y)
+            telemetry.addData("right offset x", rightSonicOffset.x)
+            telemetry.addData("right offset y", rightSonicOffset.y)
             telemetry.update()
 
             val packet = TelemetryPacket()
             packet.fieldOverlay().setStroke("#3F51B5")
             Drawing.drawRobot(packet.fieldOverlay(), drive.pose)
 
-            packet.fieldOverlay().setStroke("#2b00ff")
-            Drawing.drawRobot(packet.fieldOverlay(), Pose2d(sonicPos,drive.pose.heading))
+            packet.fieldOverlay().setStroke("#FF002b")
+            Drawing.drawRobot(packet.fieldOverlay(), Pose2d(leftSonicPos,drive.pose.heading))
+            packet.fieldOverlay().setStroke("#2bFF00")
+            Drawing.drawRobot(packet.fieldOverlay(), Pose2d(rightSonicPos,drive.pose.heading))
 
-            packet.fieldOverlay().setStroke("#2BFF00")
 
-            positions.forEach { Drawing.drawRobot(packet.fieldOverlay(), Pose2d(it, drive.pose.heading)) }
             FtcDashboard.getInstance().sendTelemetryPacket(packet)
         }
     }
