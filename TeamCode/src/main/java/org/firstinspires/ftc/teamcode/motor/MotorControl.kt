@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.motor
 
+import com.acmerobotics.dashboard.config.Config
+import com.acmerobotics.roadrunner.ftc.FlightRecorder
 import com.qualcomm.robotcore.hardware.AnalogInput
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
@@ -9,18 +11,35 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.teamcode.helpers.CachingDcMotorEx
+import org.firstinspires.ftc.teamcode.helpers.MotorGroup
+import org.firstinspires.ftc.teamcode.helpers.RGBLight
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
+import org.firstinspires.ftc.teamcode.motor.MotorConstants.depositPID
+import org.firstinspires.ftc.teamcode.motor.MotorConstants.depositTargetOverride
+import org.firstinspires.ftc.teamcode.motor.MotorConstants.extendoPID
+import org.firstinspires.ftc.teamcode.motor.MotorConstants.extendoTargetOverride
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlin.math.sqrt
 
 
-/**
- * This class is used to control the motor systems on the robot.
- */
-class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
+@Config
+object MotorConstants {
+    @JvmStatic
+    var extendoPID = PIDCoefficients(0.001, 0.0, 0.0)
 
+    @JvmStatic
+    var depositPID = PIDCoefficients(0.005, 0.0, 0.0)
+
+    @JvmStatic
+    var extendoTargetOverride = -1.0
+
+    @JvmStatic
+    var depositTargetOverride = -1.0
+}
+
+class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
     val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.445, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
 
@@ -29,8 +48,8 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     @JvmField
     val extendo: Slide = Slide(
-        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 0, encoder is left_front
-        PIDFController(PIDCoefficients(0.001, 0.0, 0.0)),
+        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 1 of chub and exhub, encoder is left_front
+        PIDFController(extendoPID),
         encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "left_front"), true),
         reversed=true
     )
@@ -41,16 +60,26 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
 
+    val depositMotors = MotorGroup(
+        hardwareMap.get(DcMotorEx::class.java, "deposit1"),
+        hardwareMap.get(DcMotorEx::class.java, "deposit2")
+    )
+    init {
+        depositMotors.setDirections(DcMotorSimple.Direction.REVERSE, DcMotorSimple.Direction.FORWARD)
+    }
+
     @JvmField
     val deposit: Slide = Slide(
-        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "deposit")),
-        // port 1 of exp hub and chub,
+        CachingDcMotorEx(
+            depositMotors
+        ),
+        // port 0 of exp hub and 0 of chub,
         // encoder is left_back
         PIDFController(
-            PIDCoefficients(0.005, 0.0, 0.0)
-        ) { a, b -> 0.05 }, // Static feedforward
-        encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "left_back"), true),
-        reversed=true
+            depositPID
+        ),// { a, b -> 0.05 }, // Static feedforward
+        encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "right_front"), true),
+        reversed=false
     )
 
     val dColor = BLColor(hardwareMap.digitalChannel["digital0"],hardwareMap.digitalChannel["digital1"])
@@ -58,6 +87,8 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
 
     val extendoArmEncoder = AxonEncoder(hardwareMap.analogInput["extendoArmEncoder"])
+
+    val topLight = RGBLight(hardwareMap.servo.get("rgb"))
 
     val motors = listOf(extendo, deposit)
 
@@ -68,6 +99,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     }
 
     fun init() {
+        topLight.color = RGBLight.Color.YELLOW
         depositArm.moveDown()
         extendoArm.moveUp()
 
@@ -77,7 +109,6 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         extendoArm.moveFullUp()
 
         motors.forEach { it.findZero() }
-
     }
 
     /**
@@ -85,6 +116,30 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
      */
     fun update() {
         motors.forEach { it.update() }
+
+        FlightRecorder.write("MotorControl/extendoArm/target", extendoArm.position)
+        FlightRecorder.write("MotorControl/extendoArm/actual", extendoArmEncoder.position)
+        FlightRecorder.write("MotorControl/depositArm/target", depositArm.position)
+        FlightRecorder.write("MotorControl/depositArm/actual", depositArmEncoder.position)
+        FlightRecorder.write("MotorControl/deposit/target", deposit.targetPosition)
+        FlightRecorder.write("MotorControl/deposit/actual", deposit.position)
+        FlightRecorder.write("MotorControl/extendo/target", extendo.targetPosition)
+        FlightRecorder.write("MotorControl/extendo/actual", extendo.position)
+        FlightRecorder.write("MotorControl/dColor/color", dColor.color)
+        FlightRecorder.write("MotorControl/extendoClaw/target", extendoClaw.position)
+        FlightRecorder.write("MotorControl/depositClaw/target", depositClaw.position)
+        FlightRecorder.write("MotorControl/topLight/color", topLight.servo.position)
+
+        if (topLight.color == RGBLight.Color.YELLOW && motors.all { !it.resetting }) {
+            topLight.color = RGBLight.Color.GREEN
+        }
+
+        if (extendoTargetOverride != -1.0) {
+            extendo.targetPosition = extendoTargetOverride
+        }
+        if (depositTargetOverride != -1.0) {
+            deposit.targetPosition = depositTargetOverride
+        }
     }
 
 

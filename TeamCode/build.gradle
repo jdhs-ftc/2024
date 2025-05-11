@@ -16,7 +16,7 @@ apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
 apply plugin: 'org.team11260.fast-load-plugin'
 apply plugin: 'org.jetbrains.kotlin.android'
-apply plugin: 'dev.frozenmilk.sinister.sloth.Load'
+apply plugin: 'dev.frozenmilk.sinister.sloth.load'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -42,7 +42,7 @@ buildscript {
             url = "https://www.matthewo.tech/maven"
         }
         maven {
-                url "https://repo.dairy.foundation/snapshots"
+            url "https://repo.dairy.foundation/snapshots"
         }
         maven {
             url "https://repo.dairy.foundation/releases"
@@ -52,7 +52,7 @@ buildscript {
         classpath 'org.team11260:fast-load-plugin:0.1.2'
     }
     dependencies {
-        classpath "dev.frozenmilk.sinister.sloth:Load:0.0.1"
+        classpath "dev.frozenmilk:Load:0.2.1"
     }
 }
 
@@ -82,14 +82,18 @@ dependencies {
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.3-ALPHA'
 
     implementation "com.acmerobotics.roadrunner:core:1.0.1"
-    implementation "com.acmerobotics.roadrunner:actions:1.0.1"
-    implementation "com.acmerobotics.dashboard:dashboard:0.4.16"
-    implementation "page.j5155.roadrunner:ftc-otos:0.1.14+0.3.1"
+    implementation("page.j5155.roadrunner:ftc-otos:0.1.14+0.3.1") {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation("com.acmerobotics.roadrunner:actions:1.0.1") {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation("com.acmerobotics.slothboard:dashboard:0.2.1+0.4.16")
 
     implementation "org.jetbrains.kotlin:kotlin-reflect:2.0.21" // reflection
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'junit:junit:4.13.2'
 
-    implementation "dev.frozenmilk.sinister:Sloth:0.0.1"
+    implementation "dev.frozenmilk.sinister:Sloth:0.2.1"
 }

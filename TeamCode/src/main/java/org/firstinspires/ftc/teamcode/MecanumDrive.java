@@ -481,10 +481,23 @@ public class MecanumDrive {
             }
 
             // find the target pose and vel of the closest point on the path
-            Pose2dDual<Time> poseTarget = dispTraj.get(disp);
+            Pose2dDual<Time> targetPose = dispTraj.get(disp);
+            
 
-            // calculate the command based on PD on the target pose and vel
-            PoseVelocity2dDual<Time> cmd = contr.compute(poseTarget, pose, robotVelRobot);
+            Pose2dDual<Time> targetPoseNoVel = Pose2dDual.constant(targetPose.value(), 2);
+            // calculate the command based on PD on the target pose (no vel)
+            PoseVelocity2dDual<Time> correction = contr.compute(targetPoseNoVel, pose, robotVelRobot);
+
+            // no idea what these names mean sorry
+            // manually calculate the target vel ourselves to add it to the command
+            PoseVelocity2dDual<Time> targetVelWorld = targetPose.velocity();
+            Pose2dDual<Time> txTargetWorld = Pose2dDual.constant(targetPose.value().inverse(), 2);
+            PoseVelocity2dDual<Time> targetVelTarget = txTargetWorld.times(targetVelWorld);
+
+
+            // add the correction and the motion profile command
+            // TODO vel limit!!
+            PoseVelocity2dDual<Time> cmd = targetVelTarget.plus(correction.value());
 
             // convert it into wheel velocities with inverse kinematics
             MecanumKinematics.WheelVelocities<Time> wheelVels = kinematics.inverse(cmd);
@@ -501,14 +514,14 @@ public class MecanumDrive {
             rightFront.setPower(feedforward.compute(wheelVels.rightFront) / voltage);
 
             // log target to rr logs
-            FlightRecorder.write("TARGET_POSE", new PoseMessage(poseTarget.value()));
+            FlightRecorder.write("TARGET_POSE", new PoseMessage(targetPose.value()));
 
             // show dash data
             p.put("x", pose.position.x);
             p.put("y", pose.position.y);
             p.put("heading (deg)", Math.toDegrees(pose.heading.log()));
 
-            Pose2d error = poseTarget.value().minusExp(pose);
+            Pose2d error = targetPose.value().minusExp(pose);
             p.put("xError", error.position.x);
             p.put("yError", error.position.y);
             p.put("headingError (deg)", Math.toDegrees(error.heading.log()));
@@ -518,7 +531,7 @@ public class MecanumDrive {
             drawPoseHistory(c);
 
             c.setStroke("#4CAF50");
-            Drawing.drawRobot(c, poseTarget.value());
+            Drawing.drawRobot(c, targetPose.value());
 
             c.setStroke("#3F51B5");
             Drawing.drawRobot(c, pose);

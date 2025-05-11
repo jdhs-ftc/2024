@@ -17,7 +17,6 @@ class URM09Test: OpMode() {
     }
 
     override fun loop() {
-        light.setColor(urm09.distanceCm)
         telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
         telemetry.addData("voltage", urm09.channel.voltage)
         telemetry.addData("distanceCm", urm09.distanceCm)

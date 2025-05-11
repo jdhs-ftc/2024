@@ -3,9 +3,9 @@ package org.firstinspires.ftc.teamcode.helpers
 import com.qualcomm.robotcore.hardware.Servo
 
 class RGBLight(val servo: Servo) {
-    val colorStart = 0.281
-    val colorEnd = 0.722
-    val colorRange = colorEnd - colorStart
+    private val colorStart = 0.281
+    private val colorEnd = 0.722
+    private val colorRange = colorEnd - colorStart
 
     enum class Color(val pos: Double) {
         OFF(0.0),
@@ -21,12 +21,16 @@ class RGBLight(val servo: Servo) {
         WHITE(1.0)
     }
 
-    fun setColor(color: Color) {
-        servo.position = color.pos
-    }
-    fun setColor(hue: Double) {
+    var color: Color = Color.OFF
+        set(value) {
+            servo.position = value.pos
+            field = value
+        }
+
+    fun setHue(hue: Double) {
         servo.position = hueToPos(hue)
     }
+
 
     /** Hue is 0-255 **/
     fun hueToPos(hue: Double): Double {

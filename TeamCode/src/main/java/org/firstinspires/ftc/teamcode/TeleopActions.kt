@@ -20,6 +20,7 @@ import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
+import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.BLUE
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.RED
@@ -128,12 +129,8 @@ class TeleopActions : ActionOpMode() {
 
         // Telemetry Init
         telemetry.msTransmissionInterval = 50
-        telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
+        telemetry = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry, LogTelemetry())
 
-
-
-
-        waitForStart()
 
         motorControl // init with by lazy, NOTE THIS DOESN'T ACTUALLY INIT IT, BECAUSE LATEINIT
         motorActions
@@ -141,6 +138,8 @@ class TeleopActions : ActionOpMode() {
         specimenDeposit // init with by lazy
 
         specimenDepositTraj = specimenDeposit.genTrajectory(drive)
+
+        waitForStart()
 
         if (isStopRequested) return
 
