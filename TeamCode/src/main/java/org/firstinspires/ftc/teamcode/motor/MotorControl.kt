@@ -13,32 +13,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.teamcode.helpers.CachingDcMotorEx
 import org.firstinspires.ftc.teamcode.helpers.MotorGroup
 import org.firstinspires.ftc.teamcode.helpers.RGBLight
+import org.firstinspires.ftc.teamcode.helpers.ServoGroup
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
-import org.firstinspires.ftc.teamcode.helpers.control.PIDFController.PIDCoefficients
-import org.firstinspires.ftc.teamcode.motor.MotorConstants.depositPID
-import org.firstinspires.ftc.teamcode.motor.MotorConstants.depositTargetOverride
-import org.firstinspires.ftc.teamcode.motor.MotorConstants.extendoPID
-import org.firstinspires.ftc.teamcode.motor.MotorConstants.extendoTargetOverride
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlin.math.sqrt
 
 
 @Config
-object MotorConstants {
-    @JvmStatic
-    var extendoPID = PIDCoefficients(0.001, 0.0, 0.0)
-
-    @JvmStatic
-    var depositPID = PIDCoefficients(0.005, 0.0, 0.0)
-
-    @JvmStatic
-    var extendoTargetOverride = -1.0
-
-    @JvmStatic
-    var depositTargetOverride = -1.0
-}
-
 class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
     val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.445, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
@@ -49,13 +31,21 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
     val extendo: Slide = Slide(
         CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 1 of chub and exhub, encoder is left_front
-        PIDFController(extendoPID),
+        PIDFController(Constants.extendoPID),
         encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "left_front"), true),
         reversed=true
     )
 
+    val depositArmServo = ServoGroup(hardwareMap.servo["dArm"],hardwareMap.servo["dArm2"])
+
+    init {
+        depositArmServo.setDirections(Servo.Direction.FORWARD, Servo.Direction.REVERSE)
+        depositArmServo.scaleRange(0, Constants.depArmS1min, Constants.depArmS1max)
+        depositArmServo.scaleRange(1, Constants.depArmS2min, Constants.depArmS2max)
+    }
+
     @JvmField
-    val depositArm = ThreeArm(hardwareMap.get(Servo::class.java, "dArm"), 0.97, 0.265, 0.5) // TODO TUNE
+    val depositArm = ThreeArm(depositArmServo, 0.4, 0.95, 0.5) // TODO TUNE
 
     @JvmField
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
@@ -76,8 +66,8 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         // port 0 of exp hub and 0 of chub,
         // encoder is left_back
         PIDFController(
-            depositPID
-        ),// { a, b -> 0.05 }, // Static feedforward
+            Constants.depositPID
+        ), // { a, b -> 0.05 }, // Static feedforward
         encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "right_front"), true),
         reversed=false
     )
@@ -132,13 +122,6 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
         if (topLight.color == RGBLight.Color.YELLOW && motors.all { !it.resetting }) {
             topLight.color = RGBLight.Color.GREEN
-        }
-
-        if (extendoTargetOverride != -1.0) {
-            extendo.targetPosition = extendoTargetOverride
-        }
-        if (depositTargetOverride != -1.0) {
-            deposit.targetPosition = depositTargetOverride
         }
     }
 

@@ -136,8 +136,8 @@ class TeleopActions : ActionOpMode() {
         motorActions
 
         specimenDeposit // init with by lazy
-
         specimenDepositTraj = specimenDeposit.genTrajectory(drive)
+
 
         waitForStart()
 
@@ -190,11 +190,8 @@ class TeleopActions : ActionOpMode() {
 
 
             // Gamepad 2
-            // Presets/Automated
-            val padVerticalTransfer = gamepad2.dpad_up && !previousGamepad2.dpad_up
-            padReleased = padReleased && !gamepad2.dpad_up
-
-            val padSampleInHighBasket = gamepad2.dpad_left && !previousGamepad2.dpad_left
+            val padDepArm0 = gamepad2.dpad_left
+            val padDepArm1 = gamepad2.dpad_right
 
             val padWallPreset = (gamepad2.x && !previousGamepad2.x)
             val padWallPresetRelease = !gamepad2.x
@@ -427,14 +424,6 @@ class TeleopActions : ActionOpMode() {
 
              */
 
-                if (padVerticalTransfer) {
-                    run(
-                        UniqueAction(
-                            motorActions.verticalTransferFull(waitForPadRelease())
-                        )
-                    )
-                }
-
                 if (sampleMode) {
                     if (padArmUpFull) {
                         run(
@@ -470,9 +459,6 @@ class TeleopActions : ActionOpMode() {
                 }
 
                 if (padExtendoArmDown) {
-                    println("12087 extendo arm down")
-                    println("12087 extendo arm dumping ${motorControl.extendoArm.fullyUp}")
-                    println("12087 extendo arm position ${motorControl.extendoArm.position}")
                     if (motorControl.extendoArm.fullyUp) {
                         run(
 
@@ -550,15 +536,6 @@ class TeleopActions : ActionOpMode() {
                     )
                 }
 
-                if (padSampleInHighBasket) {
-                    run(
-                        UniqueAction(
-                            motorActions.sampleToHighBasketBack()
-                        )
-                    )
-
-                }
-
 
                 if (padAutoDrive) {
                     UniqueActionQueue.runningUniqueActions.clear()
@@ -607,6 +584,10 @@ class TeleopActions : ActionOpMode() {
                 UniqueActionQueue.runningUniqueActions.clear()
                 runningActions.clear()
             }
+
+
+            if (padDepArm0) motorControl.depositArm.moveDown()
+            if (padDepArm1) motorControl.depositArm.moveUp()
 
 
             /*

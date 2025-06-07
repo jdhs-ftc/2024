@@ -108,5 +108,5 @@ class SpecimenDeposit(
 
     }
 
-    fun genTrajectory(drive: MecanumDrive): Action = genTrajectory(drive.actionBuilderPath(Pose2d(humanPlayerVec,toRadians(90.0))))
+    fun genTrajectory(drive: MecanumDrive): Action = genTrajectory(drive.actionBuilderPathLowRes(Pose2d(humanPlayerVec,toRadians(90.0))))
 }

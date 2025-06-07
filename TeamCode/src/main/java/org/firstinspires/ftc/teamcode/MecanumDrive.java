@@ -93,6 +93,11 @@ public class MecanumDrive {
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
         public double headingVelGain = 0.0; // shared with turn
+
+        public double arcLengthSamplingEps = 1e-6;
+        public double dispResolution = 1.0;
+        public double angResolution = 0.2;
+        public double angSamplingEps = 0.02;
     }
 
     public static Params PARAMS = new Params();
@@ -271,6 +276,8 @@ public class MecanumDrive {
 
     }
 
+    public boolean makeTrajectoryWait = false;
+
     public final class FollowTrajectoryAction implements Action {
         public final TimeTrajectory timeTrajectory;
         private double beginTs = -1;
@@ -433,6 +440,7 @@ public class MecanumDrive {
             // needs to only run once
             // idk if this is the most elegant solution
             if (!initialized) {
+                makeTrajectoryWait = false;
                 trajectoryRunningTime.reset();
                 initialized = true;
             }
@@ -455,11 +463,12 @@ public class MecanumDrive {
             p.addLine("disp " + disp + " dispTraj length" + dispTraj.length());
 
             // if robot within 2 in of end pose
-            if (dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 2
+            if (((dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 2
             // or the closest position on the path is less then 2 inches away from the end of the path
             || (disp + 2) >= dispTraj.length()
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
-            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) {
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) && !makeTrajectoryWait)
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 5)) {
 
                 // stop all the motors
                 leftFront.setPower(0);
@@ -797,6 +806,22 @@ public class MecanumDrive {
                         1e-6,
                         new ProfileParams(
                                 0.25, 0.1, 1e-2
+                        )
+                ),
+                beginPose, 0.0,
+                defaultTurnConstraints,
+                defaultVelConstraint, defaultAccelConstraint
+        );
+    }
+
+    public TrajectoryActionBuilder actionBuilderPathLowRes(Pose2d beginPose) {
+        return new TrajectoryActionBuilder(
+                TurnAction::new,
+                FollowTrajectoryAsPathAction::new,
+                new TrajectoryBuilderParams(
+                        PARAMS.arcLengthSamplingEps,
+                        new ProfileParams(
+                                PARAMS.dispResolution, PARAMS.angResolution, PARAMS.angSamplingEps
                         )
                 ),
                 beginPose, 0.0,
