@@ -10,11 +10,11 @@ import com.qualcomm.robotcore.util.WebHandlerManager
 import org.firstinspires.ftc.ftccommon.external.WebHandlerRegistrar
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil
 
-open class BetterUniqueAction(val action: Action, val key: String = "UniqueAction") : Action by action {
+open class BetterUniqueAction(val action: Action, val key: String = "UniqueAction", val wait: Boolean = true) : Action by action {
     override fun run(p: TelemetryPacket): Boolean {
         if (!UniqueActionQueue.runningUniqueActions.contains(this) && UniqueActionQueue.runningUniqueActions.any { it.key == key }) (
             // this action is duplicated
-            if (UniqueActionQueue.shouldQueueUniqueActions) {
+            if (UniqueActionQueue.shouldQueueUniqueActions && wait) {
                 // wait for the other one to finish
                 return true
             } else {

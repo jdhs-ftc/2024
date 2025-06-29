@@ -136,3 +136,13 @@ abstract class InitLoopAction : Action {
     // intentionally not overriding preview
 }
 
+class LazyAction(val actionFun: () -> Action) : Action {
+    lateinit var action: Action
+    override fun run(p: TelemetryPacket): Boolean {
+        if (!::action.isInitialized) {
+            action = actionFun()
+        }
+        return action.run(p)
+    }
+}
+

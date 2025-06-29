@@ -44,8 +44,10 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         depositArmServo.scaleRange(1, Constants.depArmS2min, Constants.depArmS2max)
     }
 
+    val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
+
     @JvmField
-    val depositArm = ThreeArm(depositArmServo, 0.4, 0.97, 0.5)
+    val depositArm = DepositArm(depositArmServo, 0.4, 0.97, 0.685, depositArmEncoder)
 
     @JvmField
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
@@ -74,7 +76,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     val dColor = BLColor(hardwareMap.digitalChannel["digital0"],hardwareMap.digitalChannel["digital1"])
 
-    val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
+
 
     val extendoArmEncoder = AxonEncoder(hardwareMap.analogInput["extendoArmEncoder"])
 
@@ -90,7 +92,8 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     fun init() {
         topLight.color = RGBLight.Color.YELLOW
-        depositArm.moveDown()
+        // if we don't know where dep arm is slam it (TODO IDEALLY USE ENCODER!!)
+        if (depositArmServo.position.isNaN()) depositArm.moveDown()
         extendoArm.moveUp()
 
         extendoClaw.open()
@@ -320,7 +323,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         }
     }
 
-    class ThreeArm(servo: Servo,
+    open class ThreeArm(servo: Servo,
                    downPos: Double = 0.03, //wrong
                    upPos: Double = 0.2, // wrong
                    val fullUpPos: Double = 0.6) // tuned
@@ -337,6 +340,13 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         fun moveDump() = moveFullUp()
         fun moveScore() = moveFullUp()
         fun moveTransfer() = moveUp()
+    }
+
+    class DepositArm(servo: Servo, downPos: Double, upPos: Double, midPos: Double, encoder: AxonEncoder): ThreeArm(servo, downPos, upPos, midPos) {
+        fun moveForward() = moveUp()
+        fun moveBack() = moveDown()
+        fun moveMid() = moveFullUp()
+        fun moveHang() = moveFullUp()
     }
 
     abstract class ControlledMotor(val motor: DcMotorEx) {

@@ -145,6 +145,7 @@ class TeleopActions : ActionOpMode() {
 
         // Motor Init
         motorControl.init()
+        run(motorActions.depositArm.moveDown()) // SHOULD HOPEFULLY WORK
 
 
 
@@ -190,8 +191,8 @@ class TeleopActions : ActionOpMode() {
 
 
             // Gamepad 2
-            val padDepArm0 = gamepad2.dpad_left
-            val padDepArm1 = gamepad2.dpad_right
+            val padDepArm0 = gamepad2.dpad_left && !previousGamepad2.dpad_left
+            val padDepArm1 = gamepad2.dpad_right && !previousGamepad2.dpad_right
 
             val padWallPreset = (gamepad2.x && !previousGamepad2.x)
             val padWallPresetRelease = !gamepad2.x
@@ -586,8 +587,8 @@ class TeleopActions : ActionOpMode() {
             }
 
 
-            if (padDepArm0) motorControl.depositArm.moveDown()
-            if (padDepArm1) motorControl.depositArm.moveUp()
+            if (padDepArm0) run(motorActions.depositArm.moveDown())
+            if (padDepArm1) run(motorActions.depositArm.moveUp())
 
 
             /*

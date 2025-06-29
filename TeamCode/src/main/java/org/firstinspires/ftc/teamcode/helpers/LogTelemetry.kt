@@ -45,7 +45,7 @@ class LogTelemetry @JvmOverloads constructor(val base: String = "Telemetry/"): T
     ): Telemetry.Item? {
         if (lastData[caption] != value // don't spam logs with same value
             && lastTime[caption]?.let {
-                now() - it > msTransmissionInterval
+                now() * 1000 - it > msTransmissionInterval
             } == true
         ) {
             try {
@@ -55,7 +55,7 @@ class LogTelemetry @JvmOverloads constructor(val base: String = "Telemetry/"): T
                 FlightRecorder.write("$base${caption}_FAILED", "Failed to log $value because $e")
             }
             lastData[caption] = value
-            lastTime[caption] = now()
+            lastTime[caption] = now() * 1000
         }
         return null
     }

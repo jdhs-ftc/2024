@@ -52,7 +52,7 @@ buildscript {
         classpath 'org.team11260:fast-load-plugin:0.1.2'
     }
     dependencies {
-        classpath "dev.frozenmilk:Load:0.2.1"
+        classpath "dev.frozenmilk:Load:0.2.2"
     }
 }
 
@@ -95,5 +95,5 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'junit:junit:4.13.2'
 
-    implementation "dev.frozenmilk.sinister:Sloth:0.2.1"
+    implementation "dev.frozenmilk.sinister:Sloth:0.2.2"
 }

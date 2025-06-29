@@ -6,13 +6,20 @@ import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.InstantFunction
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
+import com.acmerobotics.roadrunner.TimeProfile
+import com.acmerobotics.roadrunner.ftc.FlightRecorder
+import com.acmerobotics.roadrunner.profile
+import com.qualcomm.robotcore.util.ElapsedTime
+import org.firstinspires.ftc.teamcode.helpers.BetterUniqueAction
+import org.firstinspires.ftc.teamcode.helpers.LazyAction
+import kotlin.math.abs
 
 class MotorActions(val motorControl: MotorControl) {
     val extendo = Extendo()
     val deposit = Deposit()
     val depositClaw = Claw(motorControl.depositClaw)
     val extendoClaw = Claw(motorControl.extendoClaw)
-    val depositArm = ThreeArm(motorControl.depositArm)
+    val depositArm = DepositArm(motorControl.depositArm)
     val extendoArm = ThreeArm(motorControl.extendoArm)
     val depositEncoder = DepositEncoder(motorControl.depositArmEncoder)
 
@@ -259,25 +266,120 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     open class ServoArm(val servoArm: MotorControl.ServoArm) {
-        fun setPosition(position: Double): Action {
+        open fun setPosition(position: Double): Action {
             return InstantAction { servoArm.position = position }
         }
 
-        fun moveUp(): Action {
+        open fun moveUp(): Action {
             return InstantAction { servoArm.moveUp() }
         }
 
-        fun moveDown(): Action {
+        open fun moveDown(): Action {
             return InstantAction { servoArm.moveDown() }
         }
     }
 
-    class ThreeArm(val threeArm: MotorControl.ThreeArm) : ServoArm(threeArm) {
-        fun moveFullUp(): Action {
+    open class ThreeArm(val threeArm: MotorControl.ThreeArm) : ServoArm(threeArm) {
+        open fun moveFullUp(): Action {
             return InstantAction { threeArm.moveFullUp() }
         }
         fun moveDump() = moveFullUp()
         fun moveScore() = moveFullUp()
         fun moveTransfer() = moveUp()
+        fun moveMid() = moveFullUp()
     }
+
+    class DepositArm(val depositArm: MotorControl.DepositArm): ThreeArm(depositArm) {
+        override fun setPosition(position: Double): Action {
+            return LazyAction { goToPosAction(
+                start = depositArm.position,
+                target = position,
+                maxVel = 4.0,
+                minAccel = -3.0,
+                maxAccel = 4.0,
+                resolution = 0.001,
+                setPosition = depositArm::position.setter
+            ) }
+        }
+        override fun moveUp(): Action {
+            return BetterUniqueAction(BetterUniqueAction(setPosition(depositArm.upPos),"depArmMoveUp",wait=false),"depArm")
+        }
+        override fun moveDown(): Action {
+            return BetterUniqueAction(
+                BetterUniqueAction(
+                    setPosition(depositArm.downPos),
+                    "depArmMoveDown",
+                    wait = false
+                ), "depArm"
+            )
+        }
+        override fun moveFullUp(): Action {
+            return BetterUniqueAction(
+                BetterUniqueAction(
+                    setPosition(depositArm.fullUpPos),
+                    "depArmMoveFullUp",
+                    wait = false
+                ), "depArm"
+            )
+        }
+    }
+}
+
+fun goToPosAction(
+    start: Double,
+    target: Double,
+    maxVel: Double,
+    minAccel: Double,
+    maxAccel: Double,
+    resolution: Double,
+    setPosition: (Double) -> Unit
+): Action {
+    if (target == start) return Action { false }
+    val dispProfile =
+        profile(abs(target - start), 0.0, { maxVel }, { minAccel }, { maxAccel }, resolution)
+    val profile = TimeProfile(dispProfile.baseProfile)
+    val currentTime = ElapsedTime()
+
+    var lastPosition = start
+    var lastTime = currentTime.seconds()
+
+    val negative = target < start
+
+    FlightRecorder.write("goToPosAction/start", start)
+    FlightRecorder.write("goToPosAction/target", target)
+    FlightRecorder.write("goToPosAction/maxVel", maxVel)
+    FlightRecorder.write("goToPosAction/minAccel", minAccel)
+    FlightRecorder.write("goToPosAction/maxAccel", maxAccel)
+    FlightRecorder.write("goToPosAction/resolution", resolution)
+    FlightRecorder.write("goToPosAction/negative", negative)
+
+
+    return SequentialAction( // init loop
+        InstantAction {
+            currentTime.reset()
+            lastTime = currentTime.seconds()
+        }, // init
+        { // loop
+            val time = currentTime.seconds()
+
+            val target = profile[time]
+            val targetPos = target[0]
+            val targetVel = target[1]
+            val targetAccel = target[2]
+
+            val output = if (negative) start - targetPos else start + targetPos
+
+            FlightRecorder.write("goToPosAction/lastPosition", lastPosition)
+            FlightRecorder.write("goToPosAction/lastTime", lastTime)
+            FlightRecorder.write("goToPosAction/time", time)
+            FlightRecorder.write("goToPosAction/targetVel", targetVel)
+            FlightRecorder.write("goToPosAction/targetAccel", targetAccel)
+            FlightRecorder.write("goToPosAction/output", output)
+            setPosition(output)
+
+            lastPosition = output
+            lastTime = time
+            return@SequentialAction time <= profile.duration
+        }
+    )
 }
