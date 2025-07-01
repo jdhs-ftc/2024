@@ -44,7 +44,9 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         depositArmServo.scaleRange(1, Constants.depArmS2min, Constants.depArmS2max)
     }
 
-    val depositArmEncoder = AxonEncoder(hardwareMap.analogInput["depositArmEncoder"])
+    val depositArmEncoderInput: AnalogInput = hardwareMap.analogInput["depositArmEncoder"]
+
+    val depositArmEncoder = AxonEncoder { depositArmEncoderInput.voltage * -1 }
 
     @JvmField
     val depositArm = DepositArm(depositArmServo, 0.4, 0.97, 0.685, depositArmEncoder)
@@ -136,12 +138,13 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     val isOverCurrent: Boolean
         get() = motors.any { it.isOverCurrent }
 
-    class AxonEncoder(val pin: AnalogInput) {
+    class AxonEncoder(val getter: () -> Double) {
+        constructor(pin: AnalogInput): this(pin::getVoltage)
         val position
-            get() = pin.voltage / pin.maxVoltage
+            get() = getter() / 3.3
 
         val posDegrees
-            get() = pin.voltage / pin.maxVoltage * 360
+            get() = getter() / 3.3 * 360
     }
 
     class BLColor(val pin0: DigitalChannel, val pin1: DigitalChannel) {
