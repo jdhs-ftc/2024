@@ -10,7 +10,6 @@ import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.Rotation2d
 import com.acmerobotics.roadrunner.SequentialAction
-import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.Vector2d
 import com.qualcomm.hardware.lynx.LynxModule
 import com.qualcomm.hardware.lynx.LynxModule.BulkCachingMode
@@ -194,36 +193,6 @@ class TeleopActions : ActionOpMode() {
             val padDepArm0 = gamepad2.dpad_left && !previousGamepad2.dpad_left
             val padDepArm1 = gamepad2.dpad_right && !previousGamepad2.dpad_right
 
-            val padWallPreset = (gamepad2.x && !previousGamepad2.x)
-            val padWallPresetRelease = !gamepad2.x
-            padReleased = padReleased && padWallPresetRelease
-            val padHighPreset = false // prev triangle
-            val padExtendoOutIn = gamepad2.circle && !previousGamepad2.circle
-            padReleased = padReleased && !gamepad2.circle
-            val padLowPreset = gamepad2.a
-
-
-            val padClearUnique = gamepad2.square && !previousGamepad2.square
-
-
-
-            val padDepositClawToggle =
-                (gamepad2.right_bumper && !previousGamepad2.right_bumper) //|| (gamepad1.square && !previousGamepad1.square);
-            //val padExtendoClawToggle = (gamepad2.left_bumper && !previousGamepad2.left_bumper)
-            //val padArmToggle = (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25))
-            val padArmUpFull = (gamepad2.right_bumper && !(previousGamepad2.right_bumper))
-
-            val padExtendoArmDown =
-                (gamepad2.right_trigger > 0.25 && !(previousGamepad2.right_trigger > 0.25)) // trigger rising edge
-            val padExtendoGrabAndArmUp = !(gamepad2.right_trigger > 0.25) // trigger falling edge
-            padReleased = padReleased && padExtendoGrabAndArmUp
-
-            val padDepositChamber = (gamepad2.left_trigger > 0.25 && !(previousGamepad2.left_trigger > 0.25))
-            val padDepositChamberRelease = (gamepad2.left_trigger < 0.25)
-            padReleased = padReleased && padDepositChamberRelease
-
-            //val padDepositArmDump =
-
             // carson mixes up lefts from rights;
             // grip tape?
             // use triggers?
@@ -239,12 +208,6 @@ class TeleopActions : ActionOpMode() {
             // EXTENDO CONTROL HAPPENS AFTER DRIVING
 
             val padSlideControlMultiplier = 20.0
-
-            val padTransfer = gamepad2.left_bumper && !previousGamepad2.left_bumper
-            val padTransferRelease = !gamepad2.left_bumper
-
-            padReleased = padReleased && padTransferRelease
-
 
             // Misc
             val padForceDown = gamepad2.left_stick_button || gamepad2.right_stick_button
@@ -415,127 +378,12 @@ class TeleopActions : ActionOpMode() {
 
 
 
-                if (padDepositClawToggle) {
-                    motorControl.depositClaw.toggle()
-                }
                 /*
             if (padExtendoClawToggle) {
                 motorControl.extendoClaw.toggle()
             }*
 
              */
-
-                if (sampleMode) {
-                    if (padArmUpFull) {
-                        run(
-                            UniqueAction(
-                                SequentialAction(
-                                    motorActions.extendo.moveDown(),
-                                    motorActions.deposit.moveDown(),
-                                    motorActions.depositArm.moveDown(),
-                                    motorActions.extendoArm.moveFullUp(),
-                                    // wait for extendo arm to get to target
-                                    // maybe use gamepad here?
-                                    SleepAction(0.5),
-                                    motorActions.extendoClaw.open(),
-                                    SleepAction(0.1), // wait for the claw to open
-                                    motorActions.extendoArm.moveUp(),
-                                    SleepAction(0.1) // wait for the extendo arm to finish
-                                    // moving to just above the ground position
-
-
-                                )
-                            )
-                        )
-                    }
-                }
-
-
-                if (padHighPreset) {
-                    motorControl.deposit.targetPosition = 1600.0
-                }
-                if (padLowPreset) {
-                    motorControl.deposit.targetPosition = 20.0
-                    motorControl.extendo.targetPosition = 20.0
-                }
-
-                if (padExtendoArmDown) {
-                    if (motorControl.extendoArm.fullyUp) {
-                        run(
-
-                            motorActions.extendoArm.moveUp()
-
-                        )
-                    } else {
-                        run(
-                            UniqueAction(
-                                SequentialAction(
-                                    motorActions.extendoClaw.open(), // open claw
-                                    SleepAction(0.05),
-                                    motorActions.extendoArm.moveDown(), // move to ground
-                                    waitForPadRelease(), // wait until trigger releases
-                                    motorActions.extendoClaw.close(), // close claw
-                                    SleepAction(0.5), // TODO tune
-                                    motorActions.extendoArm.moveUp() // move claw to "clears ground bar" pos
-                                )
-                            )
-                        )
-                    }
-                }
-                if (padWallPreset) {
-                    run(
-                        UniqueAction(
-                            SequentialAction(
-                                motorActions.depositMoveWallTeleop(),
-                                RaceParallelAction(
-                                    waitForPadRelease(),
-                                ),
-                                motorActions.extendoClaw.open(),
-                                motorActions.depositPickupWallTeleop(),
-                                SleepAction(0.5),
-                                motorActions.extendo.moveDown()
-                            )
-                        )
-                    )
-                }
-
-                if (padExtendoOutIn) {
-                    run(
-                        SequentialAction(
-                            motorActions.depositMoveWallTeleop(),
-                            RaceParallelAction(
-                                waitForPadRelease(),
-                            ),
-                            motorActions.extendo.moveUp(),
-                            motorActions.extendoArm.moveUp()
-                        )
-
-                    )
-                }
-
-                if (padDepositChamber) {
-                    run(
-                        SequentialAction(
-                            motorActions.depositMoveChamber(),
-                            waitForPadRelease(),
-                            motorActions.depositScoreChamberTeleop()
-                        )
-
-                    )
-                }
-
-                if (padTransfer) {
-                    run(
-                        UniqueAction(
-                            SequentialAction(
-                                motorActions.moveTransfer(),
-                                waitForPadRelease(),
-                                motorActions.grabTransferReturn(),
-                                motorActions.extendo.moveDown()
-                            )
-                        )
-                    )
-                }
 
 
                 if (padAutoDrive) {
@@ -579,11 +427,6 @@ class TeleopActions : ActionOpMode() {
 
 
                 }
-            }
-
-            if (padClearUnique) {
-                UniqueActionQueue.runningUniqueActions.clear()
-                runningActions.clear()
             }
 
 
