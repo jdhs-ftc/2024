@@ -4,12 +4,10 @@ package org.firstinspires.ftc.teamcode.helpers
 import com.acmerobotics.dashboard.canvas.Canvas
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.NullAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.now
 import java.util.function.Supplier
-
-
-
 
 
 // Released under the MIT License and the BSD-3-Clause license by j5155 (you may use it under either one)
@@ -143,6 +141,38 @@ class LazyAction(val actionFun: () -> Action) : Action {
             action = actionFun()
         }
         return action.run(p)
+    }
+}
+
+class IfAction(val condition: Supplier<Boolean>, val trueAction: Action = NullAction(), val falseAction: Action = NullAction()) : Action {
+    var value: Boolean? = null
+
+    override fun run(t: TelemetryPacket): Boolean {
+        if (value == null) value = condition.get()
+        return if (value == true) trueAction.run(t) else falseAction.run(t)
+    }
+}
+
+class RepeatUntilAction(val condition: Supplier<Boolean>, val action: Supplier<Action>) : Action {
+    var initialized: Boolean = false
+    var storedAction: Action = action.get()
+    override fun run(p: TelemetryPacket): Boolean {
+        if (!initialized) {
+            initialized = true
+            if (!condition.get()) {
+                return false
+            }
+        }
+        val keepRunning = storedAction.run(p)
+
+        if (!keepRunning) { // the action wants to end
+            if (!condition.get()) { // should we actually end?
+                return false
+            } else { // regen the action
+                storedAction = action.get()
+            }
+        }
+        return true
     }
 }
 

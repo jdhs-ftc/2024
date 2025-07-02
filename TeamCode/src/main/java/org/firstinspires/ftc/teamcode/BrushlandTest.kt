@@ -29,11 +29,6 @@ class BrushlandTest: OpMode() {
         telemetry.addData("color",color.color)
         telemetry.update()
 
-        when (color.color) {
-            BLColor.Color.NONE -> light.color = RGBLight.Color.OFF
-            BLColor.Color.RED -> light.color = RGBLight.Color.RED
-            BLColor.Color.BLUE -> light.color = RGBLight.Color.BLUE
-            BLColor.Color.YELLOW -> light.color = RGBLight.Color.YELLOW
-        }
+        light.color = color.color
     }
 }

@@ -16,6 +16,9 @@ public class PoseStorage {
     public static long poseUpdatedTime = System.currentTimeMillis();
     public static Team currentTeam = Team.RED;
     public enum Team {
-        BLUE, RED
+        BLUE, RED;
+        public Color getColor() {
+            return this == BLUE ? Color.BLUE : Color.RED;
+        }
     }
 }

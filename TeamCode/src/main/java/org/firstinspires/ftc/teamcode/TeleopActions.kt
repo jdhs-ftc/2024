@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
+import org.firstinspires.ftc.teamcode.helpers.Color
 import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.BLUE
@@ -29,7 +30,6 @@ import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.util.LinkedList
-import java.util.function.UnaryOperator
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.round
@@ -40,7 +40,6 @@ import kotlin.math.sign
 @Config
 //@Photon
 class TeleopActions : ActionOpMode() {
-    val eq = UnaryOperator { x: Double -> x + 1 }
 
     // Declare a PIDF Controller to regulate heading
     private val headingPIDJoystick = PIDFController.PIDCoefficients(0.6, 0.0, 1.0)
@@ -109,6 +108,8 @@ class TeleopActions : ActionOpMode() {
     lateinit var specimenDepositTraj: Action
 
     var specimenDepositTrajUsed = false
+
+    var hanging = false
 
 
     override fun runOpMode() {
@@ -193,6 +194,47 @@ class TeleopActions : ActionOpMode() {
             val padDepArm0 = gamepad2.dpad_left && !previousGamepad2.dpad_left
             val padDepArm1 = gamepad2.dpad_right && !previousGamepad2.dpad_right
 
+            val padResetAll = gamepad2.touchpad && !previousGamepad2.touchpad
+
+            val padHang = gamepad2.left_bumper && !previousGamepad2.left_bumper
+            val padHangRelease = !gamepad2.left_bumper && previousGamepad2.left_bumper
+
+
+
+            // Intake
+
+            val padAutoIntakeStart = gamepad2.right_trigger > 0.3 && !(previousGamepad2.right_trigger > 0.3)
+
+            val padIntakeReject = gamepad2.right_bumper && !previousGamepad2.right_bumper
+            val padIntakeStop = !gamepad2.right_bumper && previousGamepad2.right_bumper
+
+            val padIntakeExtendoIn = gamepad2.square && !previousGamepad2.square
+            val padIntakeExtendoOut = !gamepad2.square && previousGamepad2.square
+
+
+            // Deposit
+
+            val padTopChamber = gamepad2.dpad_up && !previousGamepad2.dpad_up
+            val padBottomChamber = gamepad2.dpad_right && !previousGamepad2.dpad_right
+
+            val padMoveChamber = gamepad2.left_trigger > 0.3 && !(previousGamepad2.left_trigger > 0.3)
+            val padScoreChamber = !(gamepad2.left_trigger > 0.3) && previousGamepad2.left_trigger > 0.3
+
+
+            // Auto Tele
+            val padAutoDrive = gamepad2.triangle && !previousGamepad2.triangle
+            val padAutoDriveRelease = !gamepad2.triangle
+            padReleased = padReleased && padAutoDriveRelease
+
+
+            val padAutoRightTop = gamepad2.dpad_up && !previousGamepad2.dpad_up
+            val padAutoRightBottom = gamepad2.dpad_right && !previousGamepad2.dpad_right
+            val padAutoLeftTop = gamepad2.dpad_left && !previousGamepad2.dpad_left
+            val padAutoLeftBottom = gamepad2.dpad_down && !previousGamepad2.dpad_down
+
+
+
+
             // carson mixes up lefts from rights;
             // grip tape?
             // use triggers?
@@ -212,9 +254,7 @@ class TeleopActions : ActionOpMode() {
             // Misc
             val padForceDown = gamepad2.left_stick_button || gamepad2.right_stick_button
 
-            val padAutoDrive = gamepad2.triangle && !previousGamepad2.triangle
-            val padAutoDriveRelease = !gamepad2.triangle
-            padReleased = padReleased && padAutoDriveRelease
+
 
 
             // Update the speed
@@ -365,8 +405,8 @@ class TeleopActions : ActionOpMode() {
 
                 // Slide (Manual)
                 // TODO: abstract this?
-                if (motorControl.deposit.targetPosition >= 1600 && padDepositControl > 0) {
-                    motorControl.deposit.targetPosition = 1600.0
+                if (motorControl.deposit.targetPosition >= 2950 && padDepositControl > 0) {
+                    motorControl.deposit.targetPosition = 2950.0
                 } else if (motorControl.deposit.targetPosition <= 20 && padDepositControl < 0) {
                     if (padForceDown) {
                         motorControl.deposit.findZero()
@@ -433,19 +473,36 @@ class TeleopActions : ActionOpMode() {
             if (padDepArm0) run(motorActions.depositArm.moveDown())
             if (padDepArm1) run(motorActions.depositArm.moveUp())
 
+            if (padHang && !hanging) {
+                motorControl.deposit.targetPosition = 2950.0
+                run(SequentialAction(
+                    { motorControl.deposit.position < 2000.0 },
+                    motorActions.depositArm.moveHang()
+                ))
+            }
 
-            /*
-            gamepad2.rumble(
-                if (motorControl.dColor.color != Color.NONE && !motorControl.depositClaw.closed) {
-                    0.4
-                } else {
-                    0.0
-                },
-                0.0,
-                Gamepad.RUMBLE_DURATION_CONTINUOUS
-            )
+            if (padHangRelease && !hanging) {
+                motorControl.deposit.targetPosition = 996.0
+                drivingEnabled = false
+                hanging = true
+                motorControl.topLight.color = Color.VIOLET
+            }
 
-             */
+            if (padHang && hanging) {
+                motorControl.deposit.targetPosition = 2950.0
+            }
+
+            if (padHangRelease && hanging) {
+                hanging = false
+                drivingEnabled = true
+                motorControl.topLight.color = motorControl.topLight.lastColor
+            }
+
+            if (padMoveChamber) run(motorActions.depositMoveChamber())
+            if (padScoreChamber) run(motorActions.depositScoreChamberTeleop())
+
+
+
 
 
             // update RR, update motor controllers
@@ -512,7 +569,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
                 telemetry.addData("depositClawPosition", motorControl.depositClaw.position)
                 telemetry.addData("dColor", motorControl.dColor.color)
-                telemetry.addData("dumping",motorControl.extendoArm.fullyUp)
+                telemetry.addData("dumping",motorControl.extendoArm.mid)
                 telemetry.addData("depositArmTargetPosition",motorControl.depositArm.position)
                 telemetry.addData("depositArmEncoderPos", motorControl.depositArmEncoder.position)
                 telemetry.addData("depositArmEncoderPosDeg", motorControl.depositArmEncoder.posDegrees)
@@ -537,6 +594,7 @@ class TeleopActions : ActionOpMode() {
             telemetry.addData("cyclesToScore", specimenDeposit.cyclesToScore)
             telemetry.addData("cyclesRuntimeScored (actual)", specimenDeposit.cyclesRuntimeScored)
             telemetry.addData("drivingEnabled",drivingEnabled)
+            telemetry.addData("hanging",hanging)
             telemetry.update()
         }
     }

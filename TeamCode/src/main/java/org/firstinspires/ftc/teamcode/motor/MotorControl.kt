@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.motor
 import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.roadrunner.ftc.FlightRecorder
 import com.qualcomm.robotcore.hardware.AnalogInput
+import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
@@ -11,6 +12,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.teamcode.helpers.CachingDcMotorEx
+import org.firstinspires.ftc.teamcode.helpers.Color
 import org.firstinspires.ftc.teamcode.helpers.MotorGroup
 import org.firstinspires.ftc.teamcode.helpers.RGBLight
 import org.firstinspires.ftc.teamcode.helpers.ServoGroup
@@ -23,10 +25,9 @@ import kotlin.math.sqrt
 @Config
 class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.445, 0.6, 0.85) // 0.425 0.6 0.85 // 0.3 0.6 1.0 //0.03, 0.2) // dump pos 0.6, set in class
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.0, 0.5, 1.0)
 
-    @JvmField
-    val extendoClaw = Claw(hardwareMap.get(Servo::class.java, "extendoClaw"), 0.55, 0.387) // might need to be 0.45 0.7???? // 0.32 0.5
+    val intake = Intake(hardwareMap.get(CRServo::class.java, "intake"))
 
     @JvmField
     val extendo: Slide = Slide(
@@ -49,7 +50,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     val depositArmEncoder = AxonEncoder { depositArmEncoderInput.voltage * -1 }
 
     @JvmField
-    val depositArm = DepositArm(depositArmServo, 0.4, 0.97, 0.685, depositArmEncoder)
+    val depositArm = DepositArm(depositArmServo, 0.4, 0.97, 0.72, depositArmEncoder)
 
     @JvmField
     val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
@@ -78,6 +79,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     val dColor = BLColor(hardwareMap.digitalChannel["digital0"],hardwareMap.digitalChannel["digital1"])
 
+    val eColor = BLColor(hardwareMap.digitalChannel["digital2"],hardwareMap.digitalChannel["digital3"])
 
 
     val extendoArmEncoder = AxonEncoder(hardwareMap.analogInput["extendoArmEncoder"])
@@ -86,6 +88,8 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     val motors = listOf(extendo, deposit)
 
+    var resetting = true
+
     init {
         if (!lateinit) {
             init()
@@ -93,15 +97,15 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     }
 
     fun init() {
-        topLight.color = RGBLight.Color.YELLOW
+        topLight.color = Color.YELLOW
         // if we don't know where dep arm is slam it (TODO IDEALLY USE ENCODER!!)
         if (depositArmServo.position.isNaN()) depositArm.moveDown()
         extendoArm.moveUp()
 
-        extendoClaw.open()
+        intake.stop()
         depositClaw.open()
 
-        extendoArm.moveFullUp()
+        extendoArm.moveMid()
 
         motors.forEach { it.findZero() }
     }
@@ -121,12 +125,13 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         FlightRecorder.write("MotorControl/extendo/target", extendo.targetPosition)
         FlightRecorder.write("MotorControl/extendo/actual", extendo.position)
         FlightRecorder.write("MotorControl/dColor/color", dColor.color)
-        FlightRecorder.write("MotorControl/extendoClaw/target", extendoClaw.position)
+        FlightRecorder.write("MotorControl/intake/power", intake.servo.power)
         FlightRecorder.write("MotorControl/depositClaw/target", depositClaw.position)
         FlightRecorder.write("MotorControl/topLight/color", topLight.servo.position)
 
-        if (topLight.color == RGBLight.Color.YELLOW && motors.all { !it.resetting }) {
-            topLight.color = RGBLight.Color.GREEN
+        if (resetting && motors.none { it.resetting }) {
+            topLight.color = Color.GREEN
+            resetting = false
         }
     }
 
@@ -148,34 +153,24 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     }
 
     class BLColor(val pin0: DigitalChannel, val pin1: DigitalChannel) {
-        enum class Color(val first: Boolean, val second: Boolean) {
-            NONE(false, false),
-            RED(false, true),
-            BLUE(true, false),
-            YELLOW(true, true);
-
-
-            companion object {
-                fun get(first: Boolean, second: Boolean): Color {
-                    return if (first) {
-                        if (second) {
-                            YELLOW
-                        } else {
-                            BLUE
-                        }
-                    } else if (second) {
-                        RED
-                    } else {
-                        NONE
-                    }
-                    }
+        fun boolsToColor(first: Boolean, second: Boolean): Color {
+            return if (first) {
+                if (second) {
+                    Color.YELLOW
+                } else {
+                    Color.BLUE
                 }
+            } else if (second) {
+                Color.RED
+            } else {
+                Color.NONE
             }
+        }
         val color: Color
             get() {
                 // this could be EXTREMELY inefficient and trigger a read,
                 // but as long as you remember to use bulk reads, it's fine :)
-                return Color.get(pin0.state, pin1.state)
+                return boolsToColor(pin0.state, pin1.state)
             }
 
     }
@@ -329,27 +324,37 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     open class ThreeArm(servo: Servo,
                    downPos: Double = 0.03, //wrong
                    upPos: Double = 0.2, // wrong
-                   val fullUpPos: Double = 0.6) // tuned
+                   val midPos: Double = 0.6) // tuned
         : ServoArm(servo, downPos,upPos) {
-        val fullyUp: Boolean // AKA dumping
+        val mid: Boolean
             get() {
-                return abs(position -  fullUpPos) < 0.05
+                return abs(position -  midPos) < 0.05
             }
 
-        fun moveFullUp() { // AKA moveDump
-            position = fullUpPos
+        fun moveMid() {
+            position = midPos
         }
-
-        fun moveDump() = moveFullUp()
-        fun moveScore() = moveFullUp()
-        fun moveTransfer() = moveUp()
     }
 
     class DepositArm(servo: Servo, downPos: Double, upPos: Double, midPos: Double, encoder: AxonEncoder): ThreeArm(servo, downPos, upPos, midPos) {
         fun moveForward() = moveUp()
         fun moveBack() = moveDown()
-        fun moveMid() = moveFullUp()
-        fun moveHang() = moveFullUp()
+        fun moveHang() = moveMid()
+    }
+
+
+    class Intake(val servo: CRServo, val inSpeed: Double = 1.0, val outSpeed: Double = -1.0) {
+        fun intake() {
+            servo.power = inSpeed
+        }
+
+        fun eject() {
+            servo.power = outSpeed
+        }
+
+        fun stop() {
+            servo.power = 0.0
+        }
     }
 
     abstract class ControlledMotor(val motor: DcMotorEx) {

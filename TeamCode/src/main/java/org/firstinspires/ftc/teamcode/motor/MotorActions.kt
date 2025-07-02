@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.InstantFunction
+import com.acmerobotics.roadrunner.ParallelAction
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.TimeProfile
@@ -11,14 +12,16 @@ import com.acmerobotics.roadrunner.ftc.FlightRecorder
 import com.acmerobotics.roadrunner.profile
 import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.BetterUniqueAction
+import org.firstinspires.ftc.teamcode.helpers.Color
 import org.firstinspires.ftc.teamcode.helpers.LazyAction
+import org.firstinspires.ftc.teamcode.helpers.PoseStorage
+import org.firstinspires.ftc.teamcode.helpers.RepeatUntilAction
 import kotlin.math.abs
 
 class MotorActions(val motorControl: MotorControl) {
     val extendo = Extendo()
     val deposit = Deposit()
     val depositClaw = Claw(motorControl.depositClaw)
-    val extendoClaw = Claw(motorControl.extendoClaw)
     val depositArm = DepositArm(motorControl.depositArm)
     val extendoArm = ThreeArm(motorControl.extendoArm)
     val depositEncoder = DepositEncoder(motorControl.depositArmEncoder)
@@ -40,29 +43,52 @@ class MotorActions(val motorControl: MotorControl) {
         return InstantAction { println(message) }
     }
 
-    // presets
-    fun extendoClawGround(): Action {
-        return SequentialAction(
-            extendoClaw.open(), // open claw
-            extendoArm.moveDown(), // move to ground
-        )
-    }
+    fun intakeUntilColor() = SequentialAction(
+        RepeatUntilAction(
+        { motorControl.eColor.color == PoseStorage.currentTeam.color },
+        {
+            SequentialAction(
+                InstantAction { motorControl.intake.intake() },
+                { motorControl.eColor.color == Color.NONE }, // repeat until ANY sample detected
+                InstantAction { motorControl.intake.stop() },
+                SleepAction(0.1),
+                // check condition
+            )
+        }
+    ), SequentialAction (
+            InstantAction {motorControl.topLight.color = motorControl.eColor.color}, // TODO intake light?
+            intakeIn()
+    ))
 
-    fun extendoGrabAndRaise(): Action {
-        return SequentialAction(
-            extendoClaw.close(), // close claw
-            SleepAction(0.3),
-            extendoArm.moveUp() // move claw to "clears ground bar" pos
-        )
-    }
+    fun intakeIn() = SequentialAction(
+        extendoArm.moveIn(), // TODO time??
+        extendo.moveDown(),
+    )
 
-    fun extendoCycle(between: Action = SleepAction(0.8)): Action {
-        return SequentialAction(
-            extendoClawGround(),
-            between, // default wait 0.5
-            extendoGrabAndRaise()
-        )
-    }
+    fun intakeOut() = SequentialAction(
+        extendo.moveUp(),
+        Action { !(motorControl.extendo.position > 300) }, // TODO tune
+        InstantAction { motorControl.intake.eject() }, // TODO see if this even makes sesne
+        extendoArm.moveOut(),
+        SleepAction(0.3),
+        InstantAction { motorControl.intake.stop() }
+    )
+
+    fun intakeInOut(condition: () -> Boolean = { false }) =
+        SequentialAction (
+            intakeIn(),
+            { !condition() },
+            intakeOut()
+    )
+
+
+
+    fun allIn() = ParallelAction (
+        intakeIn(),
+        depositArm.moveDown(),
+        deposit.moveDown()
+    )
+
 
     fun depositMoveWall(): Action {
         return SequentialAction(
@@ -70,8 +96,8 @@ class MotorActions(val motorControl: MotorControl) {
             extendo.moveDown(),
             depositArm.moveDown(), // down to intake
             depositClaw.open(),
-            Action {!(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
-            extendoArm.moveFullUp()
+            Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
+            extendoArm.moveMid()
         )
     }
 
@@ -81,22 +107,20 @@ class MotorActions(val motorControl: MotorControl) {
         depositArm.moveDown(), // down to intake
         depositClaw.open(),
         Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
-        extendoArm.moveFullUp()
+        extendoArm.moveMid()
     )
 
     fun depositPickupWall(): Action {
         return SequentialAction(
-        extendoClaw.open(),
-        depositClaw.close(),
-        SleepAction(0.20), // TODO tune
-        depositMoveChamber(),
-        //deposit.setTargetPosition(250.0)
+            depositClaw.close(),
+            SleepAction(0.20), // TODO tune
+            depositMoveChamber(),
+            //deposit.setTargetPosition(250.0)
         )
     }
 
-    fun depositPickupWallTeleop() : Action {
+    fun depositPickupWallTeleop(): Action {
         return SequentialAction(
-            extendoClaw.open(),
             depositClaw.close(),
             SleepAction(0.4), // TODO tune
             depositMoveChamber(),
@@ -106,7 +130,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositMoveChamber(): Action {
         return SequentialAction(
-            InstantAction { depositArm.threeArm.position = 0.40 },
+            depositArm.moveUp(),
             deposit.setTargetPosition(300.0), // prev 250 prev 350
         )
     }
@@ -114,18 +138,19 @@ class MotorActions(val motorControl: MotorControl) {
     fun depositScoreChamber(): Action {
         return SequentialAction(
             deposit.setTargetPosition(600.0), // 1050
-            InstantAction { depositArm.threeArm.position = 0.60 },
+            depositArm.moveHang(),
             SleepAction(0.1),
             depositClawRelease(), // TODO USE ENCODER
-            SleepAction(0.3)
+            SleepAction(0.3),
+            depositArm.moveDown()
 
         )
     }
 
-    fun depositScoreChamberTeleop() = SequentialAction (
+    fun depositScoreChamberTeleop() = SequentialAction(
         deposit.setTargetPosition(900.0), // 1050
         //SleepAction(0.5),
-        depositArm.moveDown(),
+        depositArm.moveHang(),
         SleepAction(0.3),
         depositClawRelease(), // TODO USE ENCODER
         SleepAction(0.1),
@@ -133,68 +158,10 @@ class MotorActions(val motorControl: MotorControl) {
         SleepAction(0.3),
         depositClawRelease()
     )
+
     fun depositClawRelease(): Action {
         return SequentialAction(depositClaw.open())
     }
-
-
-    fun moveTransfer() =
-        SequentialAction(
-            deposit.setTargetPosition(117.0),
-            extendo.setTargetPosition(634.0),
-            depositArm.moveTransfer(),
-            InstantAction { depositClaw.claw.position = 0.25 },
-            extendoArm.moveFullUp(),
-        )
-
-    fun grabTransferReturn() =
-        SequentialAction (
-            depositClaw.close(),
-            SleepAction(0.25), // todo tune
-            extendoClaw.open(),
-            SleepAction(0.1),
-            depositArm.moveDown()
-    )
-
-    fun transferFull(between: Action = depositEncoder.waitForTransferGrab()) =
-        SequentialAction (
-            moveTransfer(),
-            between,
-            grabTransferReturn()
-        )
-
-    fun moveVerticalTransfer() = SequentialAction(
-        depositClaw.open(),
-        deposit.setTargetPosition(625.0),
-        extendo.setTargetPosition(150.0),
-        depositArm.setPosition(0.15),
-        extendoArm.setPosition(0.8),
-    )
-    fun grabVerticalTransferReturn() =
-        SequentialAction(
-            depositClaw.close(),
-            SleepAction(0.25), // todo tune
-            extendoClaw.open(),
-            SleepAction(0.1),
-            depositArm.setPosition(0.55),
-            SleepAction(0.2),
-            deposit.moveUp()
-        )
-
-    fun verticalTransferFull(between: Action = SleepAction(0.5)) =
-        SequentialAction (
-            moveVerticalTransfer(),
-            between,
-            grabVerticalTransferReturn()
-        )
-
-    fun sampleToHighBasketBack() =
-        SequentialAction (
-            depositArm.setPosition(0.6),
-            //SleepAction(0.1),
-            depositClaw.open()
-        )
-
 
     inner class Extendo {
         fun setTargetPosition(position: Double): Action {
@@ -218,6 +185,7 @@ class MotorActions(val motorControl: MotorControl) {
         fun moveDown(): Action {
             return setTargetPosition(40.0)
         }
+
         fun moveTransfer() = setTargetPosition(634.0)
     }
 
@@ -245,10 +213,11 @@ class MotorActions(val motorControl: MotorControl) {
 
     class DepositEncoder(val encoder: MotorControl.AxonEncoder) {
         fun waitForTransferRelease() =
-            SequentialAction (
-            Action { return@Action !(encoder.posDegrees < 70) },
+            SequentialAction(
+                Action { return@Action !(encoder.posDegrees < 70) },
                 SleepAction(0.1)
             )
+
         fun waitForTransferGrab() =
             Action { return@Action !(encoder.posDegrees > 255) }
     }
@@ -277,33 +246,45 @@ class MotorActions(val motorControl: MotorControl) {
         open fun moveDown(): Action {
             return InstantAction { servoArm.moveDown() }
         }
+
+        fun moveIn() = moveDown()
+        fun moveOut() = moveUp()
     }
 
     open class ThreeArm(val threeArm: MotorControl.ThreeArm) : ServoArm(threeArm) {
-        open fun moveFullUp(): Action {
-            return InstantAction { threeArm.moveFullUp() }
+        open fun moveMid(): Action {
+            return InstantAction { threeArm.moveMid() }
         }
-        fun moveDump() = moveFullUp()
-        fun moveScore() = moveFullUp()
-        fun moveTransfer() = moveUp()
-        fun moveMid() = moveFullUp()
+
+        fun moveDump() = moveMid()
+        fun moveScore() = moveMid()
     }
 
-    class DepositArm(val depositArm: MotorControl.DepositArm): ThreeArm(depositArm) {
+    class DepositArm(val depositArm: MotorControl.DepositArm) : ThreeArm(depositArm) {
         override fun setPosition(position: Double): Action {
-            return LazyAction { goToPosAction(
-                start = depositArm.position,
-                target = position,
-                maxVel = 4.0,
-                minAccel = -3.0,
-                maxAccel = 4.0,
-                resolution = 0.001,
-                setPosition = depositArm::position.setter
-            ) }
+            return LazyAction {
+                goToPosAction(
+                    start = depositArm.position,
+                    target = position,
+                    maxVel = 4.0,
+                    minAccel = -3.0,
+                    maxAccel = 4.0,
+                    resolution = 0.001,
+                    setPosition = depositArm::position.setter
+                )
+            }
         }
+
         override fun moveUp(): Action {
-            return BetterUniqueAction(BetterUniqueAction(setPosition(depositArm.upPos),"depArmMoveUp",wait=false),"depArm")
+            return BetterUniqueAction(
+                BetterUniqueAction(
+                    setPosition(depositArm.upPos),
+                    "depArmMoveUp",
+                    wait = false
+                ), "depArm"
+            )
         }
+
         override fun moveDown(): Action {
             return BetterUniqueAction(
                 BetterUniqueAction(
@@ -313,16 +294,21 @@ class MotorActions(val motorControl: MotorControl) {
                 ), "depArm"
             )
         }
-        override fun moveFullUp(): Action {
+
+        override fun moveMid(): Action {
             return BetterUniqueAction(
                 BetterUniqueAction(
-                    setPosition(depositArm.fullUpPos),
+                    setPosition(depositArm.midPos),
                     "depArmMoveFullUp",
                     wait = false
                 ), "depArm"
             )
         }
+
+        fun moveHang() = moveMid()
     }
+
+
 }
 
 fun goToPosAction(

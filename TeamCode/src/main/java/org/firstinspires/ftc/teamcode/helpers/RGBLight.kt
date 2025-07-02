@@ -7,25 +7,14 @@ class RGBLight(val servo: Servo) {
     private val colorEnd = 0.722
     private val colorRange = colorEnd - colorStart
 
-    enum class Color(val pos: Double) {
-        OFF(0.0),
-        RED(0.281),
-        ORANGE(0.333),
-        YELLOW(0.388),
-        SAGE(0.444),
-        GREEN(0.5),
-        AZURE(0.555),
-        BLUE(0.611),
-        INDIGO(0.666),
-        VIOLET(0.722),
-        WHITE(1.0)
-    }
-
-    var color: Color = Color.OFF
+    var color: Color = Color.NONE
         set(value) {
-            servo.position = value.pos
+            servo.position = value.gbLightPos
+            lastColor = color
             field = value
         }
+
+    var lastColor: Color = Color.NONE
 
     fun setHue(hue: Double) {
         servo.position = hueToPos(hue)
