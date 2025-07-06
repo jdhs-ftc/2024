@@ -128,36 +128,65 @@ class MotorActions(val motorControl: MotorControl) {
         )
     }
 
-    fun depositMoveChamber(): Action {
-        return SequentialAction(
-            depositArm.moveUp(),
-            deposit.setTargetPosition(300.0), // prev 250 prev 350
-        )
-    }
+    fun depositMoveChamber() = depositMoveChamberFar()
+    fun depositScoreChamber() = depositScoreChamberFar()
 
-    fun depositScoreChamber(): Action {
+    fun depositMoveChamberFar(): Action {
         return SequentialAction(
-            deposit.setTargetPosition(600.0), // 1050
-            depositArm.moveHang(),
+            depositClaw.close(),
+            SleepAction(0.1),
+            depositArm.moveDown(),
+            deposit.setTargetPosition(1457.0), //
+        )
+}
+
+    fun depositScoreChamberFar(): Action {
+        return SequentialAction(
+            //deposit.setTargetPosition(1110.0), // 1050
+            depositArm.setPosition(0.5),
+            /*
             SleepAction(0.1),
             depositClawRelease(), // TODO USE ENCODER
             SleepAction(0.3),
-            depositArm.moveDown()
+            deposit.moveDown(),
+            depositArm.moveUp(),
 
+             */
         )
     }
 
-    fun depositScoreChamberTeleop() = SequentialAction(
+    fun depositMoveChamberAligned(): Action {
+        return SequentialAction(
+            depositClaw.close(),
+            SleepAction(0.1),
+            depositArm.moveDown(),
+            deposit.setTargetPosition(590.0), //
+        )
+    }
+
+    fun depositScoreChamberAligned(): Action {
+        return SequentialAction(
+            deposit.setTargetPosition(590.0), // 1050
+            depositArm.setPosition(0.55),
+            SleepAction(0.1),
+            depositClawRelease(), // TODO USE ENCODER
+            SleepAction(0.3),
+            deposit.moveDown(),
+            depositArm.moveUp(),
+        )
+    }
+
+    fun depositScoreChamberTeleop() = depositScoreChamber()
+        /*
+        SequentialAction(
         deposit.setTargetPosition(900.0), // 1050
         //SleepAction(0.5),
         depositArm.moveHang(),
         SleepAction(0.3),
         depositClawRelease(), // TODO USE ENCODER
-        SleepAction(0.1),
-        depositClaw.close(),
         SleepAction(0.3),
-        depositClawRelease()
-    )
+        depositArm.moveUp()
+    )*/
 
     fun depositClawRelease(): Action {
         return SequentialAction(depositClaw.open())
@@ -269,7 +298,7 @@ class MotorActions(val motorControl: MotorControl) {
                     maxVel = 4.0,
                     minAccel = -3.0,
                     maxAccel = 4.0,
-                    resolution = 0.001,
+                    resolution = 0.01,
                     setPosition = depositArm::position.setter
                 )
             }

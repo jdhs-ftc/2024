@@ -47,13 +47,13 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     val depositArmEncoderInput: AnalogInput = hardwareMap.analogInput["depositArmEncoder"]
 
-    val depositArmEncoder = AxonEncoder { depositArmEncoderInput.voltage * -1 }
+    val depositArmEncoder = AxonEncoder { 3.3 - depositArmEncoderInput.voltage}
 
     @JvmField
     val depositArm = DepositArm(depositArmServo, 0.4, 0.97, 0.72, depositArmEncoder)
 
     @JvmField
-    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.30, 0.1) // 0.35 0.1 // 0.55 0.1
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.8, 0.4) // 0.35 0.1 // 0.55 0.1
 
     val depositMotors = MotorGroup(
         hardwareMap.get(DcMotorEx::class.java, "deposit1"),
@@ -98,8 +98,10 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     fun init() {
         topLight.color = Color.YELLOW
-        // if we don't know where dep arm is slam it (TODO IDEALLY USE ENCODER!!)
-        if (depositArmServo.position.isNaN()) depositArm.moveDown()
+        // encoder isn't perfect
+        // but this will make it not slam
+        // and then the mp can deal with it
+        depositArm.position = depositArmEncoder.position
         extendoArm.moveUp()
 
         intake.stop()

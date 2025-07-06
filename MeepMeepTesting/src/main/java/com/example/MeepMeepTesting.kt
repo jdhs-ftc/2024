@@ -23,14 +23,40 @@ object MeepMeepTesting {
 
         val motorActions = MotorActions()
 
-        val hpPose = Pose2d(13.0,-50.0,toRadians(-90.0))
 
-
-        val beginPose2 = Pose2d(29.0, -60.0, toRadians(90.0))
+        val xPos = 12.0
+        val hpPose = Pose2d(xPos, -50.0, toRadians(-90.0))
+        val startPose = Pose2d(30.0, -62.0, toRadians(90.0))
         myBot.runAction(
-            myBot.drive.actionBuilder(beginPose2)
-                .splineToSplineHeading(Pose2d(13.0, -24.0, toRadians(180.0)), toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -3.0, toRadians(180.0)), toRadians(90.0))
+            myBot.drive.actionBuilder(startPose)
+                .setTangent(toRadians(90.0))
+                .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
+                // score
+                .waitSeconds(0.25)
+                .setTangent(toRadians(-90.0))
+                .splineToSplineHeading(Pose2d(xPos - 2, -22.0, toRadians(180.0)), toRadians(-90.0))
+                .waitSeconds(0.1)
+                .setTangent(toRadians(-90.0))
+                // third preset
+                .waitSeconds(0.25)
+                .splineToSplineHeading(hpPose, toRadians(-90.0))
+                // intake reverse + grab hp
+                .waitSeconds(0.25)
+                /*
+
+
+                .setTangent(toRadians(90.0))
+                .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
+                // score
+                // grab second preset
+                .waitSeconds(0.25)
+                .setTangent(toRadians(-90.0))
+                .splineToSplineHeading(hpPose, toRadians(-90.0))
+                // intake reverse + grab hp
+                .waitSeconds(0.25)
+
+                .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
+                .splineToSplineHeading(Pose2d(xPos, -3.0, toRadians(180.0)), toRadians(90.0))
                 // score
                 // grab first preset
                 .waitSeconds(0.25)
@@ -40,66 +66,8 @@ object MeepMeepTesting {
                 .waitSeconds(0.25)
 
                 .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -12.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                // grab second preset
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // intake reverse + grab hp
-                .waitSeconds(0.25)
 
-                .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -12.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(Pose2d(13.0, -22.0, toRadians(180.0)), toRadians(-90.0))
-                .waitSeconds(0.1)
-                .setTangent(toRadians(-90.0))
-                // third preset
-                .waitSeconds(0.25)
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // intake reverse + grab hp
-                .waitSeconds(0.25)
-
-                .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -3.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // grab hp
-                .waitSeconds(0.25)
-
-                .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -3.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // grab hp
-                .waitSeconds(0.25)
-
-
-                .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -3.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // grab hp
-                .waitSeconds(0.25)
-
-                .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(13.0, -3.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // grab hp
-                .waitSeconds(0.25)
-
+                 */
 
                 .build()
         )

@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.InstantAction
+import com.acmerobotics.roadrunner.ParallelAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
 import com.acmerobotics.roadrunner.Rotation2d
@@ -36,7 +37,7 @@ import kotlin.math.round
 import kotlin.math.sign
 
 
-@TeleOp(name = "Teleop Field Centric")
+@TeleOp(name = "00 Teleop Field Centric")
 @Config
 //@Photon
 class TeleopActions : ActionOpMode() {
@@ -500,6 +501,19 @@ class TeleopActions : ActionOpMode() {
 
             if (padMoveChamber) run(motorActions.depositMoveChamber())
             if (padScoreChamber) run(motorActions.depositScoreChamberTeleop())
+
+
+            if (padResetAll) {
+                run(
+                    ParallelAction(
+                        motorActions.extendo.moveDown(),
+                        motorActions.deposit.moveDown(),
+                        motorActions.depositArm.moveDown(),
+                        motorActions.depositClawRelease()
+                    )
+                )
+                motorControl.depositClaw.open()
+            }
 
 
 
