@@ -1,6 +1,12 @@
 package org.firstinspires.ftc.teamcode
 
+import com.acmerobotics.roadrunner.Action
+import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
+import com.acmerobotics.roadrunner.SequentialAction
+import com.acmerobotics.roadrunner.SleepAction
+import com.acmerobotics.roadrunner.TrajectoryActionBuilder
+import com.acmerobotics.roadrunner.Vector2d
 import com.acmerobotics.roadrunner.ftc.runBlocking
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
@@ -23,47 +29,65 @@ class AutoRight: LinearOpMode() {
         val motorActions = MotorActions(motorControl)
 
 
+
+
+        fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = //this.stopAndAdd(action)
+
+            this.afterDisp(
+                1000.0, SequentialAction(
+                    InstantAction { drive.makeTrajectoryWait = true },
+                    action,
+                    InstantAction { drive.makeTrajectoryWait = false }
+                )
+            )
+
+        fun TrajectoryActionBuilder.waitSecondsHold(seconds: Double) = this.stopAndAddHold(SleepAction(seconds))
+
+
         val traj = drive.actionBuilderPath(startPose)
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
             // score
-            .waitSeconds(0.25)
+            .waitSecondsHold(0.25)
             .setTangent(toRadians(-90.0))
             .splineToSplineHeading(Pose2d(7.0, -26.0, toRadians(180.0)), toRadians(-90.0))
-            .waitSeconds(0.1)
-            .setTangent(toRadians(-90.0))
+            .waitSecondsHold(0.25)
             // third preset
-            .waitSeconds(0.25)
+            .setTangent(toRadians(-90.0))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
-            .waitSeconds(0.25)
-            /*
-
+            .waitSecondsHold(0.25)
 
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
             // score
-            // grab second preset
-            .waitSeconds(0.25)
+            .waitSecondsHold(0.25)
+            .setTangent(toRadians(0.0))
+            // second preset
+            .splineToConstantHeading(Vector2d(7.0, -12.0), toRadians(-90.0))
+            .waitSecondsHold(0.1)
             .setTangent(toRadians(-90.0))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
-            .waitSeconds(0.25)
+            .waitSecondsHold(0.25)
 
+            .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -3.0, toRadians(180.0)), toRadians(90.0))
             // score
-            // grab first preset
-            .waitSeconds(0.25)
+            .waitSecondsHold(0.25)
+            .setTangent(toRadians(0.0))
+            // first preset
+            .splineToConstantHeading(Vector2d(7.0, -3.0), toRadians(-90.0))
+            .waitSecondsHold(0.25)
             .setTangent(toRadians(-90.0))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse +  grab hp
-            .waitSeconds(0.25)
+            .waitSecondsHold(0.25)
 
             .setTangent(toRadians(90.0))
 
-             */
             .build()
 
         runBlocking(motorActions.depositArm.moveDown())
@@ -87,3 +111,4 @@ class AutoRight: LinearOpMode() {
         }
     }
 }
+
