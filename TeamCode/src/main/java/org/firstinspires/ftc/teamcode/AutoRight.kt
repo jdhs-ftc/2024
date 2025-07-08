@@ -15,7 +15,7 @@ import java.lang.Math.toRadians
 class AutoRight: LinearOpMode() {
     override fun runOpMode() {
         val xPos = 12.0
-        val hpPose = Pose2d(xPos, -50.0, toRadians(-90.0))
+        val hpPose = Pose2d(xPos, -60.0, toRadians(-90.0))
         val startPose = Pose2d(30.0, -62.0, toRadians(90.0))
 
         val drive = PinpointDrive(hardwareMap,startPose)
@@ -25,11 +25,12 @@ class AutoRight: LinearOpMode() {
 
         val traj = drive.actionBuilderPath(startPose)
             .setTangent(toRadians(90.0))
+            .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
             // score
             .waitSeconds(0.25)
             .setTangent(toRadians(-90.0))
-            .splineToSplineHeading(Pose2d(xPos - 2, -22.0, toRadians(180.0)), toRadians(-90.0))
+            .splineToSplineHeading(Pose2d(7.0, -26.0, toRadians(180.0)), toRadians(-90.0))
             .waitSeconds(0.1)
             .setTangent(toRadians(-90.0))
             // third preset
