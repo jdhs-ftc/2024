@@ -1,9 +1,7 @@
 package org.firstinspires.ftc.teamcode
 
 import com.acmerobotics.roadrunner.Action
-import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
-import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder
 import com.acmerobotics.roadrunner.Vector2d
@@ -31,8 +29,8 @@ class AutoRight: LinearOpMode() {
 
 
 
-        fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = //this.stopAndAdd(action)
-
+        fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = this.stopAndAdd(action)
+/*
             this.afterDisp(
                 1000.0, SequentialAction(
                     InstantAction { drive.makeTrajectoryWait = true },
@@ -40,6 +38,8 @@ class AutoRight: LinearOpMode() {
                     InstantAction { drive.makeTrajectoryWait = false }
                 )
             )
+
+ */
 
         fun TrajectoryActionBuilder.waitSecondsHold(seconds: Double) = this.stopAndAddHold(SleepAction(seconds))
 
@@ -51,7 +51,8 @@ class AutoRight: LinearOpMode() {
             // score
             .waitSecondsHold(0.25)
             .setTangent(toRadians(-90.0))
-            .splineToSplineHeading(Pose2d(7.0, -26.0, toRadians(180.0)), toRadians(-90.0))
+            .splineToSplineHeading(Pose2d(xPos, -20.0, toRadians(180.0)), toRadians(-90.0))
+            .splineToSplineHeading(Pose2d(7.0, -23.0, toRadians(180.0)), toRadians(-90.0))
             .waitSecondsHold(0.25)
             // third preset
             .setTangent(toRadians(-90.0))
@@ -74,12 +75,12 @@ class AutoRight: LinearOpMode() {
 
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
-            .splineToSplineHeading(Pose2d(xPos, -3.0, toRadians(180.0)), toRadians(90.0))
+            .splineToSplineHeading(Pose2d(xPos, -4.0, toRadians(180.0)), toRadians(90.0))
             // score
             .waitSecondsHold(0.25)
             .setTangent(toRadians(0.0))
             // first preset
-            .splineToConstantHeading(Vector2d(7.0, -3.0), toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(7.0, -4.0), toRadians(-90.0))
             .waitSecondsHold(0.25)
             .setTangent(toRadians(-90.0))
             .splineToSplineHeading(hpPose, toRadians(-90.0))

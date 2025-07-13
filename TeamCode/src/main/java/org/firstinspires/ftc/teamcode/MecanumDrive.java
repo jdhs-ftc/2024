@@ -462,10 +462,11 @@ public class MecanumDrive {
             p.addLine("dispTraj position minus current " + dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm());
             p.addLine("disp " + disp + " dispTraj length" + dispTraj.length());
 
-            // if robot within 2 in of end pose
-            if (((dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 2
-            // or the closest position on the path is less then 2 inches away from the end of the path
-            || (disp + 2) >= dispTraj.length()
+            // if robot within 1 in of end pose
+            if ((((dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 0.25
+            // or the closest position on the path is less then 1 inches away from the end of the path
+            || (disp + 0.1) >= dispTraj.length()
+            ) && robotVelRobot.linearVel.norm() < 1.0
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) && !makeTrajectoryWait)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 5)) {

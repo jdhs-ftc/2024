@@ -341,7 +341,7 @@ class TeleopActions : ActionOpMode() {
                 motorControl.extendo.targetPosition += (padExtendoControl * padSlideControlMultiplier)
             }
 
-            input += Vector2d(0.0, padExtendoAndStrafeVector.x * 0.2)
+            input += Vector2d(0.0, padExtendoAndStrafeVector.x * 0.5)
 
             var headingInput = 0.0
             if (drivingEnabled) {
@@ -514,6 +514,8 @@ class TeleopActions : ActionOpMode() {
                 )
                 motorControl.depositClaw.open()
             }
+
+            if (gamepad2.dpad_down && !previousGamepad2.dpad_down) motorControl.depositClaw.toggle()
 
 
 

@@ -29,12 +29,25 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     val intake = Intake(hardwareMap.get(CRServo::class.java, "intake"))
 
+
+    val extendoMotors = MotorGroup(
+        hardwareMap.get(DcMotorEx::class.java, "extendo1"),
+        //hardwareMap.get(DcMotorEx::class.java, "extendo2")
+    )
+
+    init {
+        extendoMotors.setDirections(
+            DcMotorSimple.Direction.REVERSE,
+            //DcMotorSimple.Direction.FORWARD
+        )
+    }
+
     @JvmField
     val extendo: Slide = Slide(
-        CachingDcMotorEx(hardwareMap.get(DcMotorEx::class.java, "extendo")), // port 1 of chub and exhub, encoder is left_front
+        CachingDcMotorEx(extendoMotors), // port 1 of chub and exhub, encoder is left_front
         PIDFController(Constants.extendoPID),
         encoder=Encoder(hardwareMap.get(DcMotorEx::class.java, "left_front"), true),
-        reversed=true
+        reversed=false
     )
 
     val depositArmServo = ServoGroup(hardwareMap.servo["dArm"],hardwareMap.servo["dArm2"])
@@ -47,13 +60,13 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
 
     val depositArmEncoderInput: AnalogInput = hardwareMap.analogInput["depositArmEncoder"]
 
-    val depositArmEncoder = AxonEncoder { 3.3 - depositArmEncoderInput.voltage}
+    val depositArmEncoder = AxonEncoder { (3.3 - depositArmEncoderInput.voltage) * 1.05 }
 
     @JvmField
-    val depositArm = DepositArm(depositArmServo, 0.4, 0.97, 0.72, depositArmEncoder)
+    val depositArm = DepositArm(depositArmServo, 0.4, 0.96, 0.72, depositArmEncoder)
 
     @JvmField
-    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.8, 0.4) // 0.35 0.1 // 0.55 0.1
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.8, 0.475) // 0.35 0.1 // 0.55 0.1
 
     val depositMotors = MotorGroup(
         hardwareMap.get(DcMotorEx::class.java, "deposit1"),

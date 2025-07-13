@@ -296,7 +296,7 @@ class MotorActions(val motorControl: MotorControl) {
                     start = depositArm.position,
                     target = position,
                     maxVel = 4.0,
-                    minAccel = -3.0,
+                    minAccel = -4.0,
                     maxAccel = 4.0,
                     resolution = 0.01,
                     setPosition = depositArm::position.setter
