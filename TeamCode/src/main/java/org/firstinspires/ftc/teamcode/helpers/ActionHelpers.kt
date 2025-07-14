@@ -153,20 +153,20 @@ class IfAction(val condition: Supplier<Boolean>, val trueAction: Action = NullAc
     }
 }
 
-class RepeatUntilAction(val condition: Supplier<Boolean>, val action: Supplier<Action>) : Action {
+open class RepeatUntilAction(val condition: Supplier<Boolean>, val action: Supplier<Action>) : Action {
     var initialized: Boolean = false
     var storedAction: Action = action.get()
     override fun run(p: TelemetryPacket): Boolean {
         if (!initialized) {
             initialized = true
-            if (!condition.get()) {
+            if (condition.get()) {
                 return false
             }
         }
         val keepRunning = storedAction.run(p)
 
         if (!keepRunning) { // the action wants to end
-            if (!condition.get()) { // should we actually end?
+            if (condition.get()) { // should we actually end?
                 return false
             } else { // regen the action
                 storedAction = action.get()
@@ -175,4 +175,7 @@ class RepeatUntilAction(val condition: Supplier<Boolean>, val action: Supplier<A
         return true
     }
 }
+
+class ForeverAction(action: Supplier<Action>): RepeatUntilAction({false},action)
+class WhileAction(condition: Supplier<Boolean>, action: Supplier<Action>): RepeatUntilAction({ !condition.get() }, action)
 

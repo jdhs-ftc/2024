@@ -1,6 +1,7 @@
 package com.example
 
 import com.acmerobotics.roadrunner.Pose2d
+import com.acmerobotics.roadrunner.Vector2d
 import com.noahbres.meepmeep.MeepMeep
 import com.noahbres.meepmeep.core.colorscheme.scheme.ColorSchemeBlueLight
 import com.noahbres.meepmeep.roadrunner.DefaultBotBuilder
@@ -30,11 +31,13 @@ object MeepMeepTesting {
         myBot.runAction(
             myBot.drive.actionBuilder(startPose)
                 .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(Pose2d(xPos - 2, -22.0, toRadians(180.0)), toRadians(-90.0))
+                .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+                //.afterTime(0.0, motorActions.depositMoveChamberFar())
+                .splineToConstantHeading(Vector2d(13.0, -6.0), toRadians(70.0))
+                //.stopAndAddHold(motorActions.depositScoreChamberFar())
+                .setTangent(toRadians(-120.0))
+                .splineToSplineHeading(Pose2d(xPos, -20.0, toRadians(180.0)), toRadians(-90.0))
+                .splineToSplineHeading(Pose2d(7.0, -23.0, toRadians(180.0)), toRadians(-90.0))
                 .waitSeconds(0.1)
                 .setTangent(toRadians(-90.0))
                 // third preset

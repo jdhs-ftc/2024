@@ -80,6 +80,10 @@ public class PinpointDrive extends MecanumDrive {
     private Pose2d lastPinpointPose = pose;
 
     public PinpointDrive(HardwareMap hardwareMap, Pose2d pose) {
+        this(hardwareMap, pose, true);
+    }
+
+    public PinpointDrive(HardwareMap hardwareMap, Pose2d pose, boolean resetPose) {
         super(hardwareMap, pose);
         FlightRecorder.write("PINPOINT_PARAMS",PARAMS);
         pinpoint = hardwareMap.get(GoBildaPinpointDriverRR.class,PARAMS.pinpointDeviceName);
@@ -105,15 +109,21 @@ public class PinpointDrive extends MecanumDrive {
         an incorrect starting value for x, y, and heading.
          */
         //pinpoint.recalibrateIMU();
-        pinpoint.resetPosAndIMU();
+        if (resetPose) {
+            pinpoint.resetPosAndIMU();
+
         // wait for pinpoint to finish calibrating
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        pinpoint.setPosition(pose);
+            pinpoint.setPosition(pose);
+        } else {
+            pinpoint.update();
+            this.pose = pinpoint.getPositionRR();
+            this.lastPinpointPose = this.pose;
+        }
     }
     @Override
     public PoseVelocity2d updatePoseEstimate() {

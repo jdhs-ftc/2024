@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.motor
 
 import com.acmerobotics.dashboard.config.Config
-import com.acmerobotics.roadrunner.ftc.FlightRecorder
 import com.qualcomm.robotcore.hardware.AnalogInput
 import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotor
@@ -13,6 +12,7 @@ import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit
 import org.firstinspires.ftc.teamcode.helpers.CachingDcMotorEx
 import org.firstinspires.ftc.teamcode.helpers.Color
+import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.MotorGroup
 import org.firstinspires.ftc.teamcode.helpers.RGBLight
 import org.firstinspires.ftc.teamcode.helpers.ServoGroup
@@ -108,13 +108,20 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
             init()
         }
     }
+    
+    val logger = LogTelemetry("MotorControl/")
 
     fun init() {
         topLight.color = Color.YELLOW
-        // encoder isn't perfect
-        // but this will make it not slam
-        // and then the mp can deal with it
-        depositArm.position = depositArmEncoder.position
+        val depositArmStart = depositArmEncoder.position
+        if (depositArmEncoder.position > 0.5) {
+            // encoder isn't perfect
+            // but this will make it not slam
+            // and then the mp can deal with it
+            depositArm.position = depositArmEncoder.position
+        } else {
+            depositArm.position = 0.4
+        }
         extendoArm.moveUp()
 
         intake.stop()
@@ -131,18 +138,22 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     fun update() {
         motors.forEach { it.update() }
 
-        FlightRecorder.write("MotorControl/extendoArm/target", extendoArm.position)
-        FlightRecorder.write("MotorControl/extendoArm/actual", extendoArmEncoder.position)
-        FlightRecorder.write("MotorControl/depositArm/target", depositArm.position)
-        FlightRecorder.write("MotorControl/depositArm/actual", depositArmEncoder.position)
-        FlightRecorder.write("MotorControl/deposit/target", deposit.targetPosition)
-        FlightRecorder.write("MotorControl/deposit/actual", deposit.position)
-        FlightRecorder.write("MotorControl/extendo/target", extendo.targetPosition)
-        FlightRecorder.write("MotorControl/extendo/actual", extendo.position)
-        FlightRecorder.write("MotorControl/dColor/color", dColor.color)
-        FlightRecorder.write("MotorControl/intake/power", intake.servo.power)
-        FlightRecorder.write("MotorControl/depositClaw/target", depositClaw.position)
-        FlightRecorder.write("MotorControl/topLight/color", topLight.servo.position)
+        logger.write("extendoArm/target", extendoArm.position)
+        logger.write("extendoArm/actual", extendoArmEncoder.position)
+        logger.write("depositArm/target", depositArm.position)
+        logger.write("depositArm/actual", depositArmEncoder.position)
+        logger.write("deposit/target", deposit.targetPosition)
+        logger.write("deposit/actual", deposit.position)
+        logger.write("extendo/target", extendo.targetPosition)
+        logger.write("extendo/actual", extendo.position)
+        logger.write("dColor/color", dColor.color)
+        logger.write("intake/power", intake.servo.power)
+        logger.write("depositClaw/target", depositClaw.position)
+        logger.write("topLight/colorPos", topLight.servo.position)
+        logger.write("topLight/color", topLight.color)
+
+        logger.update()
+
 
         if (resetting && motors.none { it.resetting }) {
             topLight.color = Color.GREEN

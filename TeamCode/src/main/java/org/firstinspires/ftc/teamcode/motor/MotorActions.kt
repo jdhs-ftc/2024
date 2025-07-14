@@ -8,34 +8,48 @@ import com.acmerobotics.roadrunner.ParallelAction
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.TimeProfile
-import com.acmerobotics.roadrunner.ftc.FlightRecorder
 import com.acmerobotics.roadrunner.profile
 import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.BetterUniqueAction
 import org.firstinspires.ftc.teamcode.helpers.Color
+import org.firstinspires.ftc.teamcode.helpers.ForeverAction
 import org.firstinspires.ftc.teamcode.helpers.LazyAction
+import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.RepeatUntilAction
 import kotlin.math.abs
 
 class MotorActions(val motorControl: MotorControl) {
+    val logger = LogTelemetry("MotorActions/")
+
+
     val extendo = Extendo()
     val deposit = Deposit()
     val depositClaw = Claw(motorControl.depositClaw)
-    val depositArm = DepositArm(motorControl.depositArm)
+    val depositArm = DepositArm(motorControl.depositArm, logger)
     val extendoArm = ThreeArm(motorControl.extendoArm)
     val depositEncoder = DepositEncoder(motorControl.depositArmEncoder)
+
 
     fun waitUntilFinished(): Action {
         return Action { motorControl.closeEnough() }
     }
 
     fun update(): Action {
-        return Action {
+        return ParallelAction( Action {
             motorControl.update()
+            logger.update() // double updating is unnecessary but whatever
             it.put("depositArmPosDegrees", motorControl.depositArmEncoder.posDegrees)
             true // this returns true to make it loop forever; use RaceParallelCommand
-        }
+        },
+            ForeverAction {
+            SequentialAction(
+                InstantAction { motorControl.topLight.color = Color.BLUE },
+                SleepAction(2.0),
+                InstantAction { motorControl.topLight.color = Color.GREEN },
+                SleepAction(2.0),
+            )}
+            )
     }
 
 
@@ -129,7 +143,7 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun depositMoveChamber() = depositMoveChamberFar()
-    fun depositScoreChamber() = depositScoreChamberFar()
+    fun depositScoreChamberTele() = SequentialAction(depositScoreChamberFar(),depositArm.moveUp())
 
     fun depositMoveChamberFar(): Action {
         return SequentialAction(
@@ -144,16 +158,17 @@ class MotorActions(val motorControl: MotorControl) {
         return SequentialAction(
             //deposit.setTargetPosition(1110.0), // 1050
             depositArm.setPosition(0.5),
-            /*
+
             SleepAction(0.1),
             depositClawRelease(), // TODO USE ENCODER
             SleepAction(0.3),
             deposit.moveDown(),
-            depositArm.moveUp(),
 
-             */
+
         )
     }
+
+    fun depositScoreChamberAuto() = SequentialAction(depositScoreChamberFar(), depositArm.moveMid())
 
     fun depositMoveChamberAligned(): Action {
         return SequentialAction(
@@ -176,7 +191,7 @@ class MotorActions(val motorControl: MotorControl) {
         )
     }
 
-    fun depositScoreChamberTeleop() = depositScoreChamber()
+    fun depositScoreChamberTeleop() = depositScoreChamberTele()
         /*
         SequentialAction(
         deposit.setTargetPosition(900.0), // 1050
@@ -289,7 +304,7 @@ class MotorActions(val motorControl: MotorControl) {
         fun moveScore() = moveMid()
     }
 
-    class DepositArm(val depositArm: MotorControl.DepositArm) : ThreeArm(depositArm) {
+    class DepositArm(val depositArm: MotorControl.DepositArm, val logger: LogTelemetry) : ThreeArm(depositArm) {
         override fun setPosition(position: Double): Action {
             return LazyAction {
                 goToPosAction(
@@ -299,7 +314,8 @@ class MotorActions(val motorControl: MotorControl) {
                     minAccel = -4.0,
                     maxAccel = 4.0,
                     resolution = 0.01,
-                    setPosition = depositArm::position.setter
+                    setPosition = depositArm::position.setter,
+                    logger = logger
                 )
             }
         }
@@ -347,26 +363,35 @@ fun goToPosAction(
     minAccel: Double,
     maxAccel: Double,
     resolution: Double,
-    setPosition: (Double) -> Unit
+    setPosition: (Double) -> Unit,
+    logger: LogTelemetry
 ): Action {
     if (target == start) return Action { false }
+    logger.update()
+    logger.write("goToPosAction/profiling", true)
+    logger.update()
+    val currentTime = ElapsedTime()
     val dispProfile =
         profile(abs(target - start), 0.0, { maxVel }, { minAccel }, { maxAccel }, resolution)
     val profile = TimeProfile(dispProfile.baseProfile)
-    val currentTime = ElapsedTime()
+    logger.update()
+    logger.write("goToPosAction/profiling", false)
+    logger.update()
+    logger.write("goToPosAction/profileTimeMs",currentTime.milliseconds())
+    currentTime.reset()
 
     var lastPosition = start
     var lastTime = currentTime.seconds()
 
     val negative = target < start
 
-    FlightRecorder.write("goToPosAction/start", start)
-    FlightRecorder.write("goToPosAction/target", target)
-    FlightRecorder.write("goToPosAction/maxVel", maxVel)
-    FlightRecorder.write("goToPosAction/minAccel", minAccel)
-    FlightRecorder.write("goToPosAction/maxAccel", maxAccel)
-    FlightRecorder.write("goToPosAction/resolution", resolution)
-    FlightRecorder.write("goToPosAction/negative", negative)
+    logger.write("goToPosAction/start", start)
+    logger.write("goToPosAction/target", target)
+    logger.write("goToPosAction/maxVel", maxVel)
+    logger.write("goToPosAction/minAccel", minAccel)
+    logger.write("goToPosAction/maxAccel", maxAccel)
+    logger.write("goToPosAction/resolution", resolution)
+    logger.write("goToPosAction/negative", negative)
 
 
     return SequentialAction( // init loop
@@ -384,12 +409,12 @@ fun goToPosAction(
 
             val output = if (negative) start - targetPos else start + targetPos
 
-            FlightRecorder.write("goToPosAction/lastPosition", lastPosition)
-            FlightRecorder.write("goToPosAction/lastTime", lastTime)
-            FlightRecorder.write("goToPosAction/time", time)
-            FlightRecorder.write("goToPosAction/targetVel", targetVel)
-            FlightRecorder.write("goToPosAction/targetAccel", targetAccel)
-            FlightRecorder.write("goToPosAction/output", output)
+            logger.write("goToPosAction/lastPosition", lastPosition)
+            logger.write("goToPosAction/lastTime", lastTime)
+            logger.write("goToPosAction/time", time)
+            logger.write("goToPosAction/targetVel", targetVel)
+            logger.write("goToPosAction/targetAccel", targetAccel)
+            logger.write("goToPosAction/output", output)
             setPosition(output)
 
             lastPosition = output

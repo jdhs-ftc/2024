@@ -11,5 +11,11 @@ enum class Color(val gbLightPos: Double) {
     BLUE(0.611),
     INDIGO(0.666),
     VIOLET(0.722),
-    WHITE(1.0)
+    WHITE(1.0);
+
+    companion object {
+        fun inverse(pos: Double): Color =
+            Color.entries.firstOrNull { it.gbLightPos == pos } ?: Color.NONE
+    }
 }
+

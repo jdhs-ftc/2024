@@ -11,7 +11,7 @@ class LogTelemetry @JvmOverloads constructor(val base: String = "Telemetry/"): T
     val lastTime = mutableMapOf<String, Double>()
     // unsure about this default
     // also is there a better way to implement this?
-    private var msTransmissionIntervalField = 10
+    private var msTransmissionIntervalField = -1
 
     override fun update(): Boolean {
         FlightRecorder.write("${base}TELEMETRY_UPDATE", object {
@@ -45,8 +45,8 @@ class LogTelemetry @JvmOverloads constructor(val base: String = "Telemetry/"): T
     ): Telemetry.Item? {
         if (lastData[caption] != value // don't spam logs with same value
             && lastTime[caption]?.let {
-                now() * 1000 - it > msTransmissionInterval
-            } == true
+                now() - it > (msTransmissionInterval / 1000)
+            } != false // equals true OR doesn't exist
         ) {
             try {
                 FlightRecorder.write("$base$caption", value)
@@ -55,10 +55,12 @@ class LogTelemetry @JvmOverloads constructor(val base: String = "Telemetry/"): T
                 FlightRecorder.write("$base${caption}_FAILED", "Failed to log $value because $e")
             }
             lastData[caption] = value
-            lastTime[caption] = now() * 1000
+            lastTime[caption] = now()
         }
         return null
     }
+
+    fun write(ch: String, o: Any) = addData(ch,o)
 
     override fun getMsTransmissionInterval(): Int {
         return msTransmissionIntervalField

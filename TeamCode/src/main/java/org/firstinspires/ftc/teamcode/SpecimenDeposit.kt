@@ -57,7 +57,7 @@ class SpecimenDeposit(
             .splineToConstantHeading(Vector2d(specimenDepositX, specimenDepositY), toRadians(90.0)) //back to sub
             .stopAndAdd(
                 SequentialAction(
-                    motorActions.depositScoreChamber(),
+                    motorActions.depositScoreChamberTele(),
                     SleepAction(0.1),
                     motorActions.depositClaw.open(),
                     incrementRuntimeScoredAction()
@@ -92,7 +92,7 @@ class SpecimenDeposit(
                 ) //back to sub
                 .stopAndAdd(
                     SequentialAction(
-                        motorActions.depositScoreChamber(),
+                        motorActions.depositScoreChamberTele(),
                         SleepAction(0.1),
                         motorActions.depositClaw.open(),
                         incrementRuntimeScoredAction()
