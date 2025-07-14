@@ -85,8 +85,8 @@ public class PinpointDrive extends MecanumDrive {
 
     public PinpointDrive(HardwareMap hardwareMap, Pose2d pose, boolean resetPose) {
         super(hardwareMap, pose);
-        FlightRecorder.write("PINPOINT_PARAMS",PARAMS);
-        pinpoint = hardwareMap.get(GoBildaPinpointDriverRR.class,PARAMS.pinpointDeviceName);
+        FlightRecorder.write("PINPOINT_PARAMS", PARAMS);
+        pinpoint = hardwareMap.get(GoBildaPinpointDriverRR.class, PARAMS.pinpointDeviceName);
 
         if (PARAMS.usePinpointIMUForTuning) {
             lazyImu = new LazyImu(hardwareMap, PARAMS.pinpointDeviceName, new RevHubOrientationOnRobot(zyxOrientation(0, 0, 0)));
@@ -112,12 +112,12 @@ public class PinpointDrive extends MecanumDrive {
         if (resetPose) {
             pinpoint.resetPosAndIMU();
 
-        // wait for pinpoint to finish calibrating
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+            // wait for pinpoint to finish calibrating
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             pinpoint.setPosition(pose);
         } else {
             pinpoint.update();
@@ -125,6 +125,7 @@ public class PinpointDrive extends MecanumDrive {
             this.lastPinpointPose = this.pose;
         }
     }
+
     @Override
     public PoseVelocity2d updatePoseEstimate() {
         if (lastPinpointPose != pose) {
@@ -139,7 +140,7 @@ public class PinpointDrive extends MecanumDrive {
         }
         pinpoint.update();
         Pose2d newPose = pinpoint.getPositionRR();
-        if (!(Double.isNaN(newPose.heading.toDouble()) && (newPose.heading.minus(pose.heading) < Math.toRadians(45) )) ) {
+        if (!(Double.isNaN(newPose.heading.toDouble()) && (newPose.heading.minus(pose.heading) < Math.toRadians(45)))) {
             pose = newPose;
         }
         lastPinpointPose = pose;
@@ -151,8 +152,8 @@ public class PinpointDrive extends MecanumDrive {
         }
 
         FlightRecorder.write("ESTIMATED_POSE", new PoseMessage(pose));
-        FlightRecorder.write("PINPOINT_RAW_POSE",new FTCPoseMessage(pinpoint.getPosition()));
-        FlightRecorder.write("PINPOINT_STATUS",pinpoint.getDeviceStatus());
+        FlightRecorder.write("PINPOINT_RAW_POSE", new FTCPoseMessage(pinpoint.getPosition()));
+        FlightRecorder.write("PINPOINT_STATUS", pinpoint.getDeviceStatus());
 
         return pinpoint.getVelocityRR();
     }
@@ -172,7 +173,6 @@ public class PinpointDrive extends MecanumDrive {
             this.heading = pose.getHeading(AngleUnit.RADIANS);
         }
     }
-
 
 
 }

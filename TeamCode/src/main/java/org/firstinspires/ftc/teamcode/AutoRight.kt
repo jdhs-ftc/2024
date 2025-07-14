@@ -20,17 +20,16 @@ import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.lang.Math.toRadians
 
 @Autonomous(preselectTeleOp = "00 Teleop Field Centric")
-class AutoRight: LinearOpMode() {
+class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 12.0
         val hpPose = Pose2d(xPos, -60.0, toRadians(-90.0))
+        val hpGrabPose = Pose2d(xPos, -55.9, toRadians(-90.0))
         val startPose = Pose2d(30.0, -62.0, toRadians(90.0))
 
-        val drive = PinpointDrive(hardwareMap,startPose)
+        val drive = PinpointDrive(hardwareMap, startPose)
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
-
-
 
 
         fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = //this.stopAndAdd(action)
@@ -44,10 +43,8 @@ class AutoRight: LinearOpMode() {
             ).endTrajectory()
 
 
-
-        fun TrajectoryActionBuilder.waitSecondsHold(seconds: Double) = this.stopAndAdd(SleepAction(seconds))
-
-
+        fun TrajectoryActionBuilder.waitSecondsHold(seconds: Double) =
+            this.stopAndAdd(SleepAction(seconds))
 
 
         val traj = drive.actionBuilderPath(startPose)
@@ -55,7 +52,12 @@ class AutoRight: LinearOpMode() {
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
             .splineToConstantHeading(Vector2d(13.75, -6.0), toRadians(60.0))
-            .stopAndAddHold ( SequentialAction(SleepAction(0.25), motorActions.depositScoreChamberFar()) )
+            .stopAndAddHold(
+                SequentialAction(
+                    SleepAction(0.25),
+                    motorActions.depositScoreChamberFar()
+                )
+            )
             .setTangent(toRadians(-130.0))
             .splineToSplineHeading(Pose2d(xPos, -20.0, toRadians(180.0)), toRadians(-90.0))
             .splineToSplineHeading(Pose2d(7.0, -23.0, toRadians(180.0)), toRadians(-90.0))
@@ -118,7 +120,8 @@ class AutoRight: LinearOpMode() {
 
         var b = true
         while (opModeIsActive() && !isStopRequested
-            && b && !Thread.currentThread().isInterrupted) {
+            && b && !Thread.currentThread().isInterrupted
+        ) {
             val p = TelemetryPacket()
             p.fieldOverlay().operations.addAll(c.operations)
 
