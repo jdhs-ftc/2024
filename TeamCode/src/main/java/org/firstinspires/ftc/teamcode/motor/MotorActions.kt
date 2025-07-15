@@ -108,7 +108,7 @@ class MotorActions(val motorControl: MotorControl) {
         return SequentialAction(
             deposit.moveDown(),//deposit.setTargetPosition(150.0), // previously 116 // Tuned as of 10/24
             extendo.moveDown(),
-            depositArm.moveDown(), // down to intake
+            depositArm.moveUp(), // up to intake
             depositClaw.open(),
             Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
             extendoArm.moveMid()
@@ -227,7 +227,7 @@ class MotorActions(val motorControl: MotorControl) {
         }
 
         fun moveDown(): Action {
-            return setTargetPosition(40.0)
+            return setTargetPosition(0.0)
         }
 
         fun moveTransfer() = setTargetPosition(634.0)

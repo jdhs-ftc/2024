@@ -23,8 +23,8 @@ import java.lang.Math.toRadians
 class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 12.0
-        val hpPose = Pose2d(xPos, -60.0, toRadians(-90.0))
-        val hpGrabPose = Pose2d(xPos, -55.9, toRadians(-90.0))
+        val scoreXPos = 13.875
+        val hpPose = Pose2d(xPos, -49.0, toRadians(-90.0))
         val startPose = Pose2d(30.0, -62.0, toRadians(90.0))
 
         val drive = PinpointDrive(hardwareMap, startPose)
@@ -64,28 +64,41 @@ class AutoRight : LinearOpMode() {
             .waitSecondsHold(0.25)
             // third preset
             .setTangent(toRadians(-90.0))
+            .afterTime(0.0, motorActions.depositMoveWall())
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
-            .waitSecondsHold(0.25)
+            .stopAndAddHold(motorActions.depositPickupWall())
 
             .setTangent(toRadians(90.0))
-            .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
-            // score
-            .waitSecondsHold(0.25)
+            .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+            .afterTime(0.0, motorActions.depositMoveChamberFar())
+            .splineToConstantHeading(Vector2d(scoreXPos, -4.0), toRadians(60.0))
+            .stopAndAddHold(
+                SequentialAction(
+                    SleepAction(0.25),
+                    motorActions.depositScoreChamberFar()
+                )
+            )
             .setTangent(toRadians(0.0))
             // second preset
             .splineToConstantHeading(Vector2d(7.0, -12.0), toRadians(-90.0))
             .waitSecondsHold(0.1)
             .setTangent(toRadians(-90.0))
+            .afterTime(0.0, motorActions.depositMoveWall())
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
-            .waitSecondsHold(0.25)
+            .stopAndAddHold(motorActions.depositPickupWall())
 
             .setTangent(toRadians(90.0))
-            .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
-            .splineToSplineHeading(Pose2d(xPos, -4.0, toRadians(180.0)), toRadians(90.0))
-            // score
-            .waitSecondsHold(0.25)
+            .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+            .afterTime(0.0, motorActions.depositMoveChamberFar())
+            .splineToConstantHeading(Vector2d(scoreXPos, -2.0), toRadians(60.0))
+            .stopAndAddHold(
+                SequentialAction(
+                    SleepAction(0.25),
+                    motorActions.depositScoreChamberFar()
+                )
+            )
             .setTangent(toRadians(0.0))
             // first preset
             .splineToConstantHeading(Vector2d(7.0, -4.0), toRadians(-90.0))

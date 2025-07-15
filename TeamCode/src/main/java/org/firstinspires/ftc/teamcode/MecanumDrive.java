@@ -466,7 +466,7 @@ public class MecanumDrive {
             if ((((dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 0.25
             // or the closest position on the path is less then 1 inches away from the end of the path
             || (disp + 0.1) >= dispTraj.length()
-            ) && robotVelRobot.linearVel.norm() < 1.0
+            ) && robotVelRobot.linearVel.norm() < 0.5
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) && !makeTrajectoryWait)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 5)) {
