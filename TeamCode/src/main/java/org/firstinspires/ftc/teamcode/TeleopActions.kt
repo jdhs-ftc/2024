@@ -80,7 +80,7 @@ class TeleopActions : ActionOpMode() {
 
          */
 
-    val drive by lazy { PinpointDrive(hardwareMap, startPose) }
+    val drive by lazy { OctoQuadDrive(hardwareMap, startPose) } // TODO consider false
     val motorControl by lazy { MotorControl(hardwareMap, lateinit=true) }
     val motorActions by lazy { MotorActions(motorControl) }
 
@@ -127,6 +127,8 @@ class TeleopActions : ActionOpMode() {
 
         // RoadRunner Init
         drive // init with by lazy
+        drive.pose = startPose
+        drive.updatePoseEstimate()
 
         // Enable Bulk Caching
         allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL }

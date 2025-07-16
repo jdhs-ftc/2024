@@ -159,9 +159,12 @@ open class RepeatUntilAction(val condition: Supplier<Boolean>, val action: Suppl
     override fun run(p: TelemetryPacket): Boolean {
         if (!initialized) {
             initialized = true
+            /*
             if (condition.get()) {
                 return false
             }
+
+             */
         }
         val keepRunning = storedAction.run(p)
 

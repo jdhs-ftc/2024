@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.helpers.InterruptibleAction
 import org.firstinspires.ftc.teamcode.helpers.LazyAction
 import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
+import org.firstinspires.ftc.teamcode.helpers.RaceParallelAction
 import org.firstinspires.ftc.teamcode.helpers.RepeatUntilAction
 import kotlin.math.abs
 
@@ -118,6 +119,42 @@ class MotorActions(val motorControl: MotorControl) {
         )
     )
 
+    fun intakePreset() = SequentialAction(
+        ParallelAction(
+            extendoArm.moveDown(),
+            extendo.setTargetPosition(300.0),
+            InstantAction { motorControl.intake.intake() }
+        ),
+        RaceParallelAction (
+            { motorControl.eColor.color == Color.NONE },
+            SleepAction(2.0)
+        ),
+        InstantAction { motorControl.intake.stop()},
+        ParallelAction(
+            extendoArm.moveMid(),
+            extendo.moveDown()
+        ),
+        SleepAction(0.1)
+    )
+
+    fun intakeAutoHpEject() = SequentialAction(
+        ParallelAction(
+            //extendoArm.moveDown(),
+            extendo.setTargetPosition(500.0),
+            InstantAction { motorControl.intake.eject() }
+        ),
+        RaceParallelAction(
+            { motorControl.eColor.color != Color.NONE },
+            SleepAction(2.0)
+        ),
+        SleepAction(0.5),
+        InstantAction { motorControl.intake.stop() },
+        ParallelAction(
+            //extendoArm.moveMid(),
+            extendo.moveDown()
+        )
+    )
+
     fun intakeInOut(condition: () -> Boolean = { false }) =
         SequentialAction(
             intakeIn(),
@@ -185,7 +222,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun depositScoreChamberFar(): Action {
         return SequentialAction(
-            //deposit.setTargetPosition(1110.0), // 1050
+            deposit.setTargetPosition(1700.0),
             depositArm.setPosition(0.5),
 
             SleepAction(0.1),

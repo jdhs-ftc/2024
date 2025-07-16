@@ -83,8 +83,15 @@ public class OctoQuadDrive extends AbsoluteLocalizerDrive {
     }
     public static Params PARAMS = new Params();
 
+    boolean reset = true;
+
     public OctoQuadDrive(HardwareMap hardwareMap, Pose2d pose) {
         super(hardwareMap, pose);
+    }
+
+    public OctoQuadDrive(HardwareMap hardwareMap, Pose2d pose, boolean reset) {
+        super(hardwareMap, pose);
+        this.reset = reset;
     }
 
     @Override
@@ -114,7 +121,10 @@ public class OctoQuadDrive extends AbsoluteLocalizerDrive {
 
         octoquad.setLocalizerVelocityIntervalMS(25);
 
-
+        if (!reset) {
+            octoquad.updatePoseVel();
+            pose = octoquad.getCachedPose();
+        }
         /*
         Reset the localization and calibrate the IMU.
          */
@@ -123,6 +133,13 @@ public class OctoQuadDrive extends AbsoluteLocalizerDrive {
         octoquad.writePose(pose);
 
         return octoquad;
+    }
+
+    public void writePose(Pose2d pose) {
+        localSensor.writePose(pose);
+        this.pose = pose;
+        this.lastPose = pose;
+        updatePoseEstimate();
     }
 
 }

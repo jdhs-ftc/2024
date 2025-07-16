@@ -86,8 +86,8 @@ public class MecanumDrive {
         public double maxAngAccel = Math.PI * 5/2;
 
         // path controller gains
-        public double axialGain = 12.0; //8.0;
-        public double lateralGain = 12.0; //8.0;
+        public double axialGain = 10.0; //8.0;
+        public double lateralGain = 10.0; //8.0;
         public double headingGain = 12.0; //8.0; // shared with turn
 
         public double axialVelGain = 0.0;
@@ -469,7 +469,7 @@ public class MecanumDrive {
             ) && robotVelRobot.linearVel.norm() < 0.5
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) && !makeTrajectoryWait)
-            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 5)) {
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 10)) {
 
                 // stop all the motors
                 leftFront.setPower(0);

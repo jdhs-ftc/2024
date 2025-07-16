@@ -68,11 +68,11 @@ class GamepadMessage(gamepad: Gamepad, name: String) {
     @JvmField
     val AxisValues = doubleArrayOf(
         gamepad.left_stick_x.toDouble(),
-        -gamepad.left_stick_y.toDouble(),
+        gamepad.left_stick_y.toDouble(),
         gamepad.right_stick_x.toDouble(),
-        -gamepad.right_stick_y.toDouble(),
+        gamepad.right_stick_y.toDouble(),
+        gamepad.right_trigger.toDouble(),
         gamepad.left_trigger.toDouble(),
-        gamepad.right_trigger.toDouble()
     )
 
     @JvmField

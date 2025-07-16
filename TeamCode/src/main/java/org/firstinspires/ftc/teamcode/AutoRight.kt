@@ -24,11 +24,13 @@ import java.lang.Math.toRadians
 class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 12.0
-        val scoreXPos = 13.875
+        val scoreXPos = 14.5
         val hpPose = Pose2d(xPos, -49.0, toRadians(-90.0))
-        val startPose = Pose2d(30.0, -62.0, toRadians(90.0))
+        val startPose = Pose2d(29.7, -62.0, toRadians(90.0))
 
-        val drive = PinpointDrive(hardwareMap, startPose)
+        val drive = OctoQuadDrive(hardwareMap, startPose)
+        drive.writePose(startPose)
+
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
 
@@ -61,15 +63,19 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             .splineToSplineHeading(Pose2d(xPos, -20.0, toRadians(180.0)), toRadians(-90.0))
-            .splineToSplineHeading(Pose2d(7.0, -23.0, toRadians(180.0)), toRadians(-90.0))
-            .waitSecondsHold(0.25)
+            .splineToSplineHeading(Pose2d(xPos, -23.0, toRadians(180.0)), toRadians(-90.0))
+            .stopAndAddHold(motorActions.intakePreset())
             // third preset
             .setTangent(toRadians(-90.0))
             .afterTime(0.0, motorActions.depositMoveWall())
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
-            .stopAndAddHold(motorActions.depositPickupWall())
-
+            .stopAndAddHold(
+                SequentialAction(
+                    motorActions.intakeAutoHpEject(),
+                    motorActions.depositPickupWall(),
+                )
+            )
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
@@ -82,13 +88,18 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(0.0))
             // second preset
-            .splineToConstantHeading(Vector2d(7.0, -12.0), toRadians(-90.0))
-            .waitSecondsHold(0.1)
+            .splineToConstantHeading(Vector2d(xPos, -12.0), toRadians(-90.0))
+            .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
             .afterTime(0.0, motorActions.depositMoveWall())
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
-            .stopAndAddHold(motorActions.depositPickupWall())
+            .stopAndAddHold(
+                SequentialAction(
+                    motorActions.intakeAutoHpEject(),
+                    motorActions.depositPickupWall(),
+                )
+            )
 
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
@@ -102,14 +113,20 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(0.0))
             // first preset
-            .splineToConstantHeading(Vector2d(7.0, -4.0), toRadians(-90.0))
-            .waitSecondsHold(0.25)
+            .splineToConstantHeading(Vector2d(xPos, -2.0), toRadians(-90.0))
+            .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse +  grab hp
-            .waitSecondsHold(0.25)
+            .stopAndAdd(
+                SequentialAction(
+                    motorActions.intakeAutoHpEject(),
+                    motorActions.depositPickupWall(),
+                )
+            )
 
-            .setTangent(toRadians(90.0))
+            //.setTangent(toRadians(90.0))
 
             .build()
 
@@ -128,6 +145,7 @@ class AutoRight : LinearOpMode() {
             if (gamepad2.dpad_left) motorControl.depositClaw.open()
             if (gamepad2.dpad_right) motorControl.depositClaw.close()
             motorControl.update()
+            drive.writePose(startPose)
         }
 
         waitForStart()
