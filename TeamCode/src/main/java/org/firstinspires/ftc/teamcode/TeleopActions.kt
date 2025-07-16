@@ -230,8 +230,8 @@ class TeleopActions : ActionOpMode() {
 
 
             // Auto Tele
-            val padAutoDrive = gamepad2.triangle && !previousGamepad2.triangle
-            val padAutoDriveRelease = !gamepad2.triangle
+            val padAutoDrive = false//gamepad2.triangle && !previousGamepad2.triangle
+            val padAutoDriveRelease = false //!gamepad2.triangle
             padReleased = padReleased && padAutoDriveRelease
 
 
@@ -276,11 +276,13 @@ class TeleopActions : ActionOpMode() {
             // especially in driver practice, imu drifts eventually
             // this lets them reset just in case
             if (padResetPose) {
-                if (PoseStorage.currentTeam != BLUE) { // Team is declared and saved there for auto
+                //if (PoseStorage.currentTeam != BLUE) { // Team is declared and saved there for auto
                     drive.pose = Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(90.0))
-                } else {
+                /*} else {
                     drive.pose = Pose2d(drive.pose.position.x, drive.pose.position.y, Math.toRadians(-90.0))
                 }
+
+                 */
                 targetHeading = drive.pose.heading
                 gamepad1.rumbleBlips(1) // tell the driver it succeeded
             }
@@ -299,9 +301,11 @@ class TeleopActions : ActionOpMode() {
                     if (PoseStorage.currentTeam == RED) {
                         gamepad1.rumbleBlips(1)
                         PoseStorage.currentTeam = BLUE
+                        motorControl.topLight.color = Color.BLUE
                     } else {
                         gamepad1.rumbleBlips(2)
                         PoseStorage.currentTeam = RED
+                        motorControl.topLight.color = Color.RED
                     }
                 }
             }
@@ -335,8 +339,8 @@ class TeleopActions : ActionOpMode() {
             var padExtendoControl = padExtendoAndStrafeVector.y
             padExtendoControl = sign(padExtendoControl) * abs(padExtendoControl).pow(2)
 
-            if (motorControl.extendo.targetPosition >= 1200 && padExtendoControl > 0) { // previously 1530
-                motorControl.extendo.targetPosition = 1200.0
+            if (motorControl.extendo.targetPosition >= 2000 && padExtendoControl > 0) { // previously 1530
+                motorControl.extendo.targetPosition = 2000.0
                 input += Vector2d(padExtendoControl * 0.2,0.0)
             } else if (motorControl.extendo.targetPosition <= 5 && padExtendoControl < 0) {
                 if (padForceDown) {
@@ -513,6 +517,7 @@ class TeleopActions : ActionOpMode() {
             if (padResetAll) {
                 run(
                     ParallelAction(
+                        motorActions.extendoArm.moveUp(),
                         motorActions.extendo.moveDown(),
                         motorActions.deposit.moveDown(),
                         motorActions.depositArm.moveDown(),
@@ -520,6 +525,7 @@ class TeleopActions : ActionOpMode() {
                     )
                 )
                 motorControl.depositClaw.open()
+                motorControl.intake.stop()
             }
 
             if (gamepad2.dpad_down && !previousGamepad2.dpad_down) motorControl.depositClaw.toggle()

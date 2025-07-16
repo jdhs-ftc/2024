@@ -25,20 +25,20 @@ import kotlin.math.sqrt
 @Config
 class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.9, 0.9, 1.0)
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.98, 0.89, 0.89) // DOWN UP MID
 
     val intake = Intake(hardwareMap.get(CRServo::class.java, "intake"))
 
 
     val extendoMotors = MotorGroup(
         hardwareMap.get(DcMotorEx::class.java, "extendo1"),
-        //hardwareMap.get(DcMotorEx::class.java, "extendo2")
+        hardwareMap.get(DcMotorEx::class.java, "extendo2")
     )
 
     init {
         extendoMotors.setDirections(
             DcMotorSimple.Direction.REVERSE,
-            //DcMotorSimple.Direction.FORWARD
+            DcMotorSimple.Direction.FORWARD
         )
     }
 
@@ -122,7 +122,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         } else {
             depositArm.position = 0.4
         }
-        extendoArm.moveUp()
+        extendoArm.moveDown()
 
         intake.stop()
         depositClaw.open()

@@ -38,79 +38,95 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun autoUpdate(): Action {
-        return ParallelAction( Action {
-            motorControl.update()
-            logger.update() // double updating is unnecessary but whatever
-            it.put("depositArmPosDegrees", motorControl.depositArmEncoder.posDegrees)
-            true // this returns true to make it loop forever; use RaceParallelCommand
-        },
+        return ParallelAction(
+            Action {
+                motorControl.update()
+                logger.update() // double updating is unnecessary but whatever
+                it.put("depositArmPosDegrees", motorControl.depositArmEncoder.posDegrees)
+                true // this returns true to make it loop forever; use RaceParallelCommand
+            },
             ForeverAction {
-            SequentialAction(
-                InstantAction { motorControl.topLight.color = Color.BLUE },
-                SleepAction(4.0),
-                InstantAction { motorControl.topLight.color = Color.GREEN },
-                SleepAction(4.0),
-            )}
-            )
+                SequentialAction(
+                    InstantAction { motorControl.topLight.color = Color.BLUE },
+                    SleepAction(4.0),
+                    InstantAction { motorControl.topLight.color = Color.GREEN },
+                    SleepAction(4.0),
+                )
+            }
+        )
     }
 
 
-    fun log(key: String, message: Any): Action = InstantAction { logger.addData(key, message)}
+    fun log(key: String, message: Any): Action = InstantAction { logger.addData(key, message) }
 
-    fun intakeUntilColor(gamepad1: Gamepad = Gamepad(), gamepad2: Gamepad = Gamepad()) = InterruptibleAction(SequentialAction(
-        RepeatUntilAction(
-        { motorControl.eColor.color == PoseStorage.currentTeam.color },
-        {
+    fun intakeUntilColor(gamepad1: Gamepad = Gamepad(), gamepad2: Gamepad = Gamepad()) =
+        InterruptibleAction(
             SequentialAction(
-                InstantAction { motorControl.topLight.color = Color.GREEN },
-                log("/intakeUntilColor/status","Started 64"),
-                InstantAction { motorControl.intake.eject() },
-                log("/intakeUntilColor/status", "Ejecting 66"),
-                { motorControl.eColor.color != Color.NONE }, // repeat until sample cleared
-                log("/intakeUntilColor/status", "Sample Clear 68"),
-                SleepAction(0.25), // and a little longer then that TODO tune
-                log("/intakeUntilColor/status", "Sleep Done 70"),
-                InstantAction { motorControl.intake.intake() },
-                log("/intakeUntilColor/status", "Intaking 72"),
-                { motorControl.eColor.color == Color.NONE }, // repeat until ANY sample detected
-                log("/intakeUntilColor/status", "Stopped 74"),
-                InstantAction { motorControl.intake.stop() },
-                SleepAction(0.1),
-                // check condition
+                RepeatUntilAction(
+                    { motorControl.eColor.color == PoseStorage.currentTeam.color },
+                    {
+                        SequentialAction(
+                            extendoArm.moveDown(),
+                            InstantAction { motorControl.topLight.color = Color.GREEN },
+                            log("/intakeUntilColor/status", "Started 64"),
+                            InstantAction { motorControl.intake.intake() },
+                            log("/intakeUntilColor/status", "Ejecting 66"),
+                            { motorControl.eColor.color != Color.NONE }, // repeat until sample cleared
+                            log("/intakeUntilColor/status", "Sample Clear 68"),
+                            SleepAction(0.25), // and a little longer then that TODO tune
+                            log("/intakeUntilColor/status", "Sleep Done 70"),
+                            InstantAction { motorControl.intake.intake() },
+                            log("/intakeUntilColor/status", "Intaking 72"),
+                            { motorControl.eColor.color == Color.NONE }, // repeat until ANY sample detected
+                            log("/intakeUntilColor/status", "Stopped 74"),
+                            InstantAction { motorControl.intake.stop() },
+                            SleepAction(0.1),
+                            // check condition
+                        )
+                    }
+                ), SequentialAction(
+                    log("/intakeUntilColor/status", "Done 81"),
+                    InstantAction {
+                        motorControl.topLight.color = motorControl.eColor.color
+                    }, // TODO intake light?
+                    InstantAction {
+                        gamepad1.rumbleBlips(3)
+                        gamepad2.rumbleBlips(3)
+                    },
+                    intakeIn()
+                )
             )
-        }
-    ), SequentialAction (
-            log("/intakeUntilColor/status", "Done 81"),
-            InstantAction {motorControl.topLight.color = motorControl.eColor.color}, // TODO intake light?
-            InstantAction { gamepad1.rumbleBlips(3)
-                gamepad2.rumbleBlips(3) },
-            intakeIn()
-    )))
+        )
 
     fun intakeIn() = SequentialAction(
-        extendoArm.moveIn(), // TODO time??
+        extendoArm.moveUp(), // TODO time??
         extendo.moveDown(),
     )
 
-    fun intakeOut() = SequentialAction(
-        extendo.moveUp(),
-        Action { !(motorControl.extendo.position > 300) }, // TODO tune
-        InstantAction { motorControl.intake.eject() }, // TODO see if this even makes sesne
-        extendoArm.moveOut(),
-        SleepAction(0.3),
-        InstantAction { motorControl.intake.stop() }
+    fun intakeOut() = ParallelAction(
+        depositArm.moveDown(),
+        SequentialAction(
+            extendo.moveUp(),
+            /*
+            Action { !(motorControl.extendo.position > 300) }, // TODO tune
+            InstantAction { motorControl.intake.eject() }, // TODO see if this even makes sesne
+            extendoArm.moveDown(),
+            SleepAction(0.3),
+            InstantAction { motorControl.intake.stop() }
+
+             */
+        )
     )
 
     fun intakeInOut(condition: () -> Boolean = { false }) =
-        SequentialAction (
+        SequentialAction(
             intakeIn(),
             { !condition() },
             intakeOut()
-    )
+        )
 
 
-
-    fun allIn() = ParallelAction (
+    fun allIn() = ParallelAction(
         intakeIn(),
         depositArm.moveDown(),
         deposit.moveDown()
@@ -124,7 +140,7 @@ class MotorActions(val motorControl: MotorControl) {
             depositArm.moveUp(), // up to intake
             depositClaw.open(),
             Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
-            extendoArm.moveMid()
+            extendoArm.moveUp()
         )
     }
 
@@ -134,7 +150,7 @@ class MotorActions(val motorControl: MotorControl) {
         depositArm.moveDown(), // down to intake
         depositClaw.open(),
         Action { !(motorControl.extendo.position < 300) }, // wait for extendo to be retracted, todo tune
-        extendoArm.moveMid()
+        extendoArm.moveUp()
     )
 
     fun depositPickupWall(): Action {
@@ -156,7 +172,7 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun depositMoveChamber() = depositMoveChamberFar()
-    fun depositScoreChamberTele() = SequentialAction(depositScoreChamberFar(),depositArm.moveUp())
+    fun depositScoreChamberTele() = SequentialAction(depositScoreChamberFar(), depositArm.moveUp())
 
     fun depositMoveChamberFar(): Action {
         return SequentialAction(
@@ -165,7 +181,7 @@ class MotorActions(val motorControl: MotorControl) {
             depositArm.moveDown(),
             deposit.setTargetPosition(1457.0), //
         )
-}
+    }
 
     fun depositScoreChamberFar(): Action {
         return SequentialAction(
@@ -178,7 +194,7 @@ class MotorActions(val motorControl: MotorControl) {
             deposit.moveDown(),
 
 
-        )
+            )
     }
 
     fun depositScoreChamberAuto() = SequentialAction(depositScoreChamberFar(), depositArm.moveMid())
@@ -205,16 +221,16 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun depositScoreChamberTeleop() = depositScoreChamberTele()
-        /*
-        SequentialAction(
-        deposit.setTargetPosition(900.0), // 1050
-        //SleepAction(0.5),
-        depositArm.moveHang(),
-        SleepAction(0.3),
-        depositClawRelease(), // TODO USE ENCODER
-        SleepAction(0.3),
-        depositArm.moveUp()
-    )*/
+    /*
+    SequentialAction(
+    deposit.setTargetPosition(900.0), // 1050
+    //SleepAction(0.5),
+    depositArm.moveHang(),
+    SleepAction(0.3),
+    depositClawRelease(), // TODO USE ENCODER
+    SleepAction(0.3),
+    depositArm.moveUp()
+)*/
 
     fun depositClawRelease(): Action {
         return SequentialAction(depositClaw.open())
@@ -236,7 +252,7 @@ class MotorActions(val motorControl: MotorControl) {
         }
 
         fun moveUp(): Action {
-            return setTargetPosition(1200.0) // prev 1200
+            return setTargetPosition(1600.0) // prev 1200
         }
 
         fun moveDown(): Action {
@@ -317,7 +333,8 @@ class MotorActions(val motorControl: MotorControl) {
         fun moveScore() = moveMid()
     }
 
-    class DepositArm(val depositArm: MotorControl.DepositArm, val logger: LogTelemetry) : ThreeArm(depositArm) {
+    class DepositArm(val depositArm: MotorControl.DepositArm, val logger: LogTelemetry) :
+        ThreeArm(depositArm) {
         override fun setPosition(position: Double): Action {
             return LazyAction {
                 goToPosAction(
@@ -390,7 +407,7 @@ fun goToPosAction(
     logger.update()
     logger.write("goToPosAction/profiling", false)
     logger.update()
-    logger.write("goToPosAction/profileTimeMs",currentTime.milliseconds())
+    logger.write("goToPosAction/profileTimeMs", currentTime.milliseconds())
     currentTime.reset()
 
     var lastPosition = start
