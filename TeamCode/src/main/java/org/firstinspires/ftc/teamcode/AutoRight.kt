@@ -4,7 +4,6 @@ import com.acmerobotics.dashboard.FtcDashboard
 import com.acmerobotics.dashboard.canvas.Canvas
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
-import com.acmerobotics.roadrunner.InstantAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
@@ -24,9 +23,14 @@ import java.lang.Math.toRadians
 class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 12.0
-        val scoreXPos = 14.5
-        val hpPose = Pose2d(xPos, -49.0, toRadians(-90.0))
+        val scoreXPos = 14.65
+        val hpPose = Pose2d(xPos, -49.5, toRadians(-90.0))
         val startPose = Pose2d(29.7, -62.0, toRadians(90.0))
+        val depositY1 = 0.0
+        val depositY2 = -2.5
+        val depositY3 = -5.0
+        val depositY4 = -7.5
+
 
         val drive = OctoQuadDrive(hardwareMap, startPose)
         drive.writePose(startPose)
@@ -35,7 +39,8 @@ class AutoRight : LinearOpMode() {
         val motorActions = MotorActions(motorControl)
 
 
-        fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = //this.stopAndAdd(action)
+        fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = this.stopAndAdd(action)
+            /*
 
             this.afterDisp(
                 1000.0, SequentialAction(
@@ -44,6 +49,8 @@ class AutoRight : LinearOpMode() {
                     InstantAction { drive.makeTrajectoryWait = false }
                 )
             ).endTrajectory()
+
+             */
 
 
         fun TrajectoryActionBuilder.waitSecondsHold(seconds: Double) =
@@ -54,17 +61,16 @@ class AutoRight : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(13.75, -6.0), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(13.75, depositY1), toRadians(60.0))
             .stopAndAddHold(
                 SequentialAction(
-                    SleepAction(0.25),
                     motorActions.depositScoreChamberFar()
                 )
             )
             .setTangent(toRadians(-130.0))
-            .splineToSplineHeading(Pose2d(xPos, -20.0, toRadians(180.0)), toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(xPos, -20.0), toRadians(-90.0))
             .splineToSplineHeading(Pose2d(xPos, -23.0, toRadians(180.0)), toRadians(-90.0))
-            .stopAndAddHold(motorActions.intakePreset())
+            .stopAndAdd(motorActions.intakePreset())
             // third preset
             .setTangent(toRadians(-90.0))
             .afterTime(0.0, motorActions.depositMoveWall())
@@ -79,16 +85,15 @@ class AutoRight : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos, -4.0), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY2), toRadians(60.0))
             .stopAndAddHold(
                 SequentialAction(
-                    SleepAction(0.25),
                     motorActions.depositScoreChamberFar()
                 )
             )
             .setTangent(toRadians(0.0))
             // second preset
-            .splineToConstantHeading(Vector2d(xPos, -12.0), toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(xPos, -13.0), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
             .afterTime(0.0, motorActions.depositMoveWall())
@@ -104,29 +109,37 @@ class AutoRight : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos, -2.0), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY3), toRadians(60.0))
             .stopAndAddHold(
                 SequentialAction(
-                    SleepAction(0.25),
                     motorActions.depositScoreChamberFar()
                 )
             )
             .setTangent(toRadians(0.0))
             // first preset
-            .splineToConstantHeading(Vector2d(xPos, -2.0), toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(xPos, -2.5), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
             .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
+            .afterTime(0.0, motorActions.depositMoveWall())
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse +  grab hp
-            .stopAndAdd(
+            .stopAndAddHold(
                 SequentialAction(
                     motorActions.intakeAutoHpEject(),
                     motorActions.depositPickupWall(),
                 )
             )
 
-            //.setTangent(toRadians(90.0))
+            .setTangent(toRadians(90.0))
+            .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+            .afterTime(0.0, motorActions.depositMoveChamberFar())
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY4), toRadians(60.0))
+            .stopAndAddHold( // 4th spec score
+                SequentialAction(
+                    motorActions.depositScoreChamberFar()
+                )
+            )
 
             .build()
 

@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.BetterUniqueAction
 import org.firstinspires.ftc.teamcode.helpers.Color
 import org.firstinspires.ftc.teamcode.helpers.ForeverAction
+import org.firstinspires.ftc.teamcode.helpers.IfAction
 import org.firstinspires.ftc.teamcode.helpers.InterruptibleAction
 import org.firstinspires.ftc.teamcode.helpers.LazyAction
 import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
@@ -127,7 +128,7 @@ class MotorActions(val motorControl: MotorControl) {
         ),
         RaceParallelAction (
             { motorControl.eColor.color == Color.NONE },
-            SleepAction(2.0)
+            SleepAction(1.0)
         ),
         InstantAction { motorControl.intake.stop()},
         ParallelAction(
@@ -138,6 +139,15 @@ class MotorActions(val motorControl: MotorControl) {
     )
 
     fun intakeAutoHpEject() = SequentialAction(
+        IfAction(
+            { motorControl.eColor.color == Color.NONE },
+            SequentialAction(
+                InstantAction { motorControl.intake.intake() },
+                SleepAction(0.25),
+                InstantAction { motorControl.intake.stop() }
+            )
+
+        ),
         ParallelAction(
             //extendoArm.moveDown(),
             extendo.setTargetPosition(500.0),
@@ -147,7 +157,7 @@ class MotorActions(val motorControl: MotorControl) {
             { motorControl.eColor.color != Color.NONE },
             SleepAction(2.0)
         ),
-        SleepAction(0.5),
+        SleepAction(0.25),
         InstantAction { motorControl.intake.stop() },
         ParallelAction(
             //extendoArm.moveMid(),
