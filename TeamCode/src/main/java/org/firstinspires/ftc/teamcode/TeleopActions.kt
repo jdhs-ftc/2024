@@ -127,8 +127,6 @@ class TeleopActions : ActionOpMode() {
 
         // RoadRunner Init
         drive // init with by lazy
-        drive.pose = startPose
-        drive.updatePoseEstimate()
 
         // Enable Bulk Caching
         allHubs.forEach { it.bulkCachingMode == BulkCachingMode.MANUAL }
@@ -147,6 +145,10 @@ class TeleopActions : ActionOpMode() {
         specimenDeposit // init with by lazy
         specimenDepositTraj = specimenDeposit.genTrajectory(drive)
 
+
+        while (opModeInInit()) {
+            drive.writePose(startPose)
+        }
 
         waitForStart()
 

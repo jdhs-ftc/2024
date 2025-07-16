@@ -22,8 +22,8 @@ import java.lang.Math.toRadians
 @Autonomous(preselectTeleOp = "00 Teleop Field Centric")
 class AutoRight : LinearOpMode() {
     override fun runOpMode() {
-        val xPos = 12.0
-        val scoreXPos = 14.65
+        val xPos = 11.675
+        val scoreXPos = 14.85
         val hpPose = Pose2d(xPos, -49.5, toRadians(-90.0))
         val startPose = Pose2d(29.7, -62.0, toRadians(90.0))
         val depositY1 = 0.0
@@ -59,9 +59,16 @@ class AutoRight : LinearOpMode() {
 
         val traj = drive.actionBuilderPath(startPose)
             .setTangent(toRadians(90.0))
-            .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+            .splineToSplineHeading(
+                Pose2d(xPos + 1.25, -30.0, toRadians(180.0)),
+                toRadians(90.0)
+            )
+            .splineToSplineHeading(
+                Pose2d(xPos + 1.25, -26.0, toRadians(180.0)),
+                toRadians(90.0)
+            )
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(13.75, depositY1), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(scoreXPos - 0.15, depositY1), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
                     motorActions.depositScoreChamberFar()
@@ -73,19 +80,18 @@ class AutoRight : LinearOpMode() {
             .stopAndAdd(motorActions.intakePreset())
             // third preset
             .setTangent(toRadians(-90.0))
-            .afterTime(0.0, motorActions.depositMoveWall())
+            .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
             .stopAndAddHold(
                 SequentialAction(
-                    motorActions.intakeAutoHpEject(),
                     motorActions.depositPickupWall(),
                 )
             )
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos, depositY2), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY2), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
                     motorActions.depositScoreChamberFar()
@@ -96,12 +102,12 @@ class AutoRight : LinearOpMode() {
             .splineToConstantHeading(Vector2d(xPos, -13.0), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
-            .afterTime(0.0, motorActions.depositMoveWall())
+            .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
+            .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
             // intake reverse + grab hp
             .stopAndAddHold(
                 SequentialAction(
-                    motorActions.intakeAutoHpEject(),
                     motorActions.depositPickupWall(),
                 )
             )
@@ -109,7 +115,7 @@ class AutoRight : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos, depositY3), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY3), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
                     motorActions.depositScoreChamberFar()
@@ -117,16 +123,15 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(0.0))
             // first preset
-            .splineToConstantHeading(Vector2d(xPos, -2.5), toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(xPos, -2.75), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
             .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
-            .afterTime(0.0, motorActions.depositMoveWall())
+            .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
-            // intake reverse +  grab hp
+            // intake reverse + grab hp
             .stopAndAddHold(
                 SequentialAction(
-                    motorActions.intakeAutoHpEject(),
                     motorActions.depositPickupWall(),
                 )
             )
@@ -134,7 +139,7 @@ class AutoRight : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos, depositY4), toRadians(60.0))
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY4), toRadians(80.0))
             .stopAndAddHold( // 4th spec score
                 SequentialAction(
                     motorActions.depositScoreChamberFar()

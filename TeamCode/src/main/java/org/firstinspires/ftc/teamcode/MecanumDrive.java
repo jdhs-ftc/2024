@@ -86,8 +86,8 @@ public class MecanumDrive {
         public double maxAngAccel = Math.PI * 5/2;
 
         // path controller gains
-        public double axialGain = 10.0; //8.0;
-        public double lateralGain = 10.0; //8.0;
+        public double axialGain = 12.0; //8.0;
+        public double lateralGain = 12.0; //8.0;
         public double headingGain = 12.0; //8.0; // shared with turn
 
         public double axialVelGain = 0.0;
@@ -459,8 +459,13 @@ public class MecanumDrive {
             // this logic is pretty much made up and doesnt really make sense
             // and it wiggles occasionally
             // but it does usually work
-            p.addLine("dispTraj position minus current " + dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm());
-            p.addLine("disp " + disp + " dispTraj length" + dispTraj.length());
+            FlightRecorder.write("FollowTrajectoryAsPathAction/dispTraj position minus current", dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm());
+            FlightRecorder.write("FollowTrajectoryAsPathAction/disp", disp);
+            FlightRecorder.write("FollowTrajectoryAsPathAction/dispTraj length", dispTraj.length());
+            FlightRecorder.write("FollowTrajectoryAsPathAction/robotVelRobot.linearVel.norm()",robotVelRobot.linearVel.norm());
+            FlightRecorder.write("FollowTrajectoryAsPathAction/trajectoryRunningTimeSeconds", trajectoryRunningTime.seconds());
+            FlightRecorder.write("FollowTrajectoryAsPathAction/targetTimeSeconds + 1", targetTimeSeconds + 1);
+            FlightRecorder.write("FollowTrajectoryAsPathAction/makeTrajectoryWait",makeTrajectoryWait);
 
             // if robot within 1 in of end pose
             if ((((dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 0.25

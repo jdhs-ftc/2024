@@ -25,53 +25,27 @@ object MeepMeepTesting {
         val motorActions = MotorActions()
 
 
-        val xPos = 12.0
-        val hpPose = Pose2d(xPos, -50.0, toRadians(-90.0))
-        val startPose = Pose2d(30.0, -62.0, toRadians(90.0))
+        val xPos = 11.675
+        val scoreXPos = 14.65
+        val hpPose = Pose2d(xPos, -49.5, toRadians(-90.0))
+        val startPose = Pose2d(29.7, -62.0, toRadians(90.0))
+        val depositY1 = 0.0
+        val depositY2 = -2.5
+        val depositY3 = -5.0
+        val depositY4 = -7.5
         myBot.runAction(
             myBot.drive.actionBuilder(startPose)
                 .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+                .splineToSplineHeading(
+                    Pose2d(xPos + 1.25, -30.0, toRadians(180.0)),
+                    toRadians(90.0)
+                )
+                .splineToSplineHeading(
+                    Pose2d(xPos + 1.25, -26.0, toRadians(180.0)),
+                    toRadians(90.0)
+                )
                 //.afterTime(0.0, motorActions.depositMoveChamberFar())
-                .splineToConstantHeading(Vector2d(13.0, -6.0), toRadians(70.0))
-                //.stopAndAddHold(motorActions.depositScoreChamberFar())
-                .setTangent(toRadians(-120.0))
-                .splineToSplineHeading(Pose2d(xPos, -20.0, toRadians(180.0)), toRadians(-90.0))
-                .splineToSplineHeading(Pose2d(7.0, -23.0, toRadians(180.0)), toRadians(-90.0))
-                .waitSeconds(0.1)
-                .setTangent(toRadians(-90.0))
-                // third preset
-                .waitSeconds(0.25)
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // intake reverse + grab hp
-                .waitSeconds(0.25)
-                /*
-
-
-                .setTangent(toRadians(90.0))
-                .splineToSplineHeading(Pose2d(xPos, -12.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                // grab second preset
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // intake reverse + grab hp
-                .waitSeconds(0.25)
-
-                .splineToSplineHeading(Pose2d(xPos, -24.0, toRadians(180.0)), toRadians(90.0))
-                .splineToSplineHeading(Pose2d(xPos, -3.0, toRadians(180.0)), toRadians(90.0))
-                // score
-                // grab first preset
-                .waitSeconds(0.25)
-                .setTangent(toRadians(-90.0))
-                .splineToSplineHeading(hpPose, toRadians(-90.0))
-                // intake reverse +  grab hp
-                .waitSeconds(0.25)
-
-                .setTangent(toRadians(90.0))
-
-                 */
-
+                .splineToConstantHeading(Vector2d(13.75, depositY1), toRadians(80.0))
                 .build()
         )
 
