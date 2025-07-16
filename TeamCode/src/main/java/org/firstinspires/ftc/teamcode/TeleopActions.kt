@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket
 import com.acmerobotics.roadrunner.Action
 import com.acmerobotics.roadrunner.InstantAction
+import com.acmerobotics.roadrunner.NullAction
 import com.acmerobotics.roadrunner.ParallelAction
 import com.acmerobotics.roadrunner.Pose2d
 import com.acmerobotics.roadrunner.PoseVelocity2d
@@ -19,8 +20,10 @@ import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants
 import com.qualcomm.robotcore.hardware.configuration.LynxConstants.EXPANSION_HUB_PRODUCT_NUMBER
 import com.qualcomm.robotcore.util.ElapsedTime
+import org.firstinspires.ftc.teamcode.helpers.ASExtraLogging
 import org.firstinspires.ftc.teamcode.helpers.ActionOpMode
 import org.firstinspires.ftc.teamcode.helpers.Color
+import org.firstinspires.ftc.teamcode.helpers.InterruptibleAction
 import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team.BLUE
@@ -112,8 +115,11 @@ class TeleopActions : ActionOpMode() {
 
     var hanging = false
 
+    var autoIntakeAction: InterruptibleAction = InterruptibleAction(NullAction())
+
 
     override fun runOpMode() {
+        ASExtraLogging.start(this)
         //  Initialization Period
 
 
@@ -153,6 +159,7 @@ class TeleopActions : ActionOpMode() {
 
         // Run Period
         while (opModeIsActive() && !isStopRequested) {
+            ASExtraLogging.loop(this)
             // Reset measured loop time
             loopTime.reset()
             val packet = TelemetryPacket()
@@ -204,13 +211,13 @@ class TeleopActions : ActionOpMode() {
 
             // Intake
 
-            val padAutoIntakeStart = gamepad2.right_trigger > 0.3 && !(previousGamepad2.right_trigger > 0.3)
+            val padAutoIntakeStart = currentGamepad2.right_trigger > 0.3 && !(previousGamepad2.right_trigger > 0.3)
 
-            val padIntakeReject = gamepad2.right_bumper && !previousGamepad2.right_bumper
-            val padIntakeStop = !gamepad2.right_bumper && previousGamepad2.right_bumper
+            val padIntakeReject = currentGamepad2.right_bumper && !previousGamepad2.right_bumper
+            val padIntakeStop = !currentGamepad2.right_bumper && previousGamepad2.right_bumper
 
-            val padIntakeExtendoIn = gamepad2.square && !previousGamepad2.square
-            val padIntakeExtendoOut = !gamepad2.square && previousGamepad2.square
+            val padIntakeExtendoIn = currentGamepad2.square && !previousGamepad2.square
+            val padIntakeExtendoOut = !currentGamepad2.square && previousGamepad2.square
 
 
             // Deposit
@@ -518,6 +525,29 @@ class TeleopActions : ActionOpMode() {
             if (gamepad2.dpad_down && !previousGamepad2.dpad_down) motorControl.depositClaw.toggle()
 
 
+            if (padAutoIntakeStart) {
+                autoIntakeAction.interrupt()
+                updateAsync(packet)
+                autoIntakeAction = motorActions.intakeUntilColor(gamepad1, gamepad2)
+                run(autoIntakeAction)
+            }
+            if (padIntakeReject) {
+                autoIntakeAction.interrupt()
+                updateAsync(packet)
+                motorControl.intake.eject()
+            }
+            if (padIntakeStop) {
+                motorControl.intake.stop()
+            }
+
+            if (padIntakeExtendoIn) {
+                run(UniqueAction(motorActions.intakeIn()))
+            }
+            if (padIntakeExtendoOut) {
+                run(UniqueAction(motorActions.intakeOut()))
+            }
+
+
 
 
 
@@ -585,6 +615,7 @@ class TeleopActions : ActionOpMode() {
                 telemetry.addData("extendoResetting", motorControl.extendo.resetting)
                 telemetry.addData("depositClawPosition", motorControl.depositClaw.position)
                 telemetry.addData("dColor", motorControl.dColor.color)
+                telemetry.addData("eColor", motorControl.eColor.color)
                 telemetry.addData("dumping",motorControl.extendoArm.mid)
                 telemetry.addData("depositArmTargetPosition",motorControl.depositArm.position)
                 telemetry.addData("depositArmEncoderPos", motorControl.depositArmEncoder.position)

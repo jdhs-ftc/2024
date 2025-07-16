@@ -13,6 +13,7 @@ import com.acmerobotics.roadrunner.Vector2d
 import com.acmerobotics.roadrunner.ftc.runBlocking
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
+import org.firstinspires.ftc.teamcode.helpers.Color
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage.Team
 import org.firstinspires.ftc.teamcode.motor.MotorActions
@@ -116,8 +117,14 @@ class AutoRight : LinearOpMode() {
         runBlocking(motorActions.depositArm.moveDown())
 
         while (opModeInInit()) {
-            if (gamepad1.dpad_left) PoseStorage.currentTeam = Team.BLUE
-            if (gamepad1.dpad_right) PoseStorage.currentTeam = Team.RED
+            if (gamepad1.dpad_left) {
+                PoseStorage.currentTeam = Team.BLUE
+                motorControl.topLight.color = Color.BLUE
+            }
+            if (gamepad1.dpad_right) {
+                PoseStorage.currentTeam = Team.RED
+                motorControl.topLight.color = Color.RED
+            }
             if (gamepad2.dpad_left) motorControl.depositClaw.open()
             if (gamepad2.dpad_right) motorControl.depositClaw.close()
             motorControl.update()
@@ -129,7 +136,7 @@ class AutoRight : LinearOpMode() {
         val c = Canvas()
         traj.preview(c)
 
-        val motorActionsUpdate = motorActions.update()
+        val motorActionsUpdate = motorActions.autoUpdate()
 
         var b = true
         while (opModeIsActive() && !isStopRequested

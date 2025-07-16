@@ -179,3 +179,23 @@ open class RepeatUntilAction(val condition: Supplier<Boolean>, val action: Suppl
 class ForeverAction(action: Supplier<Action>): RepeatUntilAction({false},action)
 class WhileAction(condition: Supplier<Boolean>, action: Supplier<Action>): RepeatUntilAction({ !condition.get() }, action)
 
+interface Interruptible : Action {
+    fun interrupt()
+}
+
+class InterruptibleAction(val action: Action): Interruptible {
+    var interrupted = false
+
+    override fun interrupt() {
+        interrupted = true
+        if (action is Interruptible) action.interrupt()
+    }
+
+    override fun run(p: TelemetryPacket): Boolean {
+        if (interrupted && action !is Interruptible) return false
+        return action.run(p)
+    }
+
+    override fun preview(fieldOverlay: Canvas) = action.preview(fieldOverlay)
+
+}

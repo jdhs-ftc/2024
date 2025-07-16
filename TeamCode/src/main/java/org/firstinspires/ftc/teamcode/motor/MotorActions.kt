@@ -9,10 +9,12 @@ import com.acmerobotics.roadrunner.SequentialAction
 import com.acmerobotics.roadrunner.SleepAction
 import com.acmerobotics.roadrunner.TimeProfile
 import com.acmerobotics.roadrunner.profile
+import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.util.ElapsedTime
 import org.firstinspires.ftc.teamcode.helpers.BetterUniqueAction
 import org.firstinspires.ftc.teamcode.helpers.Color
 import org.firstinspires.ftc.teamcode.helpers.ForeverAction
+import org.firstinspires.ftc.teamcode.helpers.InterruptibleAction
 import org.firstinspires.ftc.teamcode.helpers.LazyAction
 import org.firstinspires.ftc.teamcode.helpers.LogTelemetry
 import org.firstinspires.ftc.teamcode.helpers.PoseStorage
@@ -35,7 +37,7 @@ class MotorActions(val motorControl: MotorControl) {
         return Action { motorControl.closeEnough() }
     }
 
-    fun update(): Action {
+    fun autoUpdate(): Action {
         return ParallelAction( Action {
             motorControl.update()
             logger.update() // double updating is unnecessary but whatever
@@ -45,34 +47,45 @@ class MotorActions(val motorControl: MotorControl) {
             ForeverAction {
             SequentialAction(
                 InstantAction { motorControl.topLight.color = Color.BLUE },
-                SleepAction(2.0),
+                SleepAction(4.0),
                 InstantAction { motorControl.topLight.color = Color.GREEN },
-                SleepAction(2.0),
+                SleepAction(4.0),
             )}
             )
     }
 
 
-    fun log(message: String): Action {
-        return InstantAction { println(message) }
-    }
+    fun log(key: String, message: Any): Action = InstantAction { logger.addData(key, message)}
 
-    fun intakeUntilColor() = SequentialAction(
+    fun intakeUntilColor(gamepad1: Gamepad = Gamepad(), gamepad2: Gamepad = Gamepad()) = InterruptibleAction(SequentialAction(
         RepeatUntilAction(
         { motorControl.eColor.color == PoseStorage.currentTeam.color },
         {
             SequentialAction(
+                InstantAction { motorControl.topLight.color = Color.GREEN },
+                log("/intakeUntilColor/status","Started 64"),
+                InstantAction { motorControl.intake.eject() },
+                log("/intakeUntilColor/status", "Ejecting 66"),
+                { motorControl.eColor.color != Color.NONE }, // repeat until sample cleared
+                log("/intakeUntilColor/status", "Sample Clear 68"),
+                SleepAction(0.25), // and a little longer then that TODO tune
+                log("/intakeUntilColor/status", "Sleep Done 70"),
                 InstantAction { motorControl.intake.intake() },
+                log("/intakeUntilColor/status", "Intaking 72"),
                 { motorControl.eColor.color == Color.NONE }, // repeat until ANY sample detected
+                log("/intakeUntilColor/status", "Stopped 74"),
                 InstantAction { motorControl.intake.stop() },
                 SleepAction(0.1),
                 // check condition
             )
         }
     ), SequentialAction (
+            log("/intakeUntilColor/status", "Done 81"),
             InstantAction {motorControl.topLight.color = motorControl.eColor.color}, // TODO intake light?
+            InstantAction { gamepad1.rumbleBlips(3)
+                gamepad2.rumbleBlips(3) },
             intakeIn()
-    ))
+    )))
 
     fun intakeIn() = SequentialAction(
         extendoArm.moveIn(), // TODO time??

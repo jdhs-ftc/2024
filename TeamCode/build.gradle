@@ -82,7 +82,7 @@ dependencies {
     implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.3-ALPHA'
 
     implementation "com.acmerobotics.roadrunner:core:1.0.1"
-    implementation("page.j5155.roadrunner:ftc-otos:0.1.14+0.3.1") {
+    implementation("page.j5155.roadrunner:ftc-otos:0.1.14+0.3.2") {
         exclude group: "com.acmerobotics.dashboard"
     }
     implementation("com.acmerobotics.roadrunner:actions:1.0.1") {

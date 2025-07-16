@@ -25,7 +25,7 @@ import kotlin.math.sqrt
 @Config
 class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.0, 0.5, 1.0)
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.9, 0.9, 1.0)
 
     val intake = Intake(hardwareMap.get(CRServo::class.java, "intake"))
 
@@ -147,6 +147,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
         logger.write("extendo/target", extendo.targetPosition)
         logger.write("extendo/actual", extendo.position)
         logger.write("dColor/color", dColor.color)
+        logger.write("eColor/color", eColor.color)
         logger.write("intake/power", intake.servo.power)
         logger.write("depositClaw/target", depositClaw.position)
         logger.write("topLight/colorPos", topLight.servo.position)
