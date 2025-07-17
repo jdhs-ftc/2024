@@ -473,7 +473,7 @@ public class MecanumDrive {
             || (disp + 0.1) >= dispTraj.length()
             ) && robotVelRobot.linearVel.norm() < 0.5
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
-            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 1)) && !makeTrajectoryWait)
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 0.5)) && !makeTrajectoryWait)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 10)) {
 
                 // stop all the motors
@@ -817,6 +817,23 @@ public class MecanumDrive {
                 beginPose, 0.0,
                 defaultTurnConstraints,
                 defaultVelConstraint, defaultAccelConstraint
+        );
+    }
+
+    public TrajectoryActionBuilder actionBuilderPathCRIMirrored(Pose2d beginPose) {
+        return new TrajectoryActionBuilder(
+                TurnAction::new,
+                FollowTrajectoryAsPathAction::new,
+                new TrajectoryBuilderParams(
+                        1e-6,
+                        new ProfileParams(
+                                0.25, 0.1, 1e-2
+                        )
+                ),
+                beginPose, 0.0,
+                defaultTurnConstraints,
+                defaultVelConstraint, defaultAccelConstraint,
+                (pose -> new Pose2dDual<>(pose.position.x.unaryMinus(),pose.position.y,new Rotation2dDual<>(pose.heading.real.unaryMinus(),pose.heading.imag)))
         );
     }
 
