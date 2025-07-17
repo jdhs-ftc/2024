@@ -118,7 +118,7 @@ class MotorActions(val motorControl: MotorControl) {
     fun intakePreset() = SequentialAction(
         ParallelAction(
             extendoArm.moveDown(),
-            extendo.setTargetPosition(450.0),
+            extendo.setTargetPosition(400.0),
             InstantAction { motorControl.intake.intake() }), RaceParallelAction(
             { motorControl.eColor.color == Color.NONE }, SleepAction(1.0)
         ), InstantAction { motorControl.intake.stop() }, ParallelAction(
@@ -213,17 +213,17 @@ class MotorActions(val motorControl: MotorControl) {
         return SequentialAction(
             depositClaw.close(),
             SleepAction(0.1),
-            depositArm.moveDown(),
-            deposit.setTargetPosition(1200.0), // 1457
+            depositArm.setPosition(0.45),
+            deposit.setTargetPosition(830.0), // 1457
         )
     }
 
     fun depositScoreChamberFar(): Action {
         return SequentialAction(
-            deposit.setTargetPosition(1200.0), // 1457
-            depositArm.setPosition(0.6),
+            deposit.setTargetPosition(2500.0), // 1457
+            depositArm.setPosition(0.43),
 
-            SleepAction(0.1),
+            SleepAction(0.5), // 0.75
             depositClawRelease(), // TODO USE ENCODER
             //SleepAction(0.3),
             deposit.moveDown(),

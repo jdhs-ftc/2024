@@ -23,7 +23,7 @@ import java.lang.Math.toRadians
 class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.675
-        val scoreXPos = 14.85
+        val scoreXPos = 15.0
         val hpPose = Pose2d(xPos, -49.5, toRadians(-90.0))
         val startPose = Pose2d(29.7, -62.0, toRadians(90.0))
         val depositY1 = 0.0
@@ -68,7 +68,7 @@ class AutoRight : LinearOpMode() {
                 toRadians(90.0)
             )
             .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos - 0.15, depositY1), toRadians(80.0))
+            .splineToConstantHeading(Vector2d(scoreXPos, depositY1), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
                     motorActions.depositScoreChamberFar()

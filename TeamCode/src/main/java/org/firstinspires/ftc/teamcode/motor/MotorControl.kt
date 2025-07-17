@@ -66,7 +66,7 @@ class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     val depositArm = DepositArm(depositArmServo, 0.4, 0.96, 0.72, depositArmEncoder)
 
     @JvmField
-    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.79, 0.485) // 0.35 0.1 // 0.55 0.1
+    val depositClaw = Claw(hardwareMap.get(Servo::class.java, "depositClaw"), 0.79, 0.48) // 0.35 0.1 // 0.55 0.1
 
     val depositMotors = MotorGroup(
         hardwareMap.get(DcMotorEx::class.java, "deposit1"),
