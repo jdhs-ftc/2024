@@ -21,20 +21,21 @@ import org.firstinspires.ftc.teamcode.motor.MotorControl
 import java.lang.Math.toRadians
 
 @Autonomous(preselectTeleOp = "00 Teleop Field Centric")
-class AutoRight : LinearOpMode() {
+class AutoLeft : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.675
         val scoreXPos = 15.0
         val hpPose = Pose2d(xPos, -49.75, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
+        val startPoseMirrored = Pose2d(-startPose.position.x,startPose.position.y,startPose.heading.log())
         val depositY1 = 2.5
         val depositY2 = 0.0
         val depositY3 = -2.5
         val depositY4 = -5.0
 
 
-        val drive = OctoQuadDrive(hardwareMap, startPose)
-        drive.writePose(startPose)
+        val drive = OctoQuadDrive(hardwareMap, startPoseMirrored)
+        drive.writePose(startPoseMirrored)
 
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
@@ -58,7 +59,7 @@ class AutoRight : LinearOpMode() {
             this.stopAndAdd(SleepAction(seconds))
 
 
-        val traj = drive.actionBuilderPath(startPose)
+        val traj = drive.actionBuilderPathCRIMirrored(startPose)
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(
                 Pose2d(xPos + 1.25, -30.0, toRadians(180.0)),
@@ -164,7 +165,7 @@ class AutoRight : LinearOpMode() {
             if (gamepad2.dpad_left) motorControl.depositClaw.open()
             if (gamepad2.dpad_right) motorControl.depositClaw.close()
             motorControl.update()
-            drive.writePose(startPose)
+            drive.writePose(startPoseMirrored)
         }
 
         waitForStart()
