@@ -37,15 +37,16 @@ object MeepMeepTesting {
             myBot.drive.actionBuilder(startPose)
                 .setTangent(toRadians(90.0))
                 .splineToSplineHeading(
-                    Pose2d(xPos + 1.25, -30.0, toRadians(180.0)),
+                    Pose2d(xPos - 1.0, -30.0, toRadians(210.0)),
                     toRadians(90.0)
                 )
-                .splineToSplineHeading(
-                    Pose2d(xPos + 1.25, -26.0, toRadians(180.0)),
+                .splineToConstantHeading(
+                    Vector2d(xPos - 1.0, -10.0),
                     toRadians(90.0)
+                ).splineToSplineHeading(
+                    Pose2d(scoreXPos, depositY1, toRadians(180.0)),
+                    toRadians(80.0)
                 )
-                //.afterTime(0.0, motorActions.depositMoveChamberFar())
-                .splineToConstantHeading(Vector2d(13.75, depositY1), toRadians(80.0))
                 .build()
         )
 

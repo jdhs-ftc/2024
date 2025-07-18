@@ -118,7 +118,7 @@ class MotorActions(val motorControl: MotorControl) {
     fun intakePreset() = SequentialAction(
         ParallelAction(
             extendoArm.moveDown(),
-            extendo.setTargetPosition(400.0),
+            extendo.setTargetPosition(600.0),
             InstantAction { motorControl.intake.intake() }), RaceParallelAction(
             { motorControl.eColor.color == Color.NONE }, SleepAction(1.0)
         ), InstantAction { motorControl.intake.stop() }, ParallelAction(
@@ -217,6 +217,11 @@ class MotorActions(val motorControl: MotorControl) {
             deposit.setTargetPosition(830.0), // 1457
         )
     }
+
+    fun depositMoveChamberFarNoGrab() = ParallelAction(
+        depositArm.setPosition(0.45),
+        deposit.setTargetPosition(830.0)
+    )
 
     fun depositScoreChamberFar(): Action {
         return SequentialAction(
@@ -367,8 +372,14 @@ class MotorActions(val motorControl: MotorControl) {
     class DepositArm(val depositArm: MotorControl.DepositArm, val logger: LogTelemetry) :
         ThreeArm(depositArm) {
         override fun setPosition(position: Double): Action {
+            logger.update()
+            logger.write("setPositionCall", "start")
+            logger.update()
             return LazyAction {
-                goToPosAction(
+                logger.update()
+                logger.write("setPositionCall", "lazyStartedBuilding")
+                logger.update()
+                val action = goToPosAction(
                     start = depositArm.position,
                     target = position,
                     maxVel = 4.0,
@@ -378,6 +389,10 @@ class MotorActions(val motorControl: MotorControl) {
                     setPosition = depositArm::position.setter,
                     logger = logger
                 )
+                logger.update()
+                logger.write("setPositionCall", "lazyDoneBuilding")
+                logger.update()
+                action
             }
         }
 
@@ -423,14 +438,14 @@ fun goToPosAction(
 ): Action {
     if (target == start) return Action { false }
     logger.update()
-    logger.write("goToPosAction/profiling", true)
+    logger.write("goToPosAction/status", "profiling")
     logger.update()
     val currentTime = ElapsedTime()
     val dispProfile =
         profile(abs(target - start), 0.0, { maxVel }, { minAccel }, { maxAccel }, resolution)
     val profile = TimeProfile(dispProfile.baseProfile)
     logger.update()
-    logger.write("goToPosAction/profiling", false)
+    logger.write("goToPosAction/status", "doneProfiling")
     logger.update()
     logger.write("goToPosAction/profileTimeMs", currentTime.milliseconds())
     currentTime.reset()
@@ -448,18 +463,30 @@ fun goToPosAction(
     logger.write("goToPosAction/resolution", resolution)
     logger.write("goToPosAction/negative", negative)
 
-
-    return SequentialAction( // init loop
+    logger.update()
+    logger.write("goToPosAction/status", "aboutToMakeAction")
+    val action = SequentialAction( // init loop
         InstantAction {
             currentTime.reset()
             lastTime = currentTime.seconds()
+            logger.write("goToPosAction/status", "actionInitRunning")
         }, // init
         { // loop
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopStart")
             val time = currentTime.seconds()
 
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopProfileGet")
             val target = profile[time]
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopTargetPosGet")
             val targetPos = target[0]
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopTargetVelGet")
             val targetVel = target[1]
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopTargetAccelGet")
             val targetAccel = target[2]
 
             val output = if (negative) start - targetPos else start + targetPos
@@ -476,4 +503,7 @@ fun goToPosAction(
             lastTime = time
             return@SequentialAction time <= profile.duration
         })
+    logger.update()
+    logger.write("goToPosAction/status", "actionMade")
+    return action
 }
