@@ -24,7 +24,7 @@ import java.lang.Math.toRadians
 class AutoLeft : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.675
-        val scoreXPos = 15.0
+        val scoreXPos = 15.2
         val hpPose = Pose2d(xPos, -49.75, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
         val startPoseMirrored = Pose2d(-startPose.position.x,startPose.position.y,startPose.heading.log())

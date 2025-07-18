@@ -33,6 +33,7 @@ import org.firstinspires.ftc.teamcode.helpers.UniqueActionQueue
 import org.firstinspires.ftc.teamcode.helpers.control.PIDFController
 import org.firstinspires.ftc.teamcode.motor.MotorActions
 import org.firstinspires.ftc.teamcode.motor.MotorControl
+import java.lang.Math.toRadians
 import java.util.LinkedList
 import kotlin.math.abs
 import kotlin.math.pow
@@ -109,7 +110,7 @@ class TeleopActions : ActionOpMode() {
 
     val specimenDeposit by lazy { SpecimenDeposit(motorControl, motorActions,6,10) } // prev 5,10
 
-    lateinit var specimenDepositTraj: Action
+    var specimenDepositTraj: Action = NullAction()
 
     var specimenDepositTrajUsed = false
 
@@ -142,8 +143,8 @@ class TeleopActions : ActionOpMode() {
         motorControl // init with by lazy, NOTE THIS DOESN'T ACTUALLY INIT IT, BECAUSE LATEINIT
         motorActions
 
-        specimenDeposit // init with by lazy
-        specimenDepositTraj = specimenDeposit.genTrajectory(drive)
+        //specimenDeposit // init with by lazy
+        //specimenDepositTraj = specimenDeposit.genTrajectory(drive)
 
 
         while (opModeInInit()) {
@@ -234,8 +235,8 @@ class TeleopActions : ActionOpMode() {
 
 
             // Auto Tele
-            val padAutoDrive = false//gamepad2.triangle && !previousGamepad2.triangle
-            val padAutoDriveRelease = false //!gamepad2.triangle
+            val padAutoDrive = gamepad2.triangle && !previousGamepad2.triangle
+            val padAutoDriveRelease = !gamepad2.triangle
             padReleased = padReleased && padAutoDriveRelease
 
 
@@ -444,25 +445,43 @@ class TeleopActions : ActionOpMode() {
 
                 if (padAutoDrive) {
                     UniqueActionQueue.runningUniqueActions.clear()
-                    runningActions.clear()
-                    if (specimenDepositTrajUsed) {
-                        specimenDeposit.genTrajectory(drive) // sketchy!!
-                        specimenDepositTrajUsed = false
-                    }
+                    runningActions.clear()  // SO sketchy
                     run(
                         UniqueAction(
                             SequentialAction(
                                 InstantAction {
                                     UniqueActionQueue.shouldQueueUniqueActions = false
+                                    motorControl.topLight.color = Color.RED
                                 },
                                 motorActions.depositMoveWallTeleop(),
                                 RaceParallelAction(
-                                    waitForPadRelease(),
+                                    {
+                                        if (currentGamepad2.dpad_left && !previousGamepad2.dpad_left) {
+                                            specimenDepositTraj = generateTrajectory(drive,motorActions,ObsZone.LEFT,Chamber.TOP_LEFT)
+                                            drive.writePose(hpPoseMirrored)
+                                            motorControl.topLight.color = Color.ORANGE
+                                        }
+                                        if (currentGamepad2.dpad_right && !previousGamepad2.dpad_right) {
+                                            specimenDepositTraj =
+                                                generateTrajectory(
+                                                    drive,
+                                                    motorActions,
+                                                    ObsZone.RIGHT,
+                                                    Chamber.TOP_RIGHT
+                                                )
+                                            drive.writePose(hpPose)
+                                            motorControl.topLight.color = Color.VIOLET
+                                        }
+                                        true
+                                    },
+                                    ParallelAction(
+                                        waitForPadRelease(),
+                                        { specimenDepositTraj is NullAction } // trajectory must be initialized
+                                    )
                                 ),
                                 InstantAction {
                                     drivingEnabled = false
-                                    specimenDepositTrajUsed = true
-                                    drive.pose = Pose2d(Vector2d(34.0, -63.5),Math.toRadians(90.0));
+                                    motorControl.topLight.color = Color.WHITE
                                 },
                                 RaceParallelAction(
                                     specimenDepositTraj,
@@ -474,8 +493,8 @@ class TeleopActions : ActionOpMode() {
                                     drivingEnabled = true
                                     UniqueActionQueue.shouldQueueUniqueActions = true
                                     targetHeading = drive.pose.heading
-
-
+                                    specimenDepositTraj = NullAction()
+                                    motorControl.topLight.color = Color.GREEN
                                 }
                             )
                         )
@@ -664,6 +683,86 @@ class TeleopActions : ActionOpMode() {
 
     companion object {
         var padReleased = true
+    }
+
+    val xPos = 11.675
+    val scoreXPos = 15.2
+    val hpPose = Pose2d(xPos, -49.75, toRadians(-90.0))
+    val hpPoseMirrored = Pose2d(-hpPose.position.x, hpPose.position.y, hpPose.heading.log())
+    val depositY = 0.0
+
+    enum class ObsZone {
+        LEFT,
+        RIGHT
+    }
+
+    enum class Chamber {
+        TOP_LEFT,
+        TOP_RIGHT
+    }
+
+
+    fun generateTrajectory(drive: MecanumDrive, motorActions: MotorActions, obsZone: ObsZone, chamber: Chamber): Action {
+        if (obsZone == ObsZone.LEFT && chamber == Chamber.TOP_LEFT) {
+            return drive.actionBuilderPathCRIMirroredLowRes(hpPose)
+                // intake reverse + grab hp
+                .stopAndAdd(
+                    SequentialAction(
+                        motorActions.depositPickupWall(),
+                    )
+                )
+                .setTangent(toRadians(90.0))
+                .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+                .afterTime(0.0, motorActions.depositMoveChamberFar())
+                .splineToConstantHeading(Vector2d(scoreXPos + 0.2, depositY), toRadians(80.0))
+                .stopAndAdd(
+                    SequentialAction(
+                        motorActions.depositScoreChamberFar()
+                    )
+                )
+                .setTangent(toRadians(-130.0))
+                // second preset
+                .splineToConstantHeading(Vector2d(xPos, -13.0), toRadians(-90.0))
+                .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
+                .splineToSplineHeading(hpPose, toRadians(-90.0))
+                // intake reverse + grab hp
+                .stopAndAdd(
+                    SequentialAction(
+                        motorActions.depositPickupWall(),
+                    )
+                )
+                .build()
+
+        } else { //if (obsZone == ObsZone.RIGHT && chamber == Chamber.TOP_RIGHT) {
+            return drive.actionBuilderPathLowRes(hpPose)
+                // intake reverse + grab hp
+                .stopAndAdd(
+                    SequentialAction(
+                        motorActions.depositPickupWall(),
+                    )
+                )
+                .setTangent(toRadians(90.0))
+                .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
+                .afterTime(0.0, motorActions.depositMoveChamberFar())
+                .splineToConstantHeading(Vector2d(scoreXPos + 0.2, depositY), toRadians(80.0))
+                .stopAndAdd(
+                    SequentialAction(
+                        motorActions.depositScoreChamberFar()
+                    )
+                )
+                .setTangent(toRadians(-130.0))
+                // second preset
+                .splineToConstantHeading(Vector2d(xPos, -13.0), toRadians(-90.0))
+                .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
+                .splineToSplineHeading(hpPose, toRadians(-90.0))
+                // intake reverse + grab hp
+                .stopAndAdd(
+                    SequentialAction(
+                        motorActions.depositPickupWall(),
+                    )
+                )
+                .build()
+        }
     }
 
 
