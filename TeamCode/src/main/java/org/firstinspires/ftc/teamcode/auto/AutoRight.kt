@@ -25,7 +25,7 @@ import java.lang.Math.toRadians
 class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.675
-        val scoreXPos = 15.0
+        val scoreXPos = 15.75
         val hpPose = Pose2d(xPos, -49.65, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
         val depositY1 = 2.5
@@ -33,8 +33,8 @@ class AutoRight : LinearOpMode() {
         val depositY3 = -2.5
         val depositY4 = -5.0
 
-        val intakeY1 = -19.0
-        val intakeY2 = -9.0
+        val intakeY1 = -13.0
+        val intakeY2 = -5.0
         val intakeY3 = 1.0
 
 
@@ -86,9 +86,10 @@ class AutoRight : LinearOpMode() {
                 )
             )
             .setTangent(toRadians(-130.0))
-            .splineToConstantHeading(Vector2d(xPos, -20.0), toRadians(-90.0))
+            //.splineToConstantHeading(Vector2d(xPos, -20.), toRadians(-90.0))
+            .afterTime(0.5, motorActions.intakePresetStart())
             .splineToSplineHeading(Pose2d(xPos, intakeY1, toRadians(180.0)), toRadians(-90.0))
-            .stopAndAdd(motorActions.intakePreset())
+            .stopAndAdd(motorActions.intakePresetFinish())
             // third preset
             .setTangent(toRadians(-90.0))
             .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
@@ -134,8 +135,9 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             // first preset
+            .afterTime(0.0, motorActions.intakePresetStart(300.0))
             .splineToConstantHeading(Vector2d(xPos, intakeY3), toRadians(-90.0))
-            .stopAndAddHold(motorActions.intakePreset())
+            .stopAndAddHold(motorActions.intakePresetFinish())
             .setTangent(toRadians(-90.0))
             .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
             .afterTime(0.5, motorActions.intakeAutoHpEject(drive))

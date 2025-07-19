@@ -63,28 +63,26 @@ class MotorActions(val motorControl: MotorControl) {
     fun intakeUntilColor(gamepad1: Gamepad = Gamepad(), gamepad2: Gamepad = Gamepad()) =
         InterruptibleAction(
             SequentialAction(
-                RepeatUntilAction(
-                    { motorControl.eColor.color == PoseStorage.currentTeam.color },
-                    {
-                        SequentialAction(
-                            extendoArm.moveDown(),
-                            InstantAction { motorControl.topLight.color = Color.GREEN },
-                            log("/intakeUntilColor/status", "Started 64"),
-                            InstantAction { motorControl.intake.intake() },
-                            log("/intakeUntilColor/status", "Ejecting 66"),
-                            { motorControl.eColor.color != Color.NONE }, // repeat until sample cleared
-                            log("/intakeUntilColor/status", "Sample Clear 68"),
-                            SleepAction(0.25), // and a little longer then that TODO tune
-                            log("/intakeUntilColor/status", "Sleep Done 70"),
-                            InstantAction { motorControl.intake.intake() },
-                            log("/intakeUntilColor/status", "Intaking 72"),
-                            { motorControl.eColor.color == Color.NONE }, // repeat until ANY sample detected
-                            log("/intakeUntilColor/status", "Stopped 74"),
-                            InstantAction { motorControl.intake.stop() },
-                            SleepAction(0.1),
-                            // check condition
-                        )
-                    }), SequentialAction(
+                RepeatUntilAction({ motorControl.eColor.color == PoseStorage.currentTeam.color }, {
+                    SequentialAction(
+                        extendoArm.moveDown(),
+                        InstantAction { motorControl.topLight.color = Color.GREEN },
+                        log("/intakeUntilColor/status", "Started 64"),
+                        InstantAction { motorControl.intake.intake() },
+                        log("/intakeUntilColor/status", "Ejecting 66"),
+                        { motorControl.eColor.color != Color.NONE }, // repeat until sample cleared
+                        log("/intakeUntilColor/status", "Sample Clear 68"),
+                        SleepAction(0.25), // and a little longer then that TODO tune
+                        log("/intakeUntilColor/status", "Sleep Done 70"),
+                        InstantAction { motorControl.intake.intake() },
+                        log("/intakeUntilColor/status", "Intaking 72"),
+                        { motorControl.eColor.color == Color.NONE }, // repeat until ANY sample detected
+                        log("/intakeUntilColor/status", "Stopped 74"),
+                        InstantAction { motorControl.intake.stop() },
+                        SleepAction(0.1),
+                        // check condition
+                    )
+                }), SequentialAction(
                     log("/intakeUntilColor/status", "Done 81"), InstantAction {
                         motorControl.topLight.color = motorControl.eColor.color
                     }, // TODO intake light?
@@ -115,16 +113,26 @@ class MotorActions(val motorControl: MotorControl) {
         )
     )
 
-    fun intakePreset() = SequentialAction(
-        ParallelAction(
-            extendoArm.moveDown(),
-            extendo.setTargetPosition(600.0),
-            InstantAction { motorControl.intake.intake() }), RaceParallelAction(
-            { motorControl.eColor.color == Color.NONE }, SleepAction(1.0)
-        ), InstantAction { motorControl.intake.stop() }, ParallelAction(
-            extendoArm.moveMid(), extendo.moveDown()
-        ), SleepAction(0.1)
+    fun intakePresetStart(extendoPosition: Double = 800.0) = ParallelAction(
+        extendoArm.moveDown(),
+        extendo.setTargetPosition(extendoPosition),
+        InstantAction { motorControl.intake.intake() }
     )
+
+    fun intakePresetFinish() = SequentialAction(
+
+        RaceParallelAction(
+            { motorControl.eColor.color == Color.NONE },
+            SleepAction(1.0)
+        ),
+        InstantAction { motorControl.intake.stop() },
+        ParallelAction(
+            extendoArm.moveMid(), extendo.moveDown()
+        ),
+        SleepAction(0.1)
+    )
+
+    fun intakePreset() = SequentialAction(intakePresetStart(), intakePresetFinish())
 
     fun intakeAutoHpEject(drive: MecanumDrive) = SequentialAction(
         IfAction(
@@ -207,7 +215,7 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun depositMoveChamber() = depositMoveChamberFar()
-    fun depositScoreChamberTele() = SequentialAction(depositScoreChamberFar(), depositArm.moveUp())
+    fun depositScoreChamberTele() = SequentialAction(depositScoreChamberFar())//, depositArm.moveUp())
 
     fun depositMoveChamberFar(): Action {
         return SequentialAction(
@@ -219,8 +227,7 @@ class MotorActions(val motorControl: MotorControl) {
     }
 
     fun depositMoveChamberFarNoGrab() = ParallelAction(
-        depositArm.setPosition(0.45),
-        deposit.setTargetPosition(830.0)
+        depositArm.setPosition(0.45), deposit.setTargetPosition(830.0)
     )
 
     fun depositScoreChamberFar(): Action {
@@ -386,7 +393,7 @@ class MotorActions(val motorControl: MotorControl) {
                     minAccel = -4.0,
                     maxAccel = 4.0,
                     resolution = 0.01,
-                    setPosition = depositArm::position.setter,
+                    servoArm = depositArm,
                     logger = logger
                 )
                 logger.update()
@@ -433,7 +440,7 @@ fun goToPosAction(
     minAccel: Double,
     maxAccel: Double,
     resolution: Double,
-    setPosition: (Double) -> Unit,
+    servoArm: MotorControl.ServoArm,
     logger: LogTelemetry
 ): Action {
     if (target == start) return Action { false }
@@ -497,7 +504,12 @@ fun goToPosAction(
             logger.write("goToPosAction/targetVel", targetVel)
             logger.write("goToPosAction/targetAccel", targetAccel)
             logger.write("goToPosAction/output", output)
-            setPosition(output)
+
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopSetPosition")
+            servoArm.position = output
+            logger.update()
+            logger.write("goToPosAction/status", "actionLoopDone")
 
             lastPosition = output
             lastTime = time

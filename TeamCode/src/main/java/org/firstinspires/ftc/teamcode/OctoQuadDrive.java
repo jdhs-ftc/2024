@@ -87,6 +87,7 @@ public class OctoQuadDrive extends AbsoluteLocalizerDrive {
 
     public OctoQuadDrive(HardwareMap hardwareMap, Pose2d pose) {
         super(hardwareMap, pose);
+        reset = true;
     }
 
     public OctoQuadDrive(HardwareMap hardwareMap, Pose2d pose, boolean reset) {

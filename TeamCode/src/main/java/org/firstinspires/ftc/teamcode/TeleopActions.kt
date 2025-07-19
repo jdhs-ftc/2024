@@ -232,10 +232,11 @@ class TeleopActions : ActionOpMode() {
 
             val padMoveChamber = gamepad2.left_trigger > 0.3 && !(previousGamepad2.left_trigger > 0.3)
             val padScoreChamber = !(gamepad2.left_trigger > 0.3) && previousGamepad2.left_trigger > 0.3
+            val padMoveHp = gamepad2.cross && !previousGamepad2.cross
 
 
             // Auto Tele
-            val padAutoDrive = gamepad2.triangle && !previousGamepad2.triangle
+            val padAutoDrive = false//gamepad2.triangle && !previousGamepad2.triangle
             val padAutoDriveRelease = !gamepad2.triangle
             padReleased = padReleased && padAutoDriveRelease
 
@@ -330,11 +331,11 @@ class TeleopActions : ActionOpMode() {
             var rotationAmount = drive.pose.heading.inverse() // inverse it
             if (fieldCentric && !padCameraAutoAim) {
                 rotationAmount =
-                    if (PoseStorage.currentTeam == BLUE) { // Depending on which side we're on, the forward angle from driver's perspective changes
-                        rotationAmount + Math.toRadians(-90.0)
-                    } else {
+                    //if (PoseStorage.currentTeam == BLUE) { // Depending on which side we're on, the forward angle from driver's perspective changes
+                    //    rotationAmount + Math.toRadians(-90.0)
+                    //} else {
                         rotationAmount + Math.toRadians(90.0)
-                    }
+                    //}
                 input = rotationAmount * input // rotate the input by the rotationamount
                 // (rotationAmount MUST go first here)
                 padExtendoAndStrafeVector = (Rotation2d.fromDouble(round(rotationAmount.toDouble() / Math.toRadians(90.0)) * Math.toRadians(90.0)).inverse()) * padExtendoAndStrafeVector // TODO: round???
@@ -373,11 +374,11 @@ class TeleopActions : ActionOpMode() {
                     targetHeading = drive.pose.heading
                     timeSinceDriverTurned.reset()
                 } else {
-                    val baseHeading = if (PoseStorage.currentTeam == RED) {
+                    val baseHeading = //if (PoseStorage.currentTeam == RED) {
                         Math.toRadians(90.0)
-                    } else {
-                        Math.toRadians(-90.0)
-                    }
+                    //} else {
+                    //    Math.toRadians(-90.0)
+                    //}
                     // Set the target heading for the heading controller to our desired angle
                     if (controllerHeading.norm() > 0.4) { // if the joystick is tilted more than 0.4 from the center,
                         // Cast the angle based on the angleCast of the joystick as a heading
@@ -535,6 +536,7 @@ class TeleopActions : ActionOpMode() {
 
             if (padMoveChamber) run(motorActions.depositMoveChamber())
             if (padScoreChamber) run(motorActions.depositScoreChamberTeleop())
+            if (padMoveHp) run (motorActions.depositArm.moveUp())
 
 
             if (padResetAll) {

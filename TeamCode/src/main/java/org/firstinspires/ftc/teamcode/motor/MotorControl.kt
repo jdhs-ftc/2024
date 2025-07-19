@@ -25,7 +25,7 @@ import kotlin.math.sqrt
 @Config
 class MotorControl(hardwareMap: HardwareMap, lateinit: Boolean = false) {
     @JvmField
-    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.97, 0.89, 0.95) // DOWN UP MID
+    val extendoArm = ThreeArm(hardwareMap.get(Servo::class.java, "sArm"), 0.99, 0.89, 0.95) // DOWN UP MID
 
     val intake = Intake(hardwareMap.get(CRServo::class.java, "intake"))
 
