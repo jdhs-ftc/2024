@@ -23,9 +23,9 @@ import java.lang.Math.toRadians
 @Autonomous(preselectTeleOp = "00 Teleop Field Centric")
 class AutoLeft : LinearOpMode() {
     override fun runOpMode() {
-        val xPos = 11.675
+        val xPos = 11.4
         val scoreXPos = 15.75
-        val hpPose = Pose2d(xPos, -48.5, toRadians(-90.0))
+        val hpPose = Pose2d(xPos, -48.25, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
         val startPoseMirrored = Pose2d(-startPose.position.x,startPose.position.y,startPose.heading.log())
         val depositY1 = 2.5
@@ -33,9 +33,9 @@ class AutoLeft : LinearOpMode() {
         val depositY3 = -2.5
         val depositY4 = -5.0
 
-        val intakeY1 = -15.0
-        val intakeY2 = -5.0
-        val intakeY3 = 1.0
+        val intakeY1 = -7.0
+        val intakeY2 = 1.0
+        val intakeY3 = 2.5
 
 
         val drive = OctoQuadDrive(hardwareMap, startPoseMirrored)
@@ -68,9 +68,11 @@ class AutoLeft : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
             .splineToSplineHeading(
-                Pose2d(xPos - 1.25, -30.0, toRadians(210.0)),
-                toRadians(90.0)
+                Pose2d(xPos - 1.25, -40.0, toRadians(210.0)),
+                toRadians(80.0)
             )
+            .endTrajectory()
+            .setTangent(toRadians(90.0))
 
             .splineToConstantHeading(
                 Vector2d(xPos - 1.25, -7.0),

@@ -473,7 +473,7 @@ public class MecanumDrive {
             || (disp + 0.1) >= dispTraj.length()
             ) && robotVelRobot.linearVel.norm() < 0.5
             // or the trajectory has been running for 1 second more then it's suppposed to (this 1 second is weird)
-            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 0.5)) && !makeTrajectoryWait)
+            || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 0.5)) && !makeTrajectoryWait && dispTraj.get(dispTraj.length()).position.value().minus(pose.position).norm() < 5)
             || (trajectoryRunningTime.seconds() >= targetTimeSeconds + 10)) {
 
                 // stop all the motors
