@@ -24,8 +24,8 @@ import java.lang.Math.toRadians
 class AutoLeft : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.675
-        val scoreXPos = 15.2
-        val hpPose = Pose2d(xPos, -49.75, toRadians(-90.0))
+        val scoreXPos = 15.75
+        val hpPose = Pose2d(xPos, -48.5, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
         val startPoseMirrored = Pose2d(-startPose.position.x,startPose.position.y,startPose.heading.log())
         val depositY1 = 2.5
@@ -33,12 +33,17 @@ class AutoLeft : LinearOpMode() {
         val depositY3 = -2.5
         val depositY4 = -5.0
 
+        val intakeY1 = -15.0
+        val intakeY2 = -5.0
+        val intakeY3 = 1.0
+
 
         val drive = OctoQuadDrive(hardwareMap, startPoseMirrored)
         drive.writePose(startPoseMirrored)
 
         val motorControl = MotorControl(hardwareMap)
         val motorActions = MotorActions(motorControl)
+        motorControl.depositClaw.close()
 
 
         fun TrajectoryActionBuilder.stopAndAddHold(action: Action) = this.stopAndAdd(action)
@@ -61,25 +66,27 @@ class AutoLeft : LinearOpMode() {
 
         val traj = drive.actionBuilderPathCRIMirrored(startPose)
             .setTangent(toRadians(90.0))
+            .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
             .splineToSplineHeading(
-                Pose2d(xPos + 1.25, -30.0, toRadians(180.0)),
+                Pose2d(xPos - 1.25, -30.0, toRadians(210.0)),
                 toRadians(90.0)
             )
-            .splineToSplineHeading(
-                Pose2d(xPos + 1.25, -26.0, toRadians(180.0)),
+
+            .splineToConstantHeading(
+                Vector2d(xPos - 1.25, -7.0),
                 toRadians(90.0)
             )
-            .afterTime(0.0, motorActions.depositMoveChamberFar())
-            .splineToConstantHeading(Vector2d(scoreXPos, depositY1), toRadians(80.0))
+            .splineToSplineHeading(Pose2d(scoreXPos, depositY1, toRadians(180.0)), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
                     motorActions.depositScoreChamberFar()
                 )
             )
             .setTangent(toRadians(-130.0))
-            .splineToConstantHeading(Vector2d(xPos, -20.0), toRadians(-90.0))
-            .splineToSplineHeading(Pose2d(xPos, -23.0, toRadians(180.0)), toRadians(-90.0))
-            .stopAndAdd(motorActions.intakePreset())
+            //.splineToConstantHeading(Vector2d(xPos, -20.), toRadians(-90.0))
+            .afterTime(0.7, motorActions.intakePreset())
+            .splineToSplineHeading(Pose2d(xPos, intakeY1, toRadians(180.0)), toRadians(-90.0))
+            .stopAndAdd(motorActions.intakePresetFinish())
             // third preset
             .setTangent(toRadians(-90.0))
             .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
@@ -92,7 +99,7 @@ class AutoLeft : LinearOpMode() {
             )
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
-            .afterTime(0.0, motorActions.depositMoveChamberFar())
+            .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
             .splineToConstantHeading(Vector2d(scoreXPos + 0.2, depositY2), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
@@ -101,7 +108,7 @@ class AutoLeft : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             // second preset
-            .splineToConstantHeading(Vector2d(xPos, -13.0), toRadians(-90.0))
+            .splineToConstantHeading(Vector2d(xPos, intakeY2), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePreset())
             .setTangent(toRadians(-90.0))
             .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
@@ -116,7 +123,7 @@ class AutoLeft : LinearOpMode() {
 
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
-            .afterTime(0.0, motorActions.depositMoveChamberFar())
+            .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
             .splineToConstantHeading(Vector2d(scoreXPos + 0.4, depositY3), toRadians(80.0))
             .stopAndAddHold(
                 SequentialAction(
@@ -125,8 +132,9 @@ class AutoLeft : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             // first preset
-            .splineToConstantHeading(Vector2d(xPos, -2.75), toRadians(-90.0))
-            .stopAndAddHold(motorActions.intakePreset())
+            .afterTime(0.0, motorActions.intakePreset(300.0))
+            .splineToConstantHeading(Vector2d(xPos, intakeY3), toRadians(-90.0))
+            .stopAndAddHold(motorActions.intakePresetFinish())
             .setTangent(toRadians(-90.0))
             .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
             .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
@@ -140,7 +148,7 @@ class AutoLeft : LinearOpMode() {
 
             .setTangent(toRadians(90.0))
             .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
-            .afterTime(0.0, motorActions.depositMoveChamberFar())
+            .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
             .splineToConstantHeading(Vector2d(scoreXPos + 0.6, depositY4), toRadians(80.0))
             .stopAndAddHold( // 4th spec score
                 SequentialAction(
