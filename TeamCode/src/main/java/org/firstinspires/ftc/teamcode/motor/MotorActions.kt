@@ -113,14 +113,13 @@ class MotorActions(val motorControl: MotorControl) {
         )
     )
 
-    fun intakePresetStart(extendoPosition: Double = 800.0) = ParallelAction(
+    fun intakePresetStart(extendoPosition: Double) = ParallelAction(
         extendoArm.moveDown(),
         extendo.setTargetPosition(extendoPosition),
         InstantAction { motorControl.intake.intake() }
     )
 
     fun intakePresetFinish() = SequentialAction(
-
         RaceParallelAction(
             { motorControl.eColor.color == Color.NONE },
             SleepAction(1.0)
@@ -132,7 +131,7 @@ class MotorActions(val motorControl: MotorControl) {
         SleepAction(0.1)
     )
 
-    fun intakePreset() = SequentialAction(intakePresetStart(), intakePresetFinish())
+    fun intakePreset(extendoPosition: Double = 800.0) = SequentialAction(intakePresetStart(extendoPosition), intakePresetFinish())
 
     fun intakeAutoHpEject(drive: MecanumDrive) = SequentialAction(
         IfAction(

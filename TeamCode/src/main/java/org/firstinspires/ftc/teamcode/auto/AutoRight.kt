@@ -26,14 +26,14 @@ class AutoRight : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.675
         val scoreXPos = 15.75
-        val hpPose = Pose2d(xPos, -49.65, toRadians(-90.0))
+        val hpPose = Pose2d(xPos, -49.45, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
         val depositY1 = 2.5
         val depositY2 = 0.0
         val depositY3 = -2.5
         val depositY4 = -5.0
 
-        val intakeY1 = -13.0
+        val intakeY1 = -15.0
         val intakeY2 = -5.0
         val intakeY3 = 1.0
 
@@ -71,12 +71,12 @@ class AutoRight : LinearOpMode() {
             .setTangent(toRadians(90.0))
             .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
             .splineToSplineHeading(
-                Pose2d(xPos - 2.0, -30.0, toRadians(210.0)),
+                Pose2d(xPos - 1.75, -30.0, toRadians(210.0)),
                 toRadians(90.0)
             )
 
             .splineToConstantHeading(
-                Vector2d(xPos - 2.0, -7.0),
+                Vector2d(xPos - 1.75, -7.0),
                 toRadians(90.0)
             )
             .splineToSplineHeading(Pose2d(scoreXPos, depositY1,toRadians(180.0)), toRadians(80.0))
@@ -87,7 +87,7 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             //.splineToConstantHeading(Vector2d(xPos, -20.), toRadians(-90.0))
-            .afterTime(0.5, motorActions.intakePresetStart())
+            .afterTime(0.7, motorActions.intakePreset())
             .splineToSplineHeading(Pose2d(xPos, intakeY1, toRadians(180.0)), toRadians(-90.0))
             .stopAndAdd(motorActions.intakePresetFinish())
             // third preset
@@ -135,7 +135,7 @@ class AutoRight : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             // first preset
-            .afterTime(0.0, motorActions.intakePresetStart(300.0))
+            .afterTime(0.0, motorActions.intakePreset(300.0))
             .splineToConstantHeading(Vector2d(xPos, intakeY3), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePresetFinish())
             .setTangent(toRadians(-90.0))

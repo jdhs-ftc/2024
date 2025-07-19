@@ -234,6 +234,9 @@ class TeleopActions : ActionOpMode() {
             val padScoreChamber = !(gamepad2.left_trigger > 0.3) && previousGamepad2.left_trigger > 0.3
             val padMoveHp = gamepad2.cross && !previousGamepad2.cross
 
+            val padLowBarPreset = currentGamepad2.dpad_up && !previousGamepad2.dpad_up
+            val padLowBarPresetRelease = !currentGamepad2.dpad_up && previousGamepad2.dpad_up
+
 
             // Auto Tele
             val padAutoDrive = false//gamepad2.triangle && !previousGamepad2.triangle
@@ -576,6 +579,14 @@ class TeleopActions : ActionOpMode() {
             }
             if (padIntakeExtendoOut) {
                 run(UniqueAction(motorActions.intakeOut()))
+            }
+            // 566
+            if (padLowBarPreset) {
+                motorControl.depositClaw.close()
+                motorControl.deposit.targetPosition = 566.0
+            }
+            if (padLowBarPresetRelease) {
+                motorControl.deposit.targetPosition = 20.0
             }
 
 
