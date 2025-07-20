@@ -25,16 +25,15 @@ class AutoLeft : LinearOpMode() {
     override fun runOpMode() {
         val xPos = 11.4
         val scoreXPos = 15.75
-        val hpPose = Pose2d(xPos, -48.25, toRadians(-90.0))
+        val hpPose = Pose2d(xPos, -49.45, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
         val startPoseMirrored = Pose2d(-startPose.position.x,startPose.position.y,startPose.heading.log())
-        val depositY1 = 2.5
+        val depositY1 = 2.0
         val depositY2 = 0.0
-        val depositY3 = -2.5
-        val depositY4 = -5.0
+        val depositY3 = -2.0
 
-        val intakeY1 = -7.0
-        val intakeY2 = 1.0
+        val intakeY1 = -10.0
+        val intakeY2 = -1.0
         val intakeY3 = 2.5
 
 
@@ -134,29 +133,14 @@ class AutoLeft : LinearOpMode() {
             )
             .setTangent(toRadians(-130.0))
             // first preset
-            .afterTime(0.0, motorActions.intakePreset(300.0))
+            .afterTime(0.5, motorActions.intakePreset(300.0))
             .splineToConstantHeading(Vector2d(xPos, intakeY3), toRadians(-90.0))
             .stopAndAddHold(motorActions.intakePresetFinish())
             .setTangent(toRadians(-90.0))
             .splineToConstantHeading(Vector2d(xPos, -24.0), toRadians(-90.0))
             .afterTime(0.5, motorActions.intakeAutoHpEject(drive))
             .splineToSplineHeading(hpPose, toRadians(-90.0))
-            // intake reverse + grab hp
-            .stopAndAddHold(
-                SequentialAction(
-                    motorActions.depositPickupWall(),
-                )
-            )
-
-            .setTangent(toRadians(90.0))
-            .splineToSplineHeading(Pose2d(xPos, -26.0, toRadians(180.0)), toRadians(90.0))
-            .afterTime(0.0, motorActions.depositMoveChamberFarNoGrab())
-            .splineToConstantHeading(Vector2d(scoreXPos + 0.6, depositY4), toRadians(80.0))
-            .stopAndAddHold( // 4th spec score
-                SequentialAction(
-                    motorActions.depositScoreChamberFar()
-                )
-            )
+            .waitSeconds(5.0)
 
             .build()
 
@@ -164,6 +148,16 @@ class AutoLeft : LinearOpMode() {
         runBlocking(motorActions.depositArm.moveDown())
 
         while (opModeInInit()) {
+            if (motorControl.topLight.color == Color.GREEN && motorControl.eColor.color != Color.NONE) {
+                if (motorControl.eColor.color == Color.BLUE) {
+                    PoseStorage.currentTeam = Team.BLUE
+                    motorControl.topLight.color = Color.BLUE
+                }
+                if (motorControl.eColor.color == Color.RED) {
+                    PoseStorage.currentTeam = Team.RED
+                    motorControl.topLight.color = Color.RED
+                }
+            }
             if (gamepad1.dpad_left) {
                 PoseStorage.currentTeam = Team.BLUE
                 motorControl.topLight.color = Color.BLUE

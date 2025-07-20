@@ -28,10 +28,10 @@ class AutoRight : LinearOpMode() {
         val scoreXPos = 15.75
         val hpPose = Pose2d(xPos, -49.45, toRadians(-90.0))
         val startPose = Pose2d(29.7, -61.5, toRadians(90.0))
-        val depositY1 = 2.5
+        val depositY1 = 2.0
         val depositY2 = 0.0
-        val depositY3 = -2.5
-        val depositY4 = -5.0
+        val depositY3 = -2.0
+        val depositY4 = -4.0
 
         val intakeY1 = -15.0
         val intakeY2 = -5.0

@@ -121,7 +121,7 @@ class MotorActions(val motorControl: MotorControl) {
 
     fun intakePresetFinish() = SequentialAction(
         RaceParallelAction(
-            { motorControl.eColor.color == Color.NONE },
+            { motorControl.eColor.color != PoseStorage.currentTeam.color },
             SleepAction(1.0)
         ),
         InstantAction { motorControl.intake.stop() },
